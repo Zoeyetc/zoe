@@ -1,21 +1,23 @@
-# Z.land Music Box — Ride Map v0.1
+# Z.land Music Box — Ride Map v0.2
 
 ## 1. Purpose
 
-This document defines the current musical and physical responsibilities of
-Z.land Music Box actors.
+This document defines the current musical, physical, and evidence-level
+responsibilities of Z.land Music Box actors.
 
 It exists to prevent role drift.
 
 Each actor must have:
 
 - a distinct musical responsibility
+- explicit musical evidence
 - a distinct physical language
 - actor-local simulation ownership
 - explicit AudioWorld inputs
 - explicit PhysicsWorld roles
-- explicit seek / pause / reset behavior
+- explicit seek / pause / restart behavior
 - a renderer that does not become simulation truth
+- a clear distinction between musical evidence and presentation
 
 The current actor set is:
 
@@ -26,33 +28,35 @@ PirateShip
 BumperCars
 DropTower
 RollerCoaster
-Free Bodies / Orb / Balloon
+Free Bodies / Orb
 ```
 
 These mappings are current design contracts.
 
-Do not silently reassign musical responsibilities between actors.
+Do not silently reassign them.
 
 ---
 
-# 2. Shared actor contract
+## 2. Shared actor model
 
 All musical actors conceptually follow:
 
 ```text
 AudioWorld
-    ↓
-musical state / events
-    ↓
+↓
+Musical Evidence
+↓
 Actor Interpretation
-    ↓
+↓
 Actor-local Simulation
-    ↓
+↓
 Physical State
-    ↓
-PhysicsWorld registration
-    ↓
+↓
+PhysicsWorld participation where relevant
+↓
 Renderer
+↓
+Experience Composition
 ```
 
 An actor may consume:
@@ -60,22 +64,115 @@ An actor may consume:
 - continuous AudioSnapshot values
 - discrete AudioEvents
 - PhysicsWorld forces
-- user interaction explicitly allowed by that actor
+- explicit user interaction where appropriate
 
-An actor must not independently analyze the raw audio source.
+An actor must not independently analyze raw audio.
 
-An actor must not own the authoritative musical clock.
+An actor must not own authoritative musical time.
 
 ---
 
-# 3. Shared actor lifecycle
+## 3. Musical evidence vs actor behavior
 
-Every actor should eventually support the following conceptual lifecycle:
+This distinction is mandatory.
+
+### Musical Evidence
+
+Answers:
+
+```text
+what actually exists in the music?
+```
+
+Examples:
+
+```text
+G4
+C major = C / E / G
+kick
+swing = 0.65
+build = 0.82
+drop event
+phrase tension rising
+```
+
+### Actor Interpretation
+
+Answers:
+
+```text
+what does this machine do with that evidence?
+```
+
+Examples:
+
+```text
+G4
+→ Carousel local carrier expression
+```
+
+```text
+C / E / G
+→ FerrisWheel harmonic carriers active simultaneously
+```
+
+```text
+kick
+→ BumperCars impulse
+```
+
+### Presentation
+
+Answers:
+
+```text
+how should the visitor notice it?
+```
+
+Examples:
+
+- line weight
+- contrast
+- local illumination
+- region emphasis
+- camera focus
+
+Presentation may change.
+
+Musical evidence must not.
+
+---
+
+## 4. Evidence rule
+
+If an actor-local visual element represents a musical fact, that element must
+correspond to real AudioWorld data.
+
+Do not:
+
+- activate extra carriers for symmetry
+- omit real tones because the scene looks crowded
+- trigger fake musical events to keep motion interesting
+- use region highlights as substitutes for exact evidence
+- invent confidence
+
+A useful rule:
+
+```text
+If it looks like musical evidence,
+it must be musical evidence.
+```
+
+---
+
+## 5. Shared actor lifecycle
+
+Every actor should conceptually support:
 
 ```text
 initialize
 ↓
-idle / resting
+resting
 ↓
 musically active
 ↓
@@ -88,40 +185,42 @@ resting
 
 Actors may remain physically present while musically inactive.
 
-Inactive does not necessarily mean hidden.
+Inactive does not mean hidden.
 
 ---
 
-# 4. Shared synchronization rules
+## 6. Shared synchronization rules
 
-## Play
+### Play
 
 When musical transport begins:
 
-- the actor reads the current AudioSnapshot
-- relevant future AudioEvents may affect it
-- it must not assume playback always starts from time zero
+- the actor reads current AudioSnapshot
+- future AudioEvents may affect it
+- playback may begin from any valid transport time
+- do not assume start time is always zero
 
 ---
 
-## Pause
+### Pause
 
-Pause stops new musical progression.
+Pause stops musical progression.
 
-Pause does not automatically erase actor velocity or PhysicsWorld energy.
+Pause does not automatically erase physical state.
 
-Actor-specific behavior determines whether:
+Depending on actor semantics:
 
-- existing motion continues
-- motion damps naturally
-- a held musical state is preserved
-- an actor deliberately freezes for musical reasons
+- motion may continue
+- inertia may continue
+- gravity may continue
+- springs may settle
+- a held state may remain held
 
 Pause behavior must be explicit per actor.
 
 ---
 
-## Seek
+### Seek
 
 Seek is synchronization.
 
@@ -132,51 +231,43 @@ On seek:
 ```text
 old time
 ↓
-seek
+new musical time
 ↓
 new AudioSnapshot
 ↓
-actor reconciles
+actor reconciliation
 ```
 
-The actor must not replay every skipped musical event.
+Do not replay skipped musical history.
 
-Actor-specific seek behavior must define:
+Each actor must define:
 
-- which continuous state synchronizes immediately
-- which physical state is preserved
-- which transient state is discarded
-- whether a controlled visual reconciliation is required
-
----
-
-## Restart
-
-Restart moves musical transport to time zero.
-
-Actor state may:
-
-- reset immediately
-- settle back
-- use a controlled reset transition
-
-depending on actor semantics.
-
-Do not assume all actors must teleport to initial state.
+- which evidence synchronizes immediately
+- what physical state remains continuous
+- what transient state is discarded
+- whether controlled reconciliation is needed
 
 ---
 
-## Song replacement
+### Restart
 
-Replacing AudioMap must not require actor implementation to be recreated.
+Restart returns musical transport to the beginning.
 
-Actors receive a new musical source through AudioWorld.
+Actors may restore deterministic initial state.
 
-Actor-specific state may need reset or reconciliation.
+Do not invent a new global reset architecture for one actor.
 
 ---
 
-# 5. Musical timescale hierarchy
+### Song replacement
+
+Replacing AudioMap must not require actor recreation.
+
+Actors receive new musical evidence through AudioWorld.
+
+---
+
+## 7. Timescale hierarchy
 
 Actors intentionally operate at different musical timescales.
 
@@ -185,27 +276,26 @@ fast transient
 │
 ├── BumperCars
 │
-├── Carousel note events
+├── Carousel note evidence
 │
 ├── PirateShip rhythmic phase
 │
-├── FerrisWheel harmony
+├── FerrisWheel sustained harmony
 │
-├── RollerCoaster phrase
+├── DropTower structural build/drop
 │
-└── DropTower structural event
+└── RollerCoaster phrase development
 │
 slow structural
 ```
 
-Free Bodies may operate across several timescales depending on atmosphere and
-PhysicsWorld input.
+Free Bodies may operate across atmospheric and physical timescales.
 
-Do not make every actor react visibly to every beat.
+Do not make every actor respond visibly to every beat.
 
 ---
 
-# 6. Carousel
+# 8. Carousel
 
 ## Musical responsibility
 
@@ -214,14 +304,53 @@ Carousel represents:
 ```text
 MELODY
 PITCH
+NOTE IDENTITY
 NOTE EXPRESSION
 ```
 
-It is the primary melodic actor.
+Carousel is the primary melodic transcription actor.
 
-Carousel must not become the harmony actor.
+It must not become:
 
-Carousel must not become the general rhythm actor.
+- harmony actor
+- general rhythm actor
+- generic amplitude visualizer
+
+---
+
+## Exact musical evidence
+
+Carousel must expose precise note evidence.
+
+Conceptually:
+
+```text
+specific melody note
+→ identifiable local carrier response
+```
+
+Examples:
+
+```text
+G4
+→ G4-compatible carrier / local pitch expression
+```
+
+```text
+A4
+→ A4-compatible carrier / local pitch expression
+```
+
+The exact carrier-mapping strategy may evolve.
+
+The evidence rule does not:
+
+```text
+randomly choose visually convenient carriers
+```
+
+If a local activation visually claims a note identity, it must correspond to
+the actual active note.
 
 ---
 
@@ -236,22 +365,27 @@ melody.available
 melody.active
 melody.midi
 melody.pitchHz
+melody.noteName
 melody.noteProgress
 melody.intensity
 melody.confidence
 
-rhythm.bpm
 transport.time
 ```
 
-BPM may influence broad rotational pacing, but must not replace melodic
-interpretation.
+Optional:
+
+```text
+rhythm.bpm
+```
+
+only for broad mechanical pacing.
+
+BPM must not replace melody interpretation.
 
 ---
 
 ### Discrete
-
-From AudioEvents:
 
 ```text
 note-on
@@ -259,14 +393,8 @@ note-off
 seek
 ```
 
-Potential future events:
-
-```text
-phrase-change
-melodic-accent
-```
-
-only if Story Map later requires them.
+Potential future phrase-level melody events may be added only when a current
+milestone requires them.
 
 ---
 
@@ -275,108 +403,112 @@ only if Story Map later requires them.
 Carousel owns:
 
 ```text
-orbit
-angular position
+central mechanical axis
+base rotation
 angular velocity
 angular inertia
-rider targeting
-individual rider vertical expression
+media-neutral carriers
+carrier poles / mounts
+carrier-local vertical expression
 ```
 
-The Carousel should feel like one mechanical rotational system.
+The Carousel behaves as one rotating machine.
 
-It is not a set of independently animated icons.
-
----
-
-## Existing useful mechanics
-
-Existing Carousel work already contains useful ideas:
-
-- orbital distribution
-- projection
-- angular velocity
-- inertia
-- drag interaction
-- selected-item targeting
-- front/back depth ordering
-
-These mechanics should be preserved when migrating.
-
-Its existing decorative bob clock must not remain the source of musical
-vertical motion.
+Its carriers are not independent orbiting widgets.
 
 ---
 
-## Melody interpretation
+## Mechanical vs musical motion
+
+Keep two motion channels separate.
+
+### Mechanical motion
+
+```text
+base angle
+angular velocity
+inertia
+settling
+```
+
+### Musical evidence motion
+
+```text
+active note
+pitch target
+carrier expression
+note envelope
+```
+
+Do not make note changes rotate the whole Carousel toward note positions.
+
+Fast melody must not make the machine twitch.
+
+---
+
+## Pitch interpretation
+
+Pitch should use bounded mapping.
 
 Conceptually:
 
 ```text
-pitch
+midi / pitch
 ↓
-vertical target / rider height
+normalize within useful musical range
+↓
+bounded carrier vertical target
 ```
 
-```text
-note-on
-↓
-activate / emphasize melodic rider
-```
+Do not use unbounded raw MIDI-to-pixel mapping.
 
-```text
-note duration
-↓
-expression envelope
-```
-
-```text
-note intensity
-↓
-response amplitude
-```
-
-```text
-phrase movement
-↓
-overall rotational development
-```
-
-The exact visual mapping is not locked.
+Future song-aware range strategies may evolve.
 
 ---
 
-## Important constraint
+## Carrier representation
 
-Do not force the entire Carousel to rotate to a new selected rider on every
-rapid melody note.
+Carousel carriers must remain media-neutral.
 
-Fast melody would produce visual twitching.
+Do not use:
 
-Separate:
+- horses
+- animals
+- mascots
+- nostalgic fairground characters
 
-```text
-overall Carousel motion
-```
+Acceptable carrier concepts:
 
-from:
+- rounded plate
+- capsule
+- suspended platform
+- media holder
+- abstract mount
 
-```text
-individual note expression
-```
+Future media may include:
+
+- image
+- logo
+- icon
+- text
+- album artwork
+- 3D object
+- shader
+
+The mechanical system must not depend on carrier content.
 
 ---
 
 ## Actor-owned state
 
-Likely actor-local state includes:
+Likely state includes:
 
 ```text
 angle
 angularVelocity
-targetAngle
-riderStates[]
-selected / active musical rider
+target mechanical drive
+carrierStates[]
+active musical carrier
 expression envelopes
 ```
 
@@ -384,18 +516,23 @@ Exact implementation may evolve.
 
 ---
 
-## PhysicsWorld roles
+## PhysicsWorld role
 
-Carousel may register as:
+Current default:
 
 ```text
-Dynamic Body / autonomous actor
-Force Source — optional
-Collider — optional
-Physics Receiver — optional
+Autonomous Actor
 ```
 
-Early milestone does not require Carousel to emit strong cross-world forces.
+Possible future:
+
+```text
+Force Source — optional
+Physics Receiver — optional
+Collider — optional
+```
+
+Do not enable extra roles without an experience requirement.
 
 ---
 
@@ -403,12 +540,11 @@ Early milestone does not require Carousel to emit strong cross-world forces.
 
 On seek:
 
-- synchronize active melody state to the new AudioSnapshot
-- discard obsolete note envelopes
-- do not replay skipped note-on events
-- reconcile Carousel presentation to the current musical phrase
-
-Do not spin through every skipped note.
+- synchronize active melody evidence
+- discard obsolete transient note envelopes where appropriate
+- do not replay skipped note-ons
+- do not rotate through skipped notes
+- preserve mechanical continuity where possible
 
 ---
 
@@ -416,26 +552,34 @@ Do not spin through every skipped note.
 
 On pause:
 
+- no new note progression
 - no new note events
-- existing angular inertia may settle naturally
-- current sustained note expression may remain or decay according to design
+- mechanical inertia may continue settling
+- current carrier expression may decay naturally
 
-Do not automatically snap Carousel to zero angle.
+Do not snap to zero angle.
 
 ---
 
 ## Reduced motion
 
-Reduced-motion mode should preserve:
+Preserve:
 
-- current melody identity
-- readable rider state
+```text
+exact note identity
+```
 
-while reducing or removing continuous orbit and strong vertical motion.
+Reduce:
+
+- continuous rotation
+- large vertical travel
+- prolonged movement
+
+Do not replace note evidence with generic blinking.
 
 ---
 
-# 7. FerrisWheel
+# 9. FerrisWheel
 
 ## Musical responsibility
 
@@ -443,11 +587,38 @@ FerrisWheel represents:
 
 ```text
 HARMONY
-CHORDS
+CHORD IDENTITY
+SIMULTANEOUS CHORD-TONE MEMBERSHIP
 SUSTAINED HARMONIC RELATIONSHIPS
 ```
 
-FerrisWheel must remain slower and more persistent than Carousel.
+FerrisWheel is the primary harmony-transcription actor.
+
+It must remain distinct from Carousel.
+
+---
+
+## Exact musical evidence
+
+Harmony must preserve simultaneity.
+
+Examples:
+
+```text
+C major
+→ C + E + G
+```
+
+```text
+A minor
+→ A + C + E
+```
+
+The corresponding harmonic carriers should activate simultaneously.
+
+This is not decorative grouping.
+
+It is musical evidence.
 
 ---
 
@@ -459,11 +630,19 @@ FerrisWheel must remain slower and more persistent than Carousel.
 harmony.available
 harmony.chord
 harmony.rootPitchClass
+harmony.pitchClasses
 harmony.confidence
 
-structure.energy
 transport.time
 ```
+
+Optional secondary:
+
+```text
+structure.energy
+```
+
+for bounded mechanical activity only.
 
 ---
 
@@ -471,9 +650,16 @@ transport.time
 
 ```text
 chord-change
-section-change — optional secondary use
 seek
 ```
+
+Optional:
+
+```text
+section-change
+```
+
+only if later justified.
 
 ---
 
@@ -482,47 +668,101 @@ seek
 FerrisWheel owns:
 
 ```text
-slow rotation
+large wheel rotation
 wheel angular velocity
 suspended cabins
+gravity-oriented cabin pose
 cabin swing
-gravity-stabilized orientation
-harmonic persistence
+harmonic carrier activation
 ```
 
-The characteristic FerrisWheel property is important:
+The key mechanical distinction:
 
-> the wheel rotates while cabins remain gravity-oriented.
+```text
+wheel rotates
+while
+cabins remain approximately upright
+```
 
-This distinguishes FerrisWheel from Carousel.
+Do not make cabins rigidly rotate with wheel orientation.
 
 ---
 
-## Harmony interpretation
+## Harmonic carrier mapping
 
-Potential mapping:
+Current validated design uses:
 
 ```text
-chord identity
-↓
-cabin relationship / visual grouping
+12 abstract cabins
+→ 12 pitch classes
+```
+
+Current chord tones activate exact matching cabins.
+
+This provides a strong spatial harmonic representation.
+
+Do not silently replace this with:
+
+```text
+whole wheel glow
+```
+
+or:
+
+```text
+random cabin emphasis
+```
+
+Whole-wheel behavior may exist as secondary mechanics.
+
+Local carrier identity remains the evidence layer.
+
+---
+
+## Harmonic simultaneity
+
+FerrisWheel must visually support several active harmonic carriers at once.
+
+This is a key distinction from Carousel.
+
+Carousel:
+
+```text
+primarily sequential melodic identity
+```
+
+FerrisWheel:
+
+```text
+simultaneous harmonic membership
+```
+
+Do not make FerrisWheel behave like a circular piano roll.
+
+---
+
+## Chord interpretation
+
+Possible actor-local interpretation:
+
+```text
+chord membership
+→ exact active carriers
 ```
 
 ```text
 chord duration
-↓
-sustained rotational state
+→ sustained carrier state
 ```
 
 ```text
 chord change
-↓
-slow transition / acceleration / cabin response
+→ carrier reassignment
 ```
 
-Do not make every chord produce a sudden impulse.
+Mechanical wheel rotation should remain physically continuous.
 
-Harmony is persistent.
+Do not teleport wheel angle because root pitch changed.
 
 ---
 
@@ -533,24 +773,30 @@ Likely:
 ```text
 wheelAngle
 wheelAngularVelocity
-cabins[]
+wheelDrive
 cabinSwing[]
+cabinAngularVelocity[]
+activePitchClasses[]
 ```
 
 ---
 
-## PhysicsWorld roles
+## PhysicsWorld role
 
-Potential:
+Current default:
 
 ```text
-Dynamic Body / autonomous actor
+Autonomous Actor
+```
+
+Possible future:
+
+```text
 Force Source — subtle / optional
 Collider — optional
 ```
 
-FerrisWheel should usually produce lower-frequency environmental effects than
-RollerCoaster or BumperCars.
+No shared-world effect should be added without a defined use case.
 
 ---
 
@@ -558,32 +804,43 @@ RollerCoaster or BumperCars.
 
 On seek:
 
-- synchronize harmonic identity immediately
-- wheel angle may reconcile continuously rather than teleport
-- skipped chord changes are not replayed
+- synchronize exact active chord
+- synchronize exact chord-tone carriers
+- do not replay skipped chord-change events
+- wheel mechanical state may remain continuous
 
 ---
 
 ## Pause behavior
 
-FerrisWheel may continue slowly settling after musical pause.
+On pause:
 
-Cabin swing may continue damping.
+- harmony progression stops
+- wheel inertia may continue
+- cabin swing may continue damping
+- active chord identity may remain visible
 
 ---
 
 ## Reduced motion
 
-May preserve:
+Preserve:
 
-- static wheel composition
-- harmonic grouping
+```text
+exact active harmonic carriers
+```
 
-while disabling sustained rotation.
+Reduce:
+
+- wheel rotation
+- cabin swing
+- continuous mechanical movement
+
+Do not reduce harmony to a generic chord label only.
 
 ---
 
-# 8. PirateShip
+# 10. PirateShip
 
 ## Musical responsibility
 
@@ -595,7 +852,26 @@ SWING
 CONTINUOUS RHYTHMIC PHASE
 ```
 
-PirateShip is not a percussion event visualizer.
+PirateShip is not a percussion-event actor.
+
+---
+
+## Musical evidence
+
+PirateShip exposes continuous timing character rather than discrete note
+identity.
+
+Relevant evidence includes:
+
+```text
+beatPhase
+barPhase
+groove
+swing
+bpm
+```
+
+This evidence is continuous.
 
 ---
 
@@ -605,24 +881,26 @@ PirateShip is not a percussion event visualizer.
 
 ```text
 rhythm.available
+rhythm.bpm
 rhythm.beatPhase
 rhythm.barPhase
 rhythm.groove
 rhythm.swing
-rhythm.bpm
 ```
 
-Potential secondary:
+Optional secondary:
 
 ```text
 structure.energy
 ```
 
+for bounded amplitude only.
+
 ---
 
 ### Discrete
 
-PirateShip should require relatively few discrete musical events.
+Minimal.
 
 Possible:
 
@@ -631,7 +909,7 @@ downbeat
 seek
 ```
 
-But continuous rhythmic phase remains primary.
+Continuous phase remains primary.
 
 ---
 
@@ -642,11 +920,10 @@ PirateShip owns:
 ```text
 pendulum angle
 angular velocity
-oscillation
-weight transfer
-period
-amplitude
-phase
+drive torque
+damping
+target phase relationship
+amplitude envelope
 ```
 
 ---
@@ -657,70 +934,61 @@ Conceptually:
 
 ```text
 beatPhase
-↓
-pendulum phase relationship
+→ phase relationship
 ```
 
 ```text
 swing
-↓
-temporal asymmetry
+→ timing asymmetry
 ```
 
 ```text
 groove
-↓
-motion character / phase offset / amplitude response
+→ drive waveform / timing character
 ```
 
 ```text
 energy
-↓
-maximum expressive amplitude
+→ bounded expressive amplitude
 ```
 
-PirateShip should not merely oscillate as a sine wave unrelated to musical
-phase.
+Do not reduce swing to:
+
+```text
+more swing
+→ larger angle
+```
+
+Temporal asymmetry must remain part of the interpretation.
 
 ---
 
 ## Important constraint
 
-Do not make audio directly set:
+Do not directly assign:
 
 ```text
-shipAngle = beatPhase * angle
+shipAngle = beatPhase
 ```
 
-if doing so destroys the physical pendulum character.
+AudioWorld provides rhythmic truth.
 
-Musical phase may influence targets or driving force.
-
-The actor simulation still owns the physical motion.
+Actor simulation owns physical angle.
 
 ---
 
-## Actor-owned state
+## PhysicsWorld role
 
-Likely:
+Current default:
 
 ```text
-angle
-angularVelocity
-drive
-targetPhase
-amplitude
+Autonomous Actor
 ```
 
----
-
-## PhysicsWorld roles
-
-Potential:
+Possible future:
 
 ```text
-Dynamic Body
-Force Source — optional periodic field
+Force Source — optional
 Collider — optional
 ```
 
@@ -731,34 +999,43 @@ Collider — optional
 On seek:
 
 - synchronize musical phase target
-- do not replay missed swings
-- actor may reconcile from current physical angle toward new phase relationship
+- do not replay skipped swings
+- reconcile physical state toward current phase relationship
 
 ---
 
 ## Pause behavior
 
-Musical drive stops.
+On pause:
 
-Pendulum may continue physically oscillating and damping.
-
-This is desirable.
+- musical drive stops progressing
+- existing angular velocity remains
+- pendulum continues damping
 
 ---
 
 ## Reduced motion
 
-Reduce amplitude substantially.
+Preserve:
 
-Preserve rhythmic identity through restrained movement if appropriate.
+```text
+rhythmic phase identity
+```
+
+Reduce:
+
+- angular amplitude
+- prolonged oscillation
+
+Do not turn PirateShip into a percussion flash.
 
 ---
 
-# 9. BumperCars
+# 11. BumperCars
 
 ## Musical responsibility
 
-BumperCars represent:
+BumperCars represents:
 
 ```text
 PERCUSSION
@@ -766,7 +1043,24 @@ TRANSIENT IMPULSES
 COLLISION ENERGY
 ```
 
-They are the primary discrete rhythmic physics actor.
+This is the primary discrete rhythmic physics actor.
+
+---
+
+## Musical evidence
+
+Relevant exact evidence includes:
+
+```text
+kick
+snare
+hat
+beat / downbeat where intentionally used
+event strength
+event timestamp
+```
+
+A BumperCars musical impulse should correspond to an actual percussion event.
 
 ---
 
@@ -781,9 +1075,9 @@ structure.energy
 spectrum.bassEnergy
 ```
 
-These may influence global cruise energy.
+for bounded ambient/cruise behavior only.
 
-They must not replace event-driven impulses.
+They must not replace event semantics.
 
 ---
 
@@ -795,70 +1089,61 @@ Primary:
 kick
 snare
 hat
-beat
-downbeat
 seek
 ```
 
-Not every implementation must use all percussion event types.
+Beat/downbeat may be used only when deliberately designed.
 
 ---
 
 ## Physical language
 
-BumperCars own:
+BumperCars owns:
 
 ```text
 position
 velocity
 heading
+rotation
 angularVelocity
 collision bounds
 body/body collision
 wall collision
 restitution
 damping
+speed limits
 ```
 
 ---
 
 ## Percussion interpretation
 
-Possible first mapping:
+Current actor-local semantics may include:
 
 ```text
 kick
-↓
-strong linear impulse
+→ stronger linear impulse
 ```
 
 ```text
 snare
-↓
-lateral or angular impulse
+→ lateral + angular impulse
 ```
 
 ```text
 hat
-↓
-small perturbation
+→ small perturbation
 ```
 
-```text
-onset strength
-↓
-impulse magnitude
-```
-
-The exact mapping is provisional.
+The exact mapping may evolve.
 
 ---
 
-## Critical rule
+## Critical causal rule
 
-AudioWorld creates the initial impulse.
+AudioWorld creates the initial musical cause.
 
-AudioWorld does NOT author collision outcomes.
+Simulation creates the physical consequence.
 
 Correct:
 
@@ -867,60 +1152,57 @@ kick
 ↓
 Car A impulse
 ↓
-Car A hits Car B
+Car A reaches Car B
 ↓
-Car B moves
+real collision
+↓
+Car B motion
 ```
 
 Incorrect:
 
 ```text
 kick
-↓
-animate Car A collision
-
-kick
-↓
-animate Car B response
+→ animate Car A
+→ animate Car B
 ```
 
 ---
 
-## Actor-owned state
+## PhysicsWorld role
 
-Likely:
-
-```text
-bodies[]
-arena bounds
-collision state
-```
-
-Each body may own:
+Validated:
 
 ```text
-position
-velocity
-rotation
-angularVelocity
-mass
-radius / bounds
+Dynamic Body
+Collider
+Physics Receiver
+PhysicsWorld impact producer
 ```
+
+A meaningful actual collision may publish a transient shared impact.
+
+Shared impact strength must derive from physical collision data.
+
+Not directly from musical event strength.
 
 ---
 
-## PhysicsWorld roles
+## Shared-impact evidence
 
-Strong:
+The validated causal chain is:
 
 ```text
-Dynamic Body ✓
-Collider ✓
-Physics Receiver ✓
-Force Source ✓ where appropriate
+percussion event
+→ BumperCars impulse
+→ real collision
+→ PhysicsWorld impact
+→ external anchored content response
 ```
 
-BumperCars are one of the clearest PhysicsWorld-native actors.
+This is an established contract.
+
+Do not bypass it.
 
 ---
 
@@ -928,39 +1210,47 @@ BumperCars are one of the clearest PhysicsWorld-native actors.
 
 On seek:
 
-- do not replay skipped percussion impulses
-- current physical body state may be preserved or deliberately reconciled
-- future percussion events resume from new transport time
-
-The default should favor preserving current physical state rather than
-teleporting every car.
+- do not replay skipped percussion events
+- do not synthesize historical collisions
+- preserve or reconcile current physical state according to current behavior
+- future events resume normally
 
 ---
 
 ## Pause behavior
 
-No new percussion impulses.
+On pause:
 
-Existing collisions and damping continue until the arena settles.
+- no new percussion events
+- existing physical energy remains
+- collisions may still occur
+- post-pause real collisions may still emit PhysicsWorld impacts
 
 ---
 
 ## Restart behavior
 
-A deterministic development mode should be able to reset bodies using a known
-initial seed/state.
+Restore deterministic known initial body state.
+
+Clear stale shared collision effects according to PhysicsWorld reset semantics.
 
 ---
 
 ## Reduced motion
 
-Use substantially reduced impulse strength and collision movement.
+Preserve percussion identity.
 
-A static fallback may be preferable depending on final accessibility design.
+Reduce:
+
+- impulse magnitude
+- angular motion
+- prolonged chaotic collision
+
+Do not replace real event identity with decorative flashes.
 
 ---
 
-# 10. DropTower
+# 12. DropTower
 
 ## Musical responsibility
 
@@ -969,12 +1259,29 @@ DropTower represents:
 ```text
 BUILD
 TENSION
-MAJOR DROP
-LARGE ACCENT
-BASS IMPACT
+EXPLICIT MAJOR DROP
+LARGE STRUCTURAL RELEASE
+REBOUND
 ```
 
-DropTower does NOT respond to every beat.
+DropTower does not respond to every beat.
+
+---
+
+## Musical evidence
+
+Relevant evidence includes:
+
+```text
+structure.available
+build
+tension
+energy
+drop event
+bassEnergy where available
+```
+
+The explicit `drop` event is especially important.
 
 ---
 
@@ -986,42 +1293,43 @@ DropTower does NOT respond to every beat.
 structure.build
 structure.tension
 structure.energy
-spectrum.bassEnergy
+spectrum.bassEnergy — optional
 ```
-
----
 
 ### Discrete
 
 ```text
 drop
-section-change — optional
-major accent — future if needed
 seek
+```
+
+Optional:
+
+```text
+section-change
 ```
 
 ---
 
 ## Physical language
 
-DropTower owns:
+Validated state machine:
 
 ```text
 IDLE
-LIFTING
-HOLDING
-DROPPING
-REBOUND
-SETTLING
+→ LIFTING
+→ HOLDING
+→ DROPPING
+→ REBOUND
+→ SETTLING
 ```
 
-Physical quantities may include:
+Possible physical state:
 
 ```text
 position
 velocity
-acceleration
-lift motor
+lift drive
 gravity
 braking
 rebound
@@ -1029,128 +1337,129 @@ rebound
 
 ---
 
-## Musical interpretation
+## Structural interpretation
 
 Conceptually:
 
 ```text
-build 0 → 1
-↓
-lift progression / lift drive
+build
+→ lift target / motor drive
 ```
 
 ```text
-high tension
-↓
-hold
+tension
+→ hold eligibility / preparation
 ```
 
 ```text
-drop event
-↓
-release
+explicit drop event
+→ release
 ```
 
 ```text
-bass energy
-↓
-drop / rebound expressive strength
+bass / energy
+→ bounded expressive strength
 ```
 
 ---
 
-## Important constraint
+## Critical evidence rule
 
-Do not force a DropTower release simply because:
+Do not trigger major release because:
 
 ```text
-energy > threshold
+energy is high
 ```
 
-when AudioMap explicitly provides a major `drop` event.
+if no explicit drop event exists.
 
-Structural event semantics should remain primary.
+The visible drop is evidence of a real structural event.
 
 ---
 
-## Actor-owned state
+## PhysicsWorld role
 
-Existing state machine should be preserved when migrated.
-
-Do not replace it with a keyframe timeline.
-
----
-
-## PhysicsWorld roles
-
-Potential:
+Current:
 
 ```text
-Dynamic Body
-Force Source
-Collider
+Autonomous Actor
 ```
 
-A major braking/rebound event may eventually emit environmental impulse.
+Future possible:
+
+```text
+Force Source at impact / rebound
+```
+
+Do not add shared impact until a dedicated milestone requires it.
 
 ---
 
 ## Seek behavior
 
-Seek is especially important.
+### Seek into build
 
-If the new time is:
+Reconcile toward compatible lifting state.
 
-```text
-inside build
-```
+### Seek into hold
 
-the tower should reconcile to the build state.
+Reconcile toward prepared / holding state.
 
-If:
+### Seek after drop
 
-```text
-after drop
-```
+Do not replay skipped drop.
 
-it must not replay the drop automatically merely because the seek crossed it.
-
-The actor needs a state reconciliation function based on current AudioSnapshot
-and nearby structural timeline information.
+Do not simulate historical freefall.
 
 ---
 
 ## Pause behavior
 
-Possible behavior depends on current phase.
-
-Examples:
+State-aware:
 
 ```text
 LIFTING
-→ motor input pauses or actor holds
+→ musical drive may stop / hold
+```
+
+```text
+HOLDING
+→ hold may remain
 ```
 
 ```text
 DROPPING
-→ physical fall should generally not freeze mid-air
+→ gravity generally continues
 ```
 
-This behavior must be designed explicitly during integration.
-
-Do not assume one global pause rule fits every DropTower phase.
+```text
+REBOUND / SETTLING
+→ damping continues
+```
 
 ---
 
 ## Reduced motion
 
-Do not perform sudden freefall.
+Preserve:
 
-Represent build/drop through restrained position or state changes.
+```text
+build
+hold
+release
+```
+
+Reduce:
+
+- freefall distance
+- speed
+- rebound amplitude
+
+Do not replace structural meaning with a flash.
 
 ---
 
-# 11. RollerCoaster
+# 13. RollerCoaster
 
 ## Musical responsibility
 
@@ -1161,10 +1470,28 @@ PHRASE
 ENERGY TRAJECTORY
 TENSION
 RELEASE
-LONG-FORM MUSICAL DEVELOPMENT
+LONG-FORM DEVELOPMENT
 ```
 
-It operates at a larger timescale than ordinary beat/percussion actors.
+It operates on a longer timescale than ordinary percussion.
+
+---
+
+## Musical evidence
+
+Relevant evidence includes:
+
+```text
+structure.available
+phraseProgress
+sectionProgress
+energy
+tension
+release region
+section-change where relevant
+```
+
+RollerCoaster is not a note or beat actor.
 
 ---
 
@@ -1177,20 +1504,21 @@ structure.energy
 structure.tension
 structure.phraseProgress
 structure.sectionProgress
-spectrum.bassEnergy — optional secondary influence
 ```
-
----
 
 ### Discrete
 
+Optional:
+
 ```text
 section-change
-drop — possible major release cue
 seek
 ```
 
-RollerCoaster should not react visibly to every ordinary beat.
+An explicit `drop` event may reinforce a major release only if deliberately
+designed.
+
+It does not define RollerCoaster's entire behavior.
 
 ---
 
@@ -1208,218 +1536,181 @@ gravity
 drag
 drive
 braking
-camera-independent world pose
+rider pose
 ```
 
-Current route concepts may include:
+Current validated route subset:
 
 ```text
-Lift
-Drop
-Loop
-Helix
-Runout
 Station
-```
-
-Not every final experience must use every segment.
-
----
-
-## Rider / media layer
-
-RollerCoaster trajectory and rider media are separate concepts.
-
-A ride may carry:
-
-```text
-Orb
-Text
-Title
-Slogan
-Image
-Logo
-Icon
-3D Object
-Shader
-Custom Media
-```
-
-The route defines motion.
-
-The media defines what rides it.
-
-Media changes must not automatically reset route physics.
-
-A future experience may hand off rider media while preserving:
-
-```text
-routeDistance
-velocity
-direction
-physical continuity
+→ Lift
+→ Drop
+→ Loop
+→ Runout
+→ Station
 ```
 
 ---
 
-## Musical interpretation
+## Canonical architecture
 
-Possible conceptual relationship:
+Use the newer segmented RollerCoaster architecture.
+
+Important concepts include:
 
 ```text
-low phrase energy
-↓
-restrained ride state
+Vec3
+TrackFrame
+SegmentGeometry
+Route
+RoutePiece
+HiddenConnector
+RideState
+persistent routeDistance
+segment-specific physics
 ```
 
+Do not restore old closed-loop modulo routing.
+
+---
+
+## Phrase interpretation
+
+Conceptually:
+
 ```text
-build
-↓
-lift / anticipation
+energy
+→ drive conditions
 ```
 
 ```text
 tension
-↓
-crest / hold / constrained state
+→ restraint / anticipation appropriate to current segment
 ```
 
 ```text
 release
-↓
-drop / acceleration
+→ reduced restraint / stronger momentum
 ```
+
+Do not implement:
 
 ```text
-high phrase energy
-↓
-high-momentum route section
+energy → direct velocity assignment
 ```
 
-Do not reduce this to:
+Do not implement:
 
 ```text
-energy = coaster speed
+phraseProgress → routeDistance
 ```
 
-The actor should interpret structure through its route and state machine.
+Musical evidence influences physical conditions.
+
+Simulation owns actual route progression.
 
 ---
 
-## Actor-owned state
+## Rider / media boundary
 
-The newer segmented RollerCoaster simulation is canonical.
+Route simulation and rider media are separate.
 
-Preserve its existing:
+Current development rider:
 
 ```text
-Route
-SegmentGeometry
-RideState
-velocity
-gravity
-drag
-connectors
-camera-independent simulation
+neutral Orb
 ```
 
-when migrating.
+Future media may include:
+
+- Text
+- Image
+- Logo
+- Icon
+- 3D
+- Shader
+- custom media
+
+Changing media must not reset:
+
+- routeDistance
+- velocity
+- direction
+- ride state
 
 ---
 
-## PhysicsWorld roles
+## PhysicsWorld role
 
-Strong:
-
-```text
-Force Source ✓
-Autonomous actor ✓
-Collider — optional
-Physics Receiver — optional
-```
-
-Primary environmental force:
+Current validated state:
 
 ```text
-airflow / wake
+Autonomous Actor
 ```
 
-Potential source properties:
+Next intended milestone:
 
 ```text
-position
-forward
-velocity
-acceleration
-airflowRadius
-airflowStrength
+Force Source
+→ directional wake
 ```
 
----
+The future wake must derive from:
 
-## Cross-world interaction
+- actual position
+- actual forward
+- actual physical speed
+- actual acceleration where used
 
-Example:
-
-```text
-phrase energy
-↓
-Coaster accelerates
-↓
-wake becomes stronger
-↓
-Orb receives force
-↓
-Orb trajectory changes
-```
-
-This must happen through PhysicsWorld.
-
-Do not directly animate the Orb from RollerCoaster musical state.
+Not directly from musical energy.
 
 ---
 
 ## Seek behavior
 
-Do not replay the complete route history between old and new song positions.
+Current strategy:
 
-RollerCoaster requires an actor-specific musical reconciliation strategy.
+- preserve route state where possible
+- update future musical driving conditions
+- do not replay skipped phrase history
+- do not directly derive routeDistance from new phraseProgress
 
-Potential strategies may include:
-
-- preserve current physical route state and retarget future behavior
-- map major structural location to a compatible route phase
-- controlled hidden reposition where justified
-
-The final strategy is not locked.
-
-What is locked:
-
-> seek must not fake playback of skipped musical events.
+Large-seek reconciliation must remain explicit.
 
 ---
 
 ## Pause behavior
 
-New musical drive stops.
+On pause:
 
-Existing coaster momentum may continue depending on physical safety/state logic.
+- musical driving state stops progressing
+- gravity / drag / inertia / braking may continue
+- high-speed route motion is not automatically frozen
 
-Do not automatically freeze a high-speed coaster in mid-route unless the final
-experience explicitly wants that behavior.
+---
+
+## Restart behavior
+
+Restore deterministic Station state.
 
 ---
 
 ## Reduced motion
 
-Use a stable representative state or substantially simplified route motion.
+Preserve phrase identity.
 
-Do not run full high-speed ride simulation purely for decoration in reduced
-motion mode.
+Reduce:
+
+- speed
+- high-acceleration travel
+- loop intensity
+- large route traversal
+
+Do not convert RollerCoaster into a progress bar.
 
 ---
 
-# 12. Free Bodies / Orb / Balloon
+# 14. Free Bodies / Orb
 
 ## Musical responsibility
 
@@ -1429,127 +1720,97 @@ Free Bodies represent:
 TEXTURE
 ATMOSPHERE
 BRIGHTNESS
-SPECTRAL AMBIENCE
+SPECTRAL CONDITIONS
 ```
 
-They also serve as important PhysicsWorld participants.
-
-The visual representation does not need to be a literal balloon.
-
-Possible visual forms:
+But their identity is dual:
 
 ```text
-Orb
-particle cluster
-soft body
-light body
-abstract floating object
+AudioWorld atmospheric input
++
+PhysicsWorld physical input
 ```
+
+They are not merely audio-reactive particles.
 
 ---
 
 ## Core musical inputs
 
-### Continuous
+Future likely continuous evidence:
 
 ```text
 spectrum.available
+spectrum.low
+spectrum.mid
 spectrum.high
 spectrum.brightness
 spectrum.texture
 structure.energy
 ```
 
-Potential secondary:
-
-```text
-spectrum.low
-spectrum.mid
-```
-
-depending on future material design.
+Exact mapping remains milestone-specific.
 
 ---
 
-### Discrete
+## Physical inputs
 
-Free Bodies should generally require fewer musical events.
-
-Possible:
+Free Bodies may receive:
 
 ```text
-major accent
-drop
-seek
+RollerCoaster wake
+BumperCars impacts
+collider / exclusion forces
+other PhysicsWorld fields
 ```
-
-only when justified.
 
 ---
 
 ## Physical language
 
-Free Bodies may own:
+Future state may include:
 
 ```text
 position
 velocity
 mass
 drag
-buoyancy-like force
 turbulence
+buoyancy-like force
 collision
 exclusion response
 ```
 
-Unlike ordinary Physics Receivers, Dynamic Free Bodies do not necessarily
-recover to a fixed authored anchor.
-
-A force may permanently alter their later trajectory.
+Unlike anchored content, Free Bodies do not necessarily recover to fixed layout
+anchors.
 
 ---
 
-## Audio interpretation
+## Important constraint
 
-AudioWorld provides environmental conditions.
-
-Example:
+Do not implement final Free Bodies as:
 
 ```text
-brightness ↑
-↓
-vertical / atmospheric tendency changes
+sin(time)
+→ floating target
 ```
 
-```text
-texture ↑
-↓
-turbulence increases
-```
+if the milestone requires real dynamics.
 
-But PhysicsWorld forces remain equally important.
+AudioWorld should modify environmental conditions.
 
-Example:
-
-```text
-Coaster wake
-↓
-Orb displaced
-```
-
-That displacement must not be overwritten immediately by an AudioWorld visual
-target.
+PhysicsWorld should modify actual trajectories.
 
 ---
 
-## PhysicsWorld roles
+## PhysicsWorld role
 
-Strong:
+Intended:
 
 ```text
-Dynamic Body ✓
-Physics Receiver ✓
-Collider ✓
+Dynamic Body
+Physics Receiver
+Collider
 Force Source — optional
 ```
 
@@ -1557,124 +1818,125 @@ Force Source — optional
 
 ## Seek behavior
 
-Seek changes musical environmental conditions.
+Seek changes musical atmospheric conditions.
 
-It should not necessarily teleport free bodies back to a predetermined place.
+Do not replay historical forces.
 
-Future design may choose:
-
-- preserve current positions
-- retarget environmental forces
-- gradually reconcile density/energy
-
-Historical musical forces are not replayed.
+Do not necessarily teleport bodies to predetermined positions.
 
 ---
 
 ## Pause behavior
 
-Musical environmental input stops changing.
+Musical atmosphere stops progressing.
 
-Existing body velocity and PhysicsWorld forces may continue until settling.
+Existing physical velocity and shared forces may continue.
 
 ---
 
 ## Reduced motion
 
-Reduce body count and movement substantially.
+Reduce:
 
-A stable or near-static atmospheric composition is acceptable.
+- body count
+- turbulence
+- displacement
+- prolonged travel
+
+A near-static atmospheric composition is acceptable.
 
 ---
 
-# 13. Content participants
+# 15. Ordinary content participants
 
 Z.land actors are not the only physical objects.
 
-Page and experience content may participate through PhysicsWorld.
+Ordinary content may include:
 
-Possible participants:
-
-```text
-Text
-Image
-CMS content
-Button
-Navigation
-Logo
-Icon
-Shader object
-3D Object
-```
+- Text
+- Image
+- CMS content
+- Button
+- Navigation
+- Logo
+- Icon
+- Shader object
+- 3D object
 
 These are not assigned primary musical responsibilities by default.
 
-Their physical responses usually originate from nearby world interactions.
+Their responses usually come from PhysicsWorld.
 
 ---
 
-## Common content roles
+## Anchored content model
 
-### Physics Receiver
-
-Receives force and responds visually.
-
-Example:
+Validated model:
 
 ```text
-Coaster wake
-↓
-Title displacement
-↓
-spring recovery
+authored/current layout
++
+temporary physics response
+=
+rendered transform
 ```
 
----
-
-### Collider / Exclusion Zone
-
-Influences Dynamic Bodies.
-
-Example:
+Anchored content may own:
 
 ```text
-Project Card
-↓
-Orb cannot occupy card region
-↓
-Orb trajectory deflects
+response offset
+response velocity
+rotation
+angular velocity
+stiffness
+damping
+bounds
+settling state
 ```
 
----
+It remains anchored.
 
-### Dynamic Body
-
-Used only when the content is intentionally physically simulated.
-
-Do not convert ordinary readable content into a free body by default.
+It is not a Dynamic Body.
 
 ---
 
-# 14. Material response concept
+## Validated content causality
 
-Different participants may respond differently to the same PhysicsWorld force.
+Current validated chain:
+
+```text
+BumperCars real collision
+→ PhysicsWorld impact
+→ Anchored Content Card
+→ displacement / rotation
+→ recovery
+```
+
+The content does not subscribe to percussion.
+
+Preserve this distinction.
+
+---
+
+# 16. Material response concept
+
+Different participants may respond differently to the same physical force.
 
 Conceptually:
 
 ```text
-same force
-↓
-different material response
+same PhysicsWorld force
+→ different material response
 ```
 
-Examples:
+Possible future examples:
 
 ### Text
 
 ```text
 glyph displacement
 split
-fragment response
+fragment
 spring recovery
 ```
 
@@ -1685,7 +1947,6 @@ tilt
 shear
 slice
 temporary deformation
-recovery
 ```
 
 ### Card
@@ -1710,56 +1971,69 @@ velocity changes
 trajectory remains changed
 ```
 
-The exact material system is future work.
-
-Do not build a large material engine before a current milestone requires it.
+Do not build a general material engine before a milestone requires it.
 
 ---
 
-# 15. AudioWorld dependency matrix
+# 17. Musical evidence matrix
 
-Current intended mapping:
+Current semantic ownership:
 
-| Actor | Continuous Musical State | Discrete Musical Events |
+| Actor | Primary Musical Evidence |
+| --- | --- |
+| Carousel | exact melody note / pitch / note expression |
+| FerrisWheel | chord identity + simultaneous pitch-class membership |
+| PirateShip | groove / swing / rhythmic phase |
+| BumperCars | kick / snare / hat / transient percussion events |
+| DropTower | build / tension / explicit major drop |
+| RollerCoaster | phrase progress / energy trajectory / tension / release |
+| Free Bodies | texture / brightness / spectral atmosphere |
+
+This table defines evidence ownership.
+
+Do not casually duplicate primary evidence across actors.
+
+Secondary use is allowed only when it supports the actor's primary role without
+confusing semantic ownership.
+
+---
+
+# 18. AudioWorld dependency matrix
+
+| Actor | Continuous State | Discrete Events |
 | --- | --- | --- |
-| Carousel | Melody, note progress, intensity | note-on, note-off |
-| FerrisWheel | Harmony, chord state | chord-change |
-| PirateShip | Beat phase, groove, swing | downbeat / seek if needed |
-| BumperCars | Optional energy | kick, snare, hat, beat |
-| DropTower | Build, tension, bass energy | drop, major accent |
-| RollerCoaster | Energy, phrase, tension, section progress | section-change, major release |
-| Free Bodies | Texture, brightness, spectral energy | minimal / optional |
+| Carousel | melody note state, pitch, note progress, intensity | note-on, note-off |
+| FerrisWheel | chord, root, pitch classes, confidence | chord-change |
+| PirateShip | beat phase, bar phase, groove, swing, BPM | seek / optional downbeat |
+| BumperCars | optional bounded energy | kick, snare, hat |
+| DropTower | build, tension, energy, optional bass | drop |
+| RollerCoaster | phrase, section progress, energy, tension | optional section-change |
+| Free Bodies | spectrum, brightness, texture, energy | minimal / milestone-specific |
 
 This matrix is the default semantic map.
 
-Do not duplicate a musical domain across actors without a specific reason.
-
-Secondary use of another domain is allowed when it supports the actor's primary
-musical responsibility.
-
 ---
 
-# 16. PhysicsWorld role matrix
+# 19. PhysicsWorld role matrix
 
-| Actor | Force Source | Receiver | Collider | Dynamic / Autonomous Body |
+| Actor | Force Source | Receiver | Collider | Dynamic / Autonomous |
 | --- | --- | --- | --- | --- |
 | Carousel | optional | optional | optional | yes |
 | FerrisWheel | optional | optional | optional | yes |
 | PirateShip | optional | optional | optional | yes |
-| BumperCars | yes | yes | yes | yes |
-| DropTower | yes / future | optional | optional | yes |
-| RollerCoaster | yes | optional | optional | yes |
+| BumperCars | impact producer | yes | yes | yes |
+| DropTower | future | optional | optional | yes |
+| RollerCoaster | next milestone: wake source | optional | optional | yes |
 | Free Bodies | optional | yes | yes | yes |
+| Anchored Content | no | yes | optional | no |
 
-These are current defaults, not permanent limitations.
+Do not enable every role merely because infrastructure supports it.
 
-Do not enable every role merely because the infrastructure supports it.
-
-Each role must serve an actual experience requirement.
+Each role must serve a current experience requirement.
 
 ---
 
-# 17. Renderer independence
+# 20. Renderer independence
 
 Every actor should conceptually separate:
 
@@ -1773,51 +2047,45 @@ from:
 renderer
 ```
 
-Potential renderer technologies include:
+Possible renderers:
 
-```text
-DOM
-SVG
-Canvas
-Three.js
-WebGL
-Shader
-```
+- DOM
+- SVG
+- Canvas
+- Three.js
+- WebGL
+- Shader
 
 Examples:
 
-Carousel simulation should not care whether its riders are:
+Carousel simulation must not depend on whether carrier content is:
 
 ```text
-Icons
-Album art
-3D horses
-Abstract shapes
+icon
+image
+album artwork
+3D object
 ```
 
-RollerCoaster simulation should not care whether its rider is:
+RollerCoaster simulation must not depend on whether rider media is:
 
 ```text
 Orb
 Text
 Logo
-Chocolate fragment
+3D
 Shader
 ```
 
 The actor defines motion.
 
-The renderer/media defines appearance.
+Media defines appearance.
 
 ---
 
-# 18. Experience hierarchy
+# 21. Experience hierarchy
 
-Actor musical activity does not determine visual hierarchy automatically.
-
-An actor may be musically active while visually Secondary or Ambient.
-
-Conceptual experience roles:
+Actors may be visually:
 
 ```text
 Primary
@@ -1826,179 +2094,275 @@ Ambient
 Resting
 ```
 
-Example:
+This is presentation state.
 
-During a DropTower build:
+It must not alter exact Musical Evidence.
+
+Examples:
+
+Wrong:
 
 ```text
-DropTower
-→ Primary
+FerrisWheel Ambient
+→ remove E from C major
+```
 
+Wrong:
+
+```text
+Carousel Primary
+→ activate extra notes
+```
+
+Correct:
+
+```text
+same musical evidence
++
+different visual emphasis
+```
+
+---
+
+# 22. Park Map / Spatial Score relationship
+
+The final Park Map may spatially organize actors.
+
+Do not use the Ride Map contract to create isolated music-theory dashboard
+regions.
+
+The Park Map should organize:
+
+- actor geography
+- routes
+- shared fields
+- physical proximity
+- visitor orientation
+- cross-actor interactions
+
+Musical Evidence remains actor-local.
+
+Examples:
+
+```text
+Carousel region exists
+but
+note hit occurs on precise local carrier
+```
+
+```text
+FerrisWheel region exists
+but
+chord membership occurs on precise cabins
+```
+
+Region emphasis is not the evidence itself.
+
+---
+
+# 23. Development order
+
+Do not treat this list as a requirement to build every actor before testing
+shared-world behavior.
+
+Current objectively validated actors:
+
+```text
 Carousel
-→ Secondary
-
 FerrisWheel
-→ Ambient
-
-BumperCars
-→ Resting / low activity
-```
-
-Experience hierarchy may affect presentation.
-
-It must not silently replace the actor's physics.
-
----
-
-# 19. Development order
-
-Do not migrate all actors immediately.
-
-Current order:
-
-## Milestone 1
-
-```text
-Authored AudioMap
-↓
-AudioClock
-↓
-AudioWorld
-↓
-Carousel
-```
-
-Purpose:
-
-- prove continuous melody state
-- prove note event delivery
-- prove seek
-- prove pause
-- prove restart
-- prove debug visibility
-
----
-
-## Milestone 2
-
-Choose an actor using a substantially different musical signal type.
-
-Preferred candidates:
-
-```text
-BumperCars
-→ discrete percussion events
-```
-
-or:
-
-```text
 PirateShip
-→ continuous groove / rhythmic phase
-```
-
-Purpose:
-
-> prove AudioWorld is a general musical semantic layer, not a Carousel-specific
-> melody system.
-
----
-
-## Later milestones
-
-Integrate:
-
-```text
-FerrisWheel
+BumperCars
 DropTower
 RollerCoaster
-Free Bodies
-PhysicsWorld cross-actor events
 ```
 
-Order should follow the Story Map and architecture verification needs.
+Current validated shared causality:
 
-Do not choose order based only on implementation convenience.
+```text
+BumperCars collision
+→ PhysicsWorld
+→ Anchored Content
+```
+
+Current near-term order:
+
+### Milestone 6B
+
+```text
+RollerCoaster actual motion
+→ PhysicsWorld directional wake
+→ Anchored Content
+```
+
+### Milestone 7A
+
+```text
+AudioWorld atmospheric evidence
++
+PhysicsWorld forces
+→ Free Bodies / Orb
+```
+
+### After world-physics foundations
+
+```text
+Experience Composition
+→ Park Map
+→ Spatial Score
+```
+
+Do not prematurely redesign final layout before these world contracts are
+validated.
 
 ---
 
-# 20. Actor integration checklist
+# 24. Actor integration checklist
 
-Before connecting an actor to AudioWorld, explicitly document:
+Before connecting or modifying an actor, explicitly document:
 
 1. What musical domain does the actor own?
-2. Which AudioSnapshot fields does it read?
-3. Which AudioEvents does it consume?
-4. What state remains actor-local?
-5. What simulation already exists and must remain unchanged?
-6. What musical input modifies the simulation?
-7. What does the actor register in PhysicsWorld?
-8. What does the renderer display?
-9. What happens on pause?
-10. What happens on seek?
-11. What happens on restart?
-12. What happens when the musical domain is unavailable?
-13. What happens under reduced motion?
-14. What must remain deterministic for debugging?
-15. What runtime behavior must be manually verified?
+2. What exact Musical Evidence does it expose?
+3. Which AudioSnapshot fields does it read?
+4. Which AudioEvents does it consume?
+5. Which inputs are continuous?
+6. Which inputs are discrete?
+7. Which visible elements represent Musical Evidence?
+8. Which visible elements are merely mechanical behavior?
+9. What actor-local interpretation is applied?
+10. What simulation state remains actor-owned?
+11. What validated behavior must remain unchanged?
+12. What PhysicsWorld roles are registered?
+13. Which spatial adapter is required?
+14. What physical consequence may leave the actor?
+15. What renderer state is presentation-only?
+16. What happens on pause?
+17. What happens on seek?
+18. What happens on restart?
+19. What happens on song replacement?
+20. What happens when the musical domain is unavailable?
+21. What happens under reduced motion?
+22. What must remain deterministic?
+23. What objective facts can Codex verify?
+24. What subjective qualities require user manual QA?
 
-If these answers are unclear, do not implement the integration yet.
+If these answers are unclear, do not implement yet.
 
 ---
 
-# 21. Ride-map invariant
+# 25. Objective vs subjective QA
 
-Every actor should answer two separate questions.
+Objective checks may verify:
+
+- exact note mapping
+- chord-tone membership
+- event timing
+- actor state
+- bounded simulation
+- deterministic restart
+- PhysicsWorld registration
+- spatial force propagation
+- renderer receives correct state
+- reduced-motion branch behavior
+
+Subjective QA includes:
+
+- visual quality
+- mechanical feel
+- musical feel
+- pacing
+- tension
+- composition
+- readability
+- whether the experience feels intuitive
+
+Codex may report objective verification.
+
+The user approves subjective quality.
+
+---
+
+# 26. Ride-map invariant
+
+Every actor should answer three separate questions.
 
 First:
 
-> What part of music do I understand?
+> What musical evidence do I understand?
 
 Second:
 
 > What physical mechanism do I use to express it?
+
+Third:
+
+> What physical consequence, if any, can I create in the shared world?
 
 Examples:
 
 ```text
 Carousel
 
-understands:
-melody
+evidence:
+specific melody note
 
-expresses through:
-orbit + rider pitch movement
+expression:
+carrier activation + bounded pitch movement
+
+shared consequence:
+none required currently
+```
+
+```text
+FerrisWheel
+
+evidence:
+simultaneous chord-tone membership
+
+expression:
+exact harmonic carriers + slow wheel mechanics
+
+shared consequence:
+none required currently
 ```
 
 ```text
 BumperCars
 
-understand:
-percussion
+evidence:
+percussion event
 
-express through:
-impulse + collision
+expression:
+body impulse + collision
+
+shared consequence:
+real collision → PhysicsWorld impact
 ```
 
 ```text
 RollerCoaster
 
-understands:
-phrase / energy
+evidence:
+phrase / energy / tension
 
-expresses through:
-route + momentum
+expression:
+route drive + momentum
+
+shared consequence:
+next milestone → directional wake
 ```
 
-Do not choose musical mappings only because two values are numerically easy to
-connect.
+Do not choose mappings only because values are numerically easy to connect.
 
-The mapping must make perceptual and physical sense.
+The mapping must make:
+
+- musical sense
+- physical sense
+- perceptual sense
 
 The canonical chain remains:
 
 ```text
-Musical Meaning
+Musical Evidence
 ↓
 Actor Interpretation
 ↓

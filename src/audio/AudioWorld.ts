@@ -13,6 +13,23 @@ export function lookupSnapshot(map: AudioMap, transport: TransportState): AudioS
   const rhythmSection = map.capabilities.rhythm
     ? (map.rhythm ?? []).find(section => section.start <= transport.time && transport.time < section.end) ?? null
     : null;
+  const harmonyRegion = map.capabilities.harmony
+    ? (map.harmony ?? []).find(region => region.start <= transport.time && transport.time < region.end) ?? null
+    : null;
+  const structureRegion = map.capabilities.structure
+    ? (map.structure ?? []).find(region => region.start <= transport.time && transport.time < region.end) ?? null
+    : null;
+  const spectrumRegion = map.capabilities.spectrum
+    ? (map.spectrum ?? []).find(region => region.start <= transport.time && transport.time < region.end) ?? null
+    : null;
+  const structureProgress = structureRegion
+    ? Math.min(1, Math.max(0, (transport.time - structureRegion.start) / (structureRegion.end - structureRegion.start)))
+    : 0;
+  const interpolate = (range: readonly [number, number]) => range[0] + (range[1] - range[0]) * structureProgress;
+  const spectrumProgress = spectrumRegion
+    ? Math.min(1, Math.max(0, (transport.time - spectrumRegion.start) / (spectrumRegion.end - spectrumRegion.start)))
+    : 0;
+  const interpolateSpectrum = (range: readonly [number, number]) => range[0] + (range[1] - range[0]) * spectrumProgress;
   const beatPosition = rhythmSection ? transport.time * rhythmSection.bpm / 60 : 0;
   const positiveModulo = (value: number, divisor: number) => ((value % divisor) + divisor) % divisor;
   return {
@@ -38,6 +55,31 @@ export function lookupSnapshot(map: AudioMap, transport: TransportState): AudioS
       groove: rhythmSection?.groove ?? 0,
       swing: rhythmSection?.swing ?? 0,
     },
+    harmony: {
+      available: map.capabilities.harmony && map.harmony !== null,
+      active: harmonyRegion !== null,
+      chord: harmonyRegion?.chord ?? null,
+      rootPitchClass: harmonyRegion?.rootPitchClass ?? null,
+      pitchClasses: harmonyRegion?.pitchClasses ?? [],
+      confidence: harmonyRegion?.confidence ?? 0,
+    },
+    structure: {
+      available: map.capabilities.structure && map.structure !== null,
+      section: structureRegion?.section ?? null,
+      sectionProgress: structureProgress,
+      energy: structureRegion ? interpolate(structureRegion.energy) : 0,
+      tension: structureRegion ? interpolate(structureRegion.tension) : 0,
+      build: structureRegion ? interpolate(structureRegion.build) : 0,
+      phraseProgress: structureRegion ? interpolate(structureRegion.phraseProgress) : 0,
+    },
+    spectrum: {
+      available: map.capabilities.spectrum && map.spectrum !== null,
+      low: spectrumRegion ? interpolateSpectrum(spectrumRegion.low) : 0,
+      mid: spectrumRegion ? interpolateSpectrum(spectrumRegion.mid) : 0,
+      high: spectrumRegion ? interpolateSpectrum(spectrumRegion.high) : 0,
+      brightness: spectrumRegion ? interpolateSpectrum(spectrumRegion.brightness) : 0,
+      texture: spectrumRegion ? interpolateSpectrum(spectrumRegion.texture) : 0,
+    },
   };
 }
 
@@ -55,7 +97,20 @@ function createTimeline(map: AudioMap): TimelineEvent[] {
     : map.percussion.map(hit => ({
       type: hit.type, time: hit.time, id: hit.id, strength: hit.strength,
     }));
-  return [...melody, ...percussion]
+  const harmony: TimelineEvent[] = !map.capabilities.harmony || map.harmony === null
+    ? []
+    : map.harmony.flatMap((region, index, regions) => {
+      const changes: TimelineEvent[] = [{ type: 'chord-change', time: region.start, harmony: region }];
+      const next = regions[index + 1];
+      if (!next || next.start > region.end) {
+        changes.push({ type: 'chord-change', time: region.end, harmony: null });
+      }
+      return changes;
+    });
+  const drops: TimelineEvent[] = !map.capabilities.structure || map.drops === null
+    ? []
+    : map.drops.map(drop => ({ type: 'drop', time: drop.time, id: drop.id, strength: drop.strength }));
+  return [...melody, ...percussion, ...harmony, ...drops]
     .sort((a, b) => a.time - b.time || (a.type === 'note-off' ? -1 : 1));
 }
 

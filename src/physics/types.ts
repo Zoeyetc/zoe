@@ -13,10 +13,34 @@ export type PhysicsImpact = Readonly<{
   timestamp: number;
 }>;
 
+export type PhysicsWake = Readonly<{
+  sourceId: string;
+  sourceType: 'wake';
+  position: WorldPoint;
+  forward: WorldPoint;
+  speed: number;
+  acceleration: number;
+  strength: number;
+  radius: number;
+  timestamp: number;
+  active: boolean;
+}>;
+
+export type PhysicsWakeReception = Readonly<{
+  receiverId: string;
+  sourceId: string;
+  distance: number;
+  alignment: number;
+  falloff: number;
+  force: WorldPoint;
+}>;
+
 export type PhysicsReceiverRegistration = Readonly<{
   id: string;
+  roles?: readonly PhysicsRole[];
   position: WorldPoint;
   receive(impact: PhysicsImpact, influence: number, distance: number): void;
+  receiveWake?(wake: PhysicsWake, reception: PhysicsWakeReception, dt: number): void;
 }>;
 
 export type PhysicsDebugState = Readonly<{
@@ -27,4 +51,7 @@ export type PhysicsDebugState = Readonly<{
   impactCount: number;
   latestImpact: PhysicsImpact | null;
   latestReceiverDistance: number | null;
+  activeWakeCount: number;
+  latestWake: PhysicsWake | null;
+  latestWakeReception: PhysicsWakeReception | null;
 }>;

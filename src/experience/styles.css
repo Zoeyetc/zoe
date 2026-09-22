@@ -37,7 +37,48 @@ pre { overflow: auto; font-size: .8rem; }
 .carousel-carrier--active .carousel-carrier-mount { stroke: #39238c; }
 .carousel-carrier--active .carousel-carrier-base { fill: #39238c; }
 .carousel-carrier--active text { fill: #39238c; }
-.bumper-stage { overflow: hidden; border: 1px solid #d2d2cd; background: #faf9f6; }
+.ferris-stage { overflow: hidden; border: 1px solid #d2d2cd; background: #faf9f6; }
+.ferris-machine { display: block; width: 100%; height: auto; }
+.ferris-support { fill: none; stroke: #202020; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.ferris-ring { fill: none; stroke: #202020; stroke-width: 4; }
+.ferris-spokes line { stroke: #9a9a93; stroke-width: 2; }
+.ferris-hub { fill: #202020; }
+.ferris-suspension { stroke: #202020; stroke-width: 3; stroke-linecap: round; }
+.ferris-carrier { fill: #f4f3ee; stroke: #202020; stroke-width: 2; }
+.ferris-carrier-media { fill: #777771; }
+.ferris-cabin text { fill: #202020; font-size: 9px; font-weight: 800; user-select: none; }
+.ferris-cabin--active .ferris-carrier { fill: #eeeaff; stroke: #5134ba; stroke-width: 3; }
+.ferris-cabin--active .ferris-suspension { stroke: #5134ba; }
+.ferris-cabin--active .ferris-carrier-media { fill: #6546d7; }
+.ferris-cabin--active text { fill: white; }
+.drop-tower-stage { overflow: hidden; border: 1px solid #d2d2cd; background: #faf9f6; }
+.drop-tower-machine { display: block; width: 100%; height: auto; }
+.drop-tower-guide { stroke: #777771; stroke-width: 8; stroke-linecap: round; }
+.drop-tower-bound { stroke: #202020; stroke-width: 3; stroke-linecap: round; }
+.drop-tower-cap { fill: #202020; }
+.drop-tower-carriage > rect:first-child { fill: #e6e5df; stroke: #202020; stroke-width: 3; }
+.drop-tower-media { fill: #faf9f6; stroke: #777771; stroke-width: 1.5; }
+.drop-tower-carriage text { fill: #202020; font-size: 11px; font-weight: 800; user-select: none; }
+.roller-stage { overflow: hidden; border: 1px solid #d2d2cd; background: #faf9f6; }
+.roller-machine { display: block; width: 100%; height: auto; }
+.roller-track path { fill: none; stroke: #202020; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.roller-track .roller-connector { stroke: #aaa9a2; stroke-width: 2; stroke-dasharray: 5 5; }
+.roller-segment--station { stroke-width: 7 !important; }
+.roller-segment--lift { stroke: #555550 !important; }
+.roller-segment--drop { stroke: #202020 !important; }
+.roller-segment--loop { stroke: #6546d7 !important; }
+.roller-segment--runout { stroke: #777771 !important; }
+.roller-orb line { stroke: #6546d7; stroke-width: 3; stroke-linecap: round; }
+.roller-orb circle { fill: #faf9f6; stroke: #202020; stroke-width: 3; }
+.roller-orb path { fill: #6546d7; }
+.free-bodies-stage { overflow: hidden; border: 1px solid #d2d2cd; background: #faf9f6; }
+.free-bodies-field { display: block; width: 100%; height: auto; }
+.free-bodies-boundary { fill: #f1f0eb; stroke: #777771; stroke-width: 3; }
+.free-body circle { fill: #faf9f6; stroke: #176f89; stroke-width: 2.5; }
+.free-body line { stroke: #176f89; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.free-body--selected circle { fill: #d9f2f5; stroke: #0e596d; stroke-width: 3.5; }
+.bumper-stage { display: grid; overflow: hidden; border: 1px solid #d2d2cd; background: #faf9f6; }
+.bumper-stage > * { grid-area: 1 / 1; }
 .bumper-arena { display: block; width: 100%; height: auto; }
 .bumper-boundary { fill: #f1f0eb; stroke: #777771; stroke-width: 3; }
 .bumper-car rect { fill: #e6e5df; stroke: #202020; stroke-width: 3; }
@@ -45,6 +86,31 @@ pre { overflow: auto; font-size: .8rem; }
 .bumper-car text { fill: #202020; font-size: 11px; font-weight: 800; user-select: none; }
 .bumper-car--selected rect { fill: #ded6ff; stroke: #39238c; }
 .bumper-car--selected circle { fill: #6546d7; }
+.physics-debug-overlay { pointer-events: none; }
+.physics-debug-overlay marker path { fill: #bd2b47; }
+.physics-debug-radius { fill: #bd2b47; fill-opacity: .04; stroke: #bd2b47; stroke-width: 1.5; stroke-dasharray: 7 5; vector-effect: non-scaling-stroke; }
+.physics-debug-impact { fill: #fff; stroke: #bd2b47; stroke-width: 3; vector-effect: non-scaling-stroke; }
+.physics-debug-crosshair { fill: none; stroke: #bd2b47; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.physics-debug-normal, .physics-debug-force-path, .physics-debug-impulse, .physics-debug-displacement { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.physics-debug-normal { stroke: #bd2b47; }
+.physics-debug-force-path { stroke: #176f89; stroke-dasharray: 5 4; }
+.physics-debug-impulse { stroke: #176f89; stroke-width: 3; }
+.physics-debug-displacement { stroke: #6546d7; }
+.physics-debug-anchor { fill: #fff; stroke: #6546d7; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.physics-debug-receiver { fill: #ded6ff; stroke: #6546d7; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.physics-debug-wake-shape { fill: #176f89; fill-opacity: .08; stroke: #176f89; stroke-width: 1.5; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
+.physics-debug-wake:not(.physics-debug-wake--active) { opacity: .35; }
+.physics-debug-wake-forward, .physics-debug-wake-force { stroke: #176f89; stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.physics-debug-wake-path { stroke: #176f89; stroke-width: 1.5; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
+.physics-debug-wake-source { fill: #faf9f6; stroke: #176f89; stroke-width: 3; vector-effect: non-scaling-stroke; }
+.physics-debug-wake-label { fill: #176f89; font-size: 11px; font-weight: 800; }
+.physics-debug-free-body { fill: #fff; fill-opacity: .45; stroke: #176f89; stroke-width: 1.5; stroke-dasharray: 3 2; vector-effect: non-scaling-stroke; }
+.physics-debug-free-velocity, .physics-debug-free-atmosphere, .physics-debug-free-world, .physics-debug-free-impact, .physics-debug-free-combined { vector-effect: non-scaling-stroke; }
+.physics-debug-free-velocity { stroke: #176f89; stroke-width: 1.5; }
+.physics-debug-free-atmosphere { stroke: #c48114; stroke-width: 2; }
+.physics-debug-free-world { stroke: #6546d7; stroke-width: 2.5; }
+.physics-debug-free-impact { stroke: #176f89; stroke-width: 2.5; stroke-dasharray: 3 3; }
+.physics-debug-free-combined { stroke: #bd2b47; stroke-width: 2.5; }
 .pirate-stage { overflow: hidden; border: 1px solid #d2d2cd; background: #faf9f6; }
 .pirate-machine { display: block; width: 100%; height: auto; }
 .pirate-support, .pirate-arm { fill: none; stroke: #202020; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
@@ -54,10 +120,10 @@ pre { overflow: auto; font-size: .8rem; }
 .pirate-media-slot { fill: #faf9f6; stroke: #777771; stroke-width: 2; }
 .physics-demo { display: grid; gap: 1rem; }
 .physics-demo > section { margin-block: 0; }
-.receiver-stage { position: relative; display: grid; min-height: 180px; place-items: center; overflow: hidden; border: 1px solid #d2d2cd; background: #faf9f6; }
-.receiver-anchor { position: absolute; width: 12px; height: 12px; border: 1px solid #aaa; border-radius: 50%; }
-.receiver-card { display: grid; gap: .35rem; min-width: 220px; padding: 1.25rem; border: 2px solid #202020; border-radius: 8px; background: white; text-align: center; will-change: transform; }
-.receiver-card span { color: #666; font-size: .75rem; }
+.content-participant-layout { align-self: end; justify-self: center; z-index: 2; margin-bottom: 1rem; }
+.content-participant-response { display: grid; gap: .3rem; min-width: 190px; padding: .8rem 1rem; border: 2px solid #202020; border-radius: 8px; background: rgb(255 255 255 / 92%); text-align: center; transform-origin: center; will-change: transform; }
+.content-participant-response .eyebrow { margin: 0; }
+.content-participant-response span { color: #666; font-size: .78rem; }
 .actor-readout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; margin-bottom: 0; }
 .actor-readout div { padding: .65rem; background: #f4f4f1; }
 .actor-readout dt { color: #666; font-size: .72rem; text-transform: uppercase; }

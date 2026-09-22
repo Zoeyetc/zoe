@@ -65,3 +65,75 @@ test('rhythm snapshot separates steady BPM from authored groove and swing', () =
   assert.ok(straight.groove < transition.groove && transition.groove < swung.groove);
   assert.equal(lookupSnapshot(milestoneTwoBAudioMap, { time: 15, duration: 20, playing: true }).rhythm.bpm, null);
 });
+
+test('authored harmony lookup exposes sustained major/minor regions and final inactivity', () => {
+  assert.equal(lookupSnapshot(milestoneTwoBAudioMap, { time: 2, duration: 20, playing: true }).harmony.chord, 'C major');
+  assert.deepEqual(lookupSnapshot(milestoneTwoBAudioMap, { time: 6, duration: 20, playing: true }).harmony.pitchClasses, [9, 0, 4]);
+  assert.equal(lookupSnapshot(milestoneTwoBAudioMap, { time: 10, duration: 20, playing: true }).harmony.rootPitchClass, 5);
+  assert.deepEqual(lookupSnapshot(milestoneTwoBAudioMap, { time: 17, duration: 20, playing: true }).harmony, {
+    available: true, active: false, chord: null, rootPitchClass: null, pitchClasses: [], confidence: 0,
+  });
+});
+
+test('chord changes use timeline crossings and seek does not replay skipped harmony', () => {
+  const world = createAudioWorld(milestoneTwoBAudioMap);
+  world.read({ time: 0, duration: 20, playing: true });
+  const crossed = world.read({ time: 13, duration: 20, playing: true }).events
+    .filter(event => event.type === 'chord-change');
+  assert.deepEqual(crossed.map(event => event.harmony?.chord), ['A minor', 'F major', 'G major']);
+  const seek = world.synchronize(13, { time: 6, duration: 20, playing: false });
+  assert.deepEqual(seek.events, [{ type: 'seek', from: 13, to: 6 }]);
+  assert.equal(seek.snapshot.harmony.chord, 'A minor');
+});
+
+test('authored structure exposes build, hold, release, and settling snapshots', () => {
+  const rest = lookupSnapshot(milestoneTwoBAudioMap, { time: 2, duration: 20, playing: true }).structure;
+  const build = lookupSnapshot(milestoneTwoBAudioMap, { time: 7, duration: 20, playing: true }).structure;
+  const hold = lookupSnapshot(milestoneTwoBAudioMap, { time: 12.5, duration: 20, playing: true }).structure;
+  const release = lookupSnapshot(milestoneTwoBAudioMap, { time: 14, duration: 20, playing: true }).structure;
+  assert.equal(rest.section, 'rest');
+  assert.equal(build.section, 'build');
+  assert.ok(build.build > rest.build && build.tension > rest.tension);
+  assert.equal(hold.section, 'hold');
+  assert.equal(hold.tension, 1);
+  assert.equal(release.section, 'release');
+  assert.ok(release.energy > hold.energy);
+});
+
+test('drop is a discrete crossing and seek after it does not replay release', () => {
+  const world = createAudioWorld(milestoneTwoBAudioMap);
+  world.read({ time: 12.8, duration: 20, playing: true });
+  const crossed = world.read({ time: 13.1, duration: 20, playing: true }).events;
+  assert.deepEqual(crossed.filter(event => event.type === 'drop').map(event => event.id), ['major-drop']);
+  const seek = world.synchronize(13.1, { time: 15, duration: 20, playing: false });
+  assert.deepEqual(seek.events, [{ type: 'seek', from: 13.1, to: 15 }]);
+  assert.equal(seek.snapshot.structure.section, 'release');
+});
+
+test('Milestone 6A fixture exposes a distinct continuous long-form phrase contour', async () => {
+  const { milestoneSixAAudioMap } = await import('../src/audio/AudioMap.ts');
+  const early = lookupSnapshot(milestoneSixAAudioMap, { time: 5, duration: 24, playing: true }).structure;
+  const crest = lookupSnapshot(milestoneSixAAudioMap, { time: 13.5, duration: 24, playing: true }).structure;
+  const release = lookupSnapshot(milestoneSixAAudioMap, { time: 17, duration: 24, playing: true }).structure;
+  const ending = lookupSnapshot(milestoneSixAAudioMap, { time: 23.5, duration: 24, playing: true }).structure;
+  assert.equal(early.section, 'development');
+  assert.equal(crest.section, 'crest');
+  assert.ok(crest.tension > early.tension);
+  assert.equal(release.section, 'phrase-release');
+  assert.ok(release.energy > crest.energy);
+  assert.ok(ending.phraseProgress > release.phraseProgress);
+  assert.ok(ending.energy < release.energy);
+});
+
+test('Milestone 7A fixture exposes authored continuous spectrum evidence', async () => {
+  const { milestoneSevenAAudioMap } = await import('../src/audio/AudioMap.ts');
+  const calm = lookupSnapshot(milestoneSevenAAudioMap, { time: 2, duration: 24, playing: true }).spectrum;
+  const bright = lookupSnapshot(milestoneSevenAAudioMap, { time: 7, duration: 24, playing: true }).spectrum;
+  const textured = lookupSnapshot(milestoneSevenAAudioMap, { time: 11, duration: 24, playing: true }).spectrum;
+  const settling = lookupSnapshot(milestoneSevenAAudioMap, { time: 23.5, duration: 24, playing: true }).spectrum;
+  assert.equal(calm.available, true);
+  assert.ok(bright.brightness > calm.brightness);
+  assert.ok(textured.texture > bright.texture);
+  assert.ok(settling.brightness < bright.brightness);
+  assert.ok(settling.texture < textured.texture);
+});

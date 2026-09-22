@@ -119,6 +119,38 @@ test('near receiver responds more strongly than a distant receiver', () => {
   assert.ok(nearSpeed > farSpeed);
 });
 
+test('receiver exposes the actual delivered impact and impulse for debugging', () => {
+  const world = createPhysicsWorld();
+  world.registerSource('bumper-cars');
+  const receiver = createAnchoredReceiver();
+  world.registerReceiver(receiver.registration);
+  world.publishImpact(impact());
+  const state = receiver.read();
+  assert.equal(state.latestImpactId, 'impact-1');
+  assert.ok(state.latestImpactDistance !== null && state.latestImpactDistance > 0);
+  assert.ok(Math.hypot(state.latestReceivedImpulse.x, state.latestReceivedImpulse.y) > 0);
+  assert.equal(state.springState, 'responding');
+});
+
+test('receiver debug position and spring state follow its bounded recovery', () => {
+  const receiver = createAnchoredReceiver({ debugResponseGain: 1.6 });
+  receiver.registration.receive(impact(), 1, 0.05);
+  receiver.step(0.05);
+  let state = receiver.read();
+  assert.deepEqual(state.worldPosition, {
+    x: state.anchor.x + state.offset.x,
+    y: state.anchor.y + state.offset.y,
+  });
+  assert.equal(state.springState, 'responding');
+  assert.ok(state.displacement <= 0.08 + 1e-9);
+  receiver.step(0.05);
+  assert.equal(receiver.read().springState, 'recovering');
+  for (let index = 0; index < 160; index += 1) receiver.step(0.05);
+  state = receiver.read();
+  assert.equal(state.springState, 'settled');
+  assert.equal(state.displacement, 0);
+});
+
 test('receiver outside impact radius does not move', () => {
   const world = createPhysicsWorld();
   world.registerSource('bumper-cars');

@@ -18,6 +18,10 @@ export const milestoneOneAudioMap: AudioMap = {
   ],
   percussion: null,
   rhythm: null,
+  harmony: null,
+  structure: null,
+  drops: null,
+  spectrum: null,
 };
 
 /** Authored deterministic fixture for melody plus discrete percussion events. */
@@ -46,10 +50,58 @@ export const milestoneTwoBAudioMap: AudioMap = {
   ...milestoneTwoAudioMap,
   id: 'milestone-two-b-groove',
   duration: 20,
+  capabilities: { ...milestoneTwoAudioMap.capabilities, harmony: true, structure: true },
   rhythm: [
     { id: 'straight', start: 0, end: 4, bpm: 120, beatsPerBar: 4, groove: 0.18, swing: 0.04 },
     { id: 'transition', start: 4, end: 8, bpm: 120, beatsPerBar: 4, groove: 0.48, swing: 0.28 },
     { id: 'swung', start: 8, end: 14, bpm: 120, beatsPerBar: 4, groove: 0.82, swing: 0.68 },
+  ],
+  harmony: [
+    { id: 'c-major', start: 0, end: 4, chord: 'C major', rootPitchClass: 0, pitchClasses: [0, 4, 7], confidence: 0.98 },
+    { id: 'a-minor', start: 4, end: 8, chord: 'A minor', rootPitchClass: 9, pitchClasses: [9, 0, 4], confidence: 0.94 },
+    { id: 'f-major', start: 8, end: 12, chord: 'F major', rootPitchClass: 5, pitchClasses: [5, 9, 0], confidence: 0.96 },
+    { id: 'g-major', start: 12, end: 16, chord: 'G major', rootPitchClass: 7, pitchClasses: [7, 11, 2], confidence: 0.95 },
+  ],
+  structure: [
+    { id: 'rest', start: 0, end: 4, section: 'rest', energy: [0.08, 0.16], tension: [0.04, 0.12], build: [0, 0], phraseProgress: [0, 0.2] },
+    { id: 'build', start: 4, end: 10, section: 'build', energy: [0.2, 0.76], tension: [0.16, 0.9], build: [0.08, 1], phraseProgress: [0.2, 0.5] },
+    { id: 'tension', start: 10, end: 12, section: 'tension', energy: [0.76, 0.68], tension: [0.9, 1], build: [1, 1], phraseProgress: [0.5, 0.6] },
+    { id: 'hold', start: 12, end: 13, section: 'hold', energy: [0.42, 0.34], tension: [1, 1], build: [1, 1], phraseProgress: [0.6, 0.65] },
+    { id: 'release', start: 13, end: 16, section: 'release', energy: [1, 0.7], tension: [0.18, 0.08], build: [0, 0], phraseProgress: [0.65, 0.8] },
+    { id: 'settle', start: 16, end: 20, section: 'settle', energy: [0.7, 0.08], tension: [0.08, 0], build: [0, 0], phraseProgress: [0.8, 1] },
+  ],
+  drops: [{ id: 'major-drop', time: 13, strength: 1 }],
+};
+
+/** Long-form phrase contour for RollerCoaster; intentionally distinct from the DropTower build/drop fixture. */
+export const milestoneSixAAudioMap: AudioMap = {
+  ...milestoneTwoBAudioMap,
+  id: 'milestone-six-a-phrase',
+  duration: 24,
+  structure: [
+    { id: 'phrase-station', start: 0, end: 4, section: 'station', energy: [0.08, 0.2], tension: [0.04, 0.1], build: [0, 0.1], phraseProgress: [0, 0.16] },
+    { id: 'phrase-development', start: 4, end: 8, section: 'development', energy: [0.2, 0.58], tension: [0.1, 0.42], build: [0.1, 0.5], phraseProgress: [0.16, 0.34] },
+    { id: 'phrase-tension', start: 8, end: 12, section: 'tension-rise', energy: [0.58, 0.72], tension: [0.42, 0.82], build: [0.5, 0.82], phraseProgress: [0.34, 0.52] },
+    { id: 'phrase-crest', start: 12, end: 15, section: 'crest', energy: [0.72, 0.62], tension: [0.82, 1], build: [0.82, 1], phraseProgress: [0.52, 0.65] },
+    { id: 'phrase-release', start: 15, end: 19, section: 'phrase-release', energy: [0.92, 1], tension: [0.3, 0.12], build: [0.2, 0], phraseProgress: [0.65, 0.82] },
+    { id: 'phrase-momentum', start: 19, end: 22, section: 'momentum', energy: [0.9, 0.62], tension: [0.14, 0.08], build: [0, 0], phraseProgress: [0.82, 0.94] },
+    { id: 'phrase-return', start: 22, end: 24, section: 'return', energy: [0.42, 0.08], tension: [0.08, 0.02], build: [0, 0], phraseProgress: [0.94, 1] },
+  ],
+  drops: [{ id: 'phrase-major-drop', time: 15, strength: 0.92 }],
+};
+
+/** Authored spectrum/texture evidence for Free Bodies; no FFT or analysis is performed. */
+export const milestoneSevenAAudioMap: AudioMap = {
+  ...milestoneSixAAudioMap,
+  id: 'milestone-seven-a-atmosphere',
+  capabilities: { ...milestoneSixAAudioMap.capabilities, spectrum: true },
+  spectrum: [
+    { id: 'atmosphere-calm', start: 0, end: 4, low: [0.24, 0.2], mid: [0.12, 0.14], high: [0.05, 0.08], brightness: [0.08, 0.12], texture: [0.05, 0.08] },
+    { id: 'atmosphere-brightening', start: 4, end: 8, low: [0.2, 0.16], mid: [0.16, 0.34], high: [0.1, 0.62], brightness: [0.14, 0.78], texture: [0.1, 0.2] },
+    { id: 'atmosphere-texture', start: 8, end: 12, low: [0.18, 0.34], mid: [0.38, 0.72], high: [0.56, 0.5], brightness: [0.72, 0.62], texture: [0.24, 0.88] },
+    { id: 'atmosphere-active', start: 12, end: 16, low: [0.32, 0.42], mid: [0.7, 0.82], high: [0.66, 0.9], brightness: [0.7, 0.94], texture: [0.72, 0.96] },
+    { id: 'atmosphere-reduced', start: 16, end: 20, low: [0.34, 0.18], mid: [0.48, 0.2], high: [0.42, 0.16], brightness: [0.52, 0.24], texture: [0.48, 0.18] },
+    { id: 'atmosphere-settling', start: 20, end: 24, low: [0.16, 0.04], mid: [0.14, 0.02], high: [0.1, 0.01], brightness: [0.18, 0.02], texture: [0.14, 0.01] },
   ],
 };
 
@@ -62,4 +114,8 @@ export const unavailableMelodyAudioMap: AudioMap = {
   melody: null,
   percussion: null,
   rhythm: null,
+  harmony: null,
+  structure: null,
+  drops: null,
+  spectrum: null,
 };

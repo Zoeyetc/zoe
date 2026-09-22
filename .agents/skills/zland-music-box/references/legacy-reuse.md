@@ -1,86 +1,159 @@
-# Z.land Music Box — Legacy Reuse Map v0.1
+# Z.land Music Box — Legacy Reuse Map v0.2
 
 ## 1. Purpose
 
-This document classifies existing Z.land / Framer work before migration into
-the standalone Z.land Music Box project.
+This document defines how previous Z.land / Framer implementations may be used
+inside the current standalone Z.land Music Box project.
 
-The goal is to preserve validated simulation work without dragging legacy
-Framer scaffolding, abandoned architecture, or obsolete product assumptions
-into the new project.
+The project is no longer in the initial migration-planning stage.
 
-Each legacy asset is classified as one of:
+Several legacy systems have already been extracted, adapted, tested, and
+integrated into standalone architecture.
+
+Therefore the central rule is now:
+
+> Validated standalone implementation is authoritative.
+>
+> Legacy code is implementation evidence, not current architectural authority.
+
+Legacy source may still contain useful:
+
+- geometry
+- simulation behavior
+- algorithms
+- constants
+- rendering techniques
+- historical experiments
+
+But it must not silently overwrite current standalone contracts.
+
+---
+
+## 2. Classification system
+
+Legacy assets are classified as:
 
 ```text
-KEEP
-EXTRACT
-REFERENCE
+CANONICAL STANDALONE
+KEEP / EXTEND
+LEGACY SOURCE
+REFERENCE ONLY
 REBUILD
 DROP
 ```
 
-Definitions:
+### CANONICAL STANDALONE
 
-### KEEP
+The behavior has already been extracted into the current repository and
+validated through current tests / integration.
 
-The existing implementation is already close to the desired standalone
-architecture.
+Use the standalone implementation as the source of truth.
 
-Preserve behavior and migrate with minimal structural change.
-
-### EXTRACT
-
-The implementation contains valuable simulation or geometry, but it is mixed
-with Framer, React, renderer, or product-specific code.
-
-Extract the reusable core before integration.
-
-### REFERENCE
-
-The implementation contains useful ideas, algorithms, parameters, or visual
-behavior, but should not be migrated directly.
-
-Use it as design / engineering reference.
-
-### REBUILD
-
-The concept remains valid, but the current implementation does not satisfy the
-new architecture.
-
-Implement again using current world contracts.
-
-### DROP
-
-Do not use this implementation as a baseline.
-
-It is obsolete, replaced, or belongs only to the previous Template / Framer
-experiment.
+Do not re-import older legacy behavior unless a concrete regression or missing
+feature requires comparison.
 
 ---
 
-# 2. Migration rule
+### KEEP / EXTEND
 
-Do not migrate by copying whole legacy components into the new repo.
+The current implementation is valid and should be extended without replacing
+its established architecture.
 
-For each asset:
+---
+
+### LEGACY SOURCE
+
+The old implementation contains validated behavior that was or may still be
+useful for extraction.
+
+Inspect it when a current milestone needs functionality that has not yet been
+ported.
+
+Do not copy the whole component blindly.
+
+---
+
+### REFERENCE ONLY
+
+Contains useful historical ideas, visuals, parameters, or techniques.
+
+Do not use as a current implementation baseline.
+
+---
+
+### REBUILD
+
+The conceptual role remains valid, but the legacy implementation does not
+satisfy current architecture.
+
+Build again using current contracts.
+
+---
+
+### DROP
+
+Do not use as current core architecture.
+
+The implementation belongs to an obsolete product assumption, old Framer
+packaging, deprecated template architecture, or superseded experiment.
+
+---
+
+## 3. Authority order
+
+When implementation sources disagree, use this order:
+
+```text
+AGENTS.md
+↓
+SKILL.md
+↓
+architecture.md
+↓
+story-map.md
+↓
+ride-map.md
+↓
+current standalone implementation
+↓
+current tests
+↓
+legacy-reuse.md
+↓
+legacy source
+```
+
+Legacy source must never override current repository architecture merely because
+it contains more code or older features.
+
+If current standalone behavior and legacy behavior conflict:
+
+1. determine whether current behavior is intentionally different;
+2. inspect current tests and architecture;
+3. preserve current validated behavior unless a real regression is proven;
+4. port only the missing legacy capability required by the current milestone.
+
+---
+
+## 4. Migration principle
+
+For any legacy feature that has not yet been ported:
 
 ```text
 inspect
 ↓
-identify reusable behavior
+identify validated behavior
 ↓
-separate pure simulation
+separate pure simulation / geometry
 ↓
-verify parity
+compare with current standalone contracts
 ↓
-remove Framer-specific ownership
+extract only required behavior
 ↓
-connect new world contract
+establish parity where intended
+↓
+integrate
 ```
-
-Do not change musical behavior, physical behavior, renderer architecture, and
-file organization in the same migration step unless the current milestone
-requires all of them.
 
 Prefer:
 
@@ -90,466 +163,805 @@ integrate second
 redesign third
 ```
 
+Do not simultaneously:
+
+- migrate
+- redesign
+- change musical mapping
+- change renderer technology
+- change PhysicsWorld behavior
+
+unless the current milestone explicitly requires all of them.
+
 ---
 
-# 3. Canonical RollerCoaster baseline
+# 5. Current standalone canonical systems
 
-## Classification
+The following systems are already standalone and validated.
+
+They are no longer "pending legacy migration."
 
 ```text
-NEW segmented RollerCoaster
-→ EXTRACT / KEEP simulation
+AudioClock
+AudioMap runtime fixtures
+AudioWorld
+Carousel
+FerrisWheel
+PirateShip
+BumperCars
+DropTower
+RollerCoaster
+PhysicsWorld
+AnchoredReceiver
+AnchoredContentParticipant
+DOM spatial adapter
+PhysicsDebugOverlay
+ControlSurface development shell
+DebugConsole
+```
 
-OLD closed-circuit RollerCoaster
-→ REFERENCE ONLY
+These current implementations are canonical.
+
+Legacy versions may be consulted only for missing behavior or regression
+comparison.
+
+---
+
+# 6. Carousel
+
+## Current classification
+
+```text
+CANONICAL STANDALONE
+```
+
+Current standalone Carousel already validates:
+
+- actor-local base rotation
+- angular velocity / inertia
+- mechanical central structure
+- media-neutral carriers
+- carrier-local note expression
+- note-on / note-off handling
+- pitch-based bounded expression
+- seek
+- pause / settling
+- restart
+- reduced motion
+- exact melody-note evidence
+
+The standalone version is authoritative.
+
+---
+
+## Legacy value
+
+The older Carousel implementation remains useful only for reference to:
+
+- orbital projection
+- angle / velocity behavior
+- targeting
+- drag interaction
+- front/back ordering
+- original layout experiments
+
+Any behavior already represented in the standalone version should not be
+re-imported.
+
+---
+
+## Do not restore
+
+Do not restore:
+
+- independent decorative bob clock as musical timing
+- Framer Property Controls
+- Framer-specific renderer assumptions
+- animal / horse rider forms
+- traditional fairground rider semantics
+- direct note-driven whole-wheel targeting
+
+Current musical-evidence rule remains:
+
+```text
+specific melody note
+→ exact local carrier evidence
 ```
 
 ---
 
-## Canonical version
+# 7. FerrisWheel
 
-The canonical RollerCoaster is the newer segmented architecture containing
-concepts such as:
+## Current classification
+
+```text
+CANONICAL STANDALONE
+```
+
+Current standalone FerrisWheel already validates:
+
+- wheel angle
+- wheel angular velocity
+- bounded acceleration
+- suspended cabin simulation
+- gravity-oriented cabins
+- cabin spring / damping
+- exact chord-tone carrier activation
+- 12 pitch-class carriers
+- chord-change synchronization
+- pause / inertia
+- seek
+- restart
+- reduced motion
+- harmony domain isolation
+
+The standalone version is authoritative.
+
+---
+
+## Legacy value
+
+Legacy FerrisWheel may still be consulted for:
+
+- earlier rotational tuning
+- cabin-swing constants
+- mechanical proportions
+- rendering experiments
+
+Do not replace current harmonic-carrier semantics with older generic wheel
+behavior.
+
+---
+
+## Do not merge with Carousel
+
+FerrisWheel and Carousel remain distinct.
+
+```text
+Carousel
+→ melody / sequential note evidence
+
+FerrisWheel
+→ harmony / simultaneous chord-tone evidence
+```
+
+Do not create a generic CircularRide abstraction unless real code duplication
+justifies a small pure helper.
+
+Never merge musical responsibilities merely because both use circular motion.
+
+---
+
+# 8. PirateShip
+
+## Current classification
+
+```text
+CANONICAL STANDALONE
+```
+
+Current standalone PirateShip already validates:
+
+- actor-local pendulum state
+- angle
+- angular velocity
+- gravitational restoring force
+- damping
+- bounded drive torque
+- target phase
+- phase error
+- groove interpretation
+- swing phase warp
+- pause / physical settling
+- seek reconciliation
+- restart
+- reduced motion
+- domain isolation from percussion
+
+The standalone version is authoritative.
+
+---
+
+## Legacy source used
+
+Legacy PirateShip contributed:
+
+- pendulum structure
+- `-gravity × sin(angle)` restoring term
+- angular damping
+- bounded substeps
+- angle safety limits
+
+Those mechanics have already been extracted.
+
+Do not re-import:
+
+- Framer controls
+- DOM refs
+- hover/focus drive
+- old text passengers
+- old automatic drive behavior
+
+unless a future milestone explicitly requires an equivalent concept.
+
+---
+
+# 9. BumperCars / BumperCarsFooter
+
+## Current classification
+
+```text
+CANONICAL STANDALONE
+```
+
+Current standalone BumperCars validates:
+
+- multiple bodies
+- position
+- velocity
+- heading / rotation
+- angular velocity
+- AABB overlap correction
+- multi-pass collision solving
+- body/body collision
+- wall collision
+- restitution
+- damping
+- speed limiting
+- deterministic seed
+- kick / snare / hat event interpretation
+- pause
+- seek
+- restart
+- reduced motion
+- real collision → PhysicsWorld impact
+
+The standalone version is authoritative.
+
+---
+
+## Legacy source used
+
+Legacy BumperCarsFooter contributed:
+
+- collision response
+- overlap correction
+- wall bounce
+- restitution
+- rotational impulse
+- damping
+- speed limiting
+
+Those behaviors have already been extracted.
+
+---
+
+## Do not restore
+
+Do not restore as simulation architecture:
+
+- Footer-only layout assumptions
+- navigation-link ownership
+- footer-specific positioning
+- DOM measurement as physics truth
+- mouse curiosity / steering unless a future milestone explicitly requires it
+- automatic wander merely because it existed previously
+
+Current Music Box responsibility is:
+
+```text
+percussion
+→ actor-local impulse
+→ real collision
+→ shared physical consequence
+```
+
+---
+
+# 10. DropTower
+
+## Current classification
+
+```text
+CANONICAL STANDALONE
+```
+
+Current standalone DropTower validates:
+
+```text
+IDLE
+LIFTING
+HOLDING
+DROPPING
+REBOUND
+SETTLING
+```
+
+and:
+
+- normalized position
+- bounded substeps
+- lift drive
+- gravity-driven drop
+- braking
+- rebound
+- damping
+- explicit `drop` event
+- build / tension interpretation
+- state-aware pause
+- seek reconciliation
+- deterministic restart
+- reduced motion
+
+The standalone version is authoritative.
+
+---
+
+## Legacy source used
+
+Legacy DropTower contributed:
+
+- state separation
+- lift mechanics
+- hold
+- gravity drop
+- braking
+- rebound
+- bounded dt
+
+Those mechanics have already been extracted.
+
+---
+
+## Do not restore
+
+Do not restore:
+
+- automatic timer-based release as musical truth
+- direct timeline keyframes
+- AudioWorld-driven vertical position
+- old Framer wrappers
+- old PhysicsWorld coupling
+
+Future shared DropTower impact must be implemented through a dedicated current
+milestone, not by restoring legacy integration.
+
+---
+
+# 11. RollerCoaster — canonical standalone
+
+## Current classification
+
+```text
+CANONICAL STANDALONE
+```
+
+Current standalone RollerCoaster already validates:
+
+- extracted segmented geometry
+- `Vec3`
+- `TrackFrame`
+- sampled XYZ geometry
+- minimal-rotation up-frame transport
+- rigid segment placement
+- open route composition
+- `RoutePiece`
+- `HiddenConnector`
+- persistent `routeDistance`
+- velocity
+- acceleration
+- gravity
+- drag
+- drive
+- braking
+- bounded substeps
+- renderer / simulation separation
+- actor-local phrase interpretation
+- pause
+- seek
+- restart
+- reduced motion
+- neutral Orb rider boundary
+
+Current route subset:
+
+```text
+Station
+→ Lift
+→ Drop
+→ Loop
+→ Runout
+→ Station
+```
+
+This standalone implementation is authoritative.
+
+---
+
+# 12. Canonical legacy RollerCoaster source
+
+## Classification
+
+```text
+LEGACY SOURCE / HISTORICAL EXTRACTION SOURCE
+```
+
+Canonical extraction source:
+
+```text
+2026-09-11/files-pasted-by-the-user-project/outputs/RollerCoaster.tsx
+```
+
+This source originally provided the segmented architecture.
+
+Its relevant behavior has already been extracted into standalone modules.
+
+Do not re-copy the legacy component over the standalone implementation.
+
+---
+
+## Legacy concepts already extracted
+
+Examples:
 
 ```text
 Vec3
 TrackFrame
 SegmentGeometry
-SegmentDefinition
 Route
 RoutePiece
-RideState
 HiddenConnector
-FrameDriver
-```
-
-and route concepts including some or all of:
-
-```text
-Lift
-Drop
-Loop
-Helix
-Runout
-Station
-```
-
-The canonical architecture is the version that introduced:
-
-- open route composition
-- persistent routeDistance
-- segment definitions
-- connector logic
-- per-segment physics
-- entry / exit frames
-- world-space XYZ geometry
-- camera-independent ride simulation
-- Orb rider work
-- PhysicsSource integration
-
-This version is the only valid RollerCoaster migration baseline.
-
----
-
-## Preserve
-
-Preserve the behavior and design intent of:
-
-```text
-sampledGeometry()
-frameAt()
-placeGeometry()
-composeRoute()
-sampleRoute()
-
-createRideState()
-advanceRide()
-
+routeDistance
 segment-specific physics
-Drop hold logic
-Loop physics
-Helix / Runout geometry where validated
-Station braking
-connector behavior
-route continuity
+gravity
+drag
+drive
+braking
+world-space XYZ sampling
 ```
 
-Preserve the principle:
+Consult the legacy file only when investigating:
 
-```text
-user / AudioWorld trigger
-↓
-ride simulation
-↓
-routeDistance / velocity / acceleration
-↓
-renderer
-```
-
-AudioWorld must not replace route simulation with direct timeline animation.
+- missing route geometry
+- previously validated segment behavior
+- numerical regression
+- additional unported segment
 
 ---
 
-## Extract
-
-Target conceptual standalone structure:
-
-```text
-rides/
-└── rollerCoaster/
-    ├── types.ts
-    ├── geometry.ts
-    ├── route.ts
-    ├── simulation.ts
-    ├── physics.ts
-    ├── media/
-    │   ├── OrbRider
-    │   └── future riders
-    └── renderers/
-```
-
-Exact file names are not locked.
-
-Do not over-split prematurely.
-
----
-
-## Rider / media architecture
-
-Existing Orb work is useful.
-
-The new project should preserve the separation:
-
-```text
-RollerCoaster trajectory
-≠
-RollerCoaster rider media
-```
-
-Future rider/media may include:
-
-```text
-Orb
-Text
-Title
-Slogan
-Image
-Logo
-Icon
-3D Object
-Shader
-Custom Media
-```
-
-Do not couple route simulation to one media representation.
-
----
-
-## PhysicsWorld integration
-
-Preserve the idea that RollerCoaster may register as a moving PhysicsSource.
-
-Useful source information includes:
-
-```text
-position
-forward
-velocity
-acceleration
-airflowRadius
-contactRadius
-intensity
-```
-
-RollerCoaster airflow / wake should remain a real spatial PhysicsWorld effect.
-
-Do not directly animate nearby objects from RollerCoaster renderer code.
-
----
-
-## Do not migrate
-
-Do not migrate as core:
-
-- Framer Property Controls
-- `useIsStaticRenderer`
-- `RenderTarget`
-- Framer Canvas-specific sizing
-- Framer button UI
-- Framer-specific overrides
-- legacy accessibility wrappers that belong to component packaging
-
-Reimplement only if a standalone renderer actually needs equivalent behavior.
-
----
-
-# 4. Old RollerCoaster
+# 13. Old closed-circuit RollerCoaster
 
 ## Classification
 
 ```text
-REFERENCE
+REFERENCE ONLY
 ```
 
-The old RollerCoaster is the earlier continuous / closed-circuit implementation.
+Historical baseline:
 
-It may contain useful historical reference for:
+```text
+RollerCoaster.baseline.tsx
+```
+
+It may contain reference material for:
 
 - Hermite interpolation
-- visual styling
-- typography carriage treatment
-- old track presentation
-- early velocity heuristics
-- SVG rendering techniques
+- early typography presentation
+- old track aesthetics
+- SVG techniques
+- historical velocity experiments
 
-It is NOT the canonical physics architecture.
-
-Do not:
-
-- merge old modulo route logic into the segmented route
-- restore closed-loop wrapping
-- rebuild new work around old viewport-relative geometry
-- use the old component merely because it appears visually simpler
-
-If old visual behavior is desired, port the visual behavior onto the canonical
-segmented route architecture.
+It is not current architecture.
 
 ---
 
-# 5. PhysicsWorld
+## Never restore as baseline
 
-## Classification
+Do not restore:
+
+- modulo route wrapping
+- closed-loop architecture
+- viewport-relative route physics
+- old whole-word rigid train assumptions
+- old route ownership
+
+If a visual technique is useful, port it onto the current segmented
+standalone architecture.
+
+---
+
+# 14. RollerCoaster rider/media architecture
+
+## Current classification
 
 ```text
-KEEP / EXTRACT
+KEEP / EXTEND
 ```
 
-PhysicsWorld is one of the highest-value existing systems.
+The current separation is:
 
-Existing concepts include:
+```text
+route simulation
+≠
+rider media
+```
+
+Current development rider:
+
+```text
+neutral Orb
+```
+
+Future media may include:
+
+- Text
+- Title
+- Slogan
+- Image
+- Logo
+- Icon
+- 3D Object
+- Shader
+- Custom Media
+
+Media changes must not reset:
+
+- routeDistance
+- velocity
+- direction
+- segment state
+- simulation continuity
+
+Do not implement future rider types merely because legacy work suggested them.
+
+Add them only when a milestone requires them.
+
+---
+
+# 15. PhysicsWorld
+
+## Current classification
+
+```text
+CANONICAL STANDALONE / KEEP / EXTEND
+```
+
+PhysicsWorld is no longer merely a legacy system awaiting extraction.
+
+Current standalone PhysicsWorld already validates shared causality.
+
+Established concepts include:
+
+- shared physical effects
+- force / impact sources
+- Physics Receivers
+- spatial registration
+- canonical world coordinates
+- transient impact handling
+- receiver wake / settle
+- debug observability
+
+Validated chain:
+
+```text
+BumperCars real collision
+→ PhysicsWorld impact
+→ Anchored Content Participant
+```
+
+Current standalone implementation is authoritative.
+
+---
+
+## Legacy PhysicsWorld value
+
+Legacy PhysicsWorld originally contained useful concepts such as:
 
 ```text
 registerPhysicsSource()
 getPhysicsSource()
 invalidatePhysics()
-
 attachPhysicsReceiver()
-
 registerPhysicsCollider()
 samplePhysicsColliders()
 ```
 
-and participant concepts including:
+Use old implementation only when a current milestone needs an unported feature.
 
-```text
-Force Source
-Physics Receiver
-Collider
-Dynamic Body
-```
+Do not restore legacy API naming or React ownership merely because it existed.
 
 ---
 
-## Preserve
+## Next extension
 
-Preserve these architecture principles:
-
-```text
-one shared spatial causality layer
-```
+The next intended shared source is:
 
 ```text
-actors publish physical state
+RollerCoaster actual motion
+→ directional wake
 ```
 
-```text
-receivers respond through PhysicsWorld
-```
+This must extend current standalone PhysicsWorld.
 
-```text
-colliders / exclusion zones influence spatial behavior
-```
-
-```text
-cross-object effects are not duplicated visual animations
-```
-
-PhysicsWorld remains independent of AudioWorld.
-
-AudioWorld may cause an actor to move.
-
-The actor then affects PhysicsWorld.
+Do not replace PhysicsWorld with the old Framer implementation.
 
 ---
 
-## Standalone migration
+# 16. PhysicsParticipant
 
-Move reusable world logic into a standalone module conceptually like:
+## Current classification
 
 ```text
-physics/
-├── PhysicsWorld.ts
-├── types.ts
-├── spatial.ts
-└── optional adapters/
+REFERENCE ONLY
 ```
 
-Do not preserve `.tsx` merely because the Framer version used React.
-
-If the core does not render React, prefer `.ts`.
-
----
-
-## Framer-specific parts
-
-The existing PhysicsWorld may contain DOM-oriented assumptions.
-
-Audit:
-
-- viewport coordinate usage
-- DOMRect usage
-- direct window access
-- requestAnimationFrame ownership
-- scroll compensation
-- document visibility lifecycle
-
-Do not blindly copy these assumptions into the standalone coordinate system.
-
-The standalone project must follow the canonical spatial contract defined in
-`architecture.md`.
-
----
-
-# 6. PhysicsParticipant
-
-## Classification
+Legacy PhysicsParticipant demonstrated the useful conceptual pattern:
 
 ```text
-REFERENCE / FRAMER ADAPTER
-```
-
-PhysicsParticipant is useful evidence that native Framer content can be
-registered into PhysicsWorld without giving PhysicsWorld ownership of layout.
-
-Important design principle worth preserving:
-
-```text
-layout layer
-↓
-response layer
-```
-
-The Framer outer element owns normal layout.
-
-A nested visual layer receives physical transforms.
-
-This supports:
-
-```text
-current layout anchor
+authored layout
 +
 physics response
 ```
 
-without forcing ordinary content into free-body simulation.
+That concept has now been implemented in standalone form through:
+
+```text
+AnchoredReceiver
+AnchoredContentParticipant
+DOM spatial adapter
+```
+
+Therefore the legacy component itself should not be migrated.
 
 ---
 
-## Do not migrate directly
+## Do not restore
 
-PhysicsParticipant depends on:
+Do not restore:
 
 - Framer ComponentInstance
-- Framer Property Controls
-- React wrapper structure
-- DOM registration
+- Property Controls
+- Framer wrapper hierarchy
+- Framer-specific DOM ownership
 
-Do not use it as standalone PhysicsWorld core.
-
----
-
-## Preserve conceptually
-
-Future standalone content participants may use the same pattern:
-
-```text
-layout / authored transform
-+
-physics offset
-+
-recovery
-```
-
-Content may be:
-
-```text
-Text
-Image
-Button
-Logo
-navigation
-project card
-```
+The standalone anchored-content system is now authoritative.
 
 ---
 
-# 7. PhysicsSource
+# 17. AnchoredReceiver
 
-## Classification
+## Current classification
 
 ```text
-REFERENCE / ADAPTER
+CANONICAL STANDALONE / KEEP / EXTEND
 ```
 
-PhysicsSource currently wraps a moving DOM actor and publishes sampled spatial
-information into PhysicsWorld.
+Current AnchoredReceiver already validates:
 
-Useful concepts include:
+- impulse response
+- translation
+- rotation
+- bounded displacement
+- bounded rotation
+- spring recovery
+- damping
+- settle state
+- reduced-motion response
+
+Use this core for anchored receiver behavior.
+
+Do not create actor-specific duplicate spring systems without a real material
+requirement.
+
+---
+
+# 18. AnchoredContentParticipant
+
+## Current classification
+
+```text
+CANONICAL STANDALONE / KEEP / EXTEND
+```
+
+Current standalone content-participant model validates:
+
+```text
+authored/current layout
++
+temporary PhysicsWorld response
+=
+rendered content
+```
+
+The outer layout remains authoritative.
+
+The inner response layer applies:
+
+- translation
+- rotation
+
+Layout changes do not become false physical velocity.
+
+Recovery returns response offset to zero relative to the current layout anchor.
+
+This is now an established architecture contract.
+
+---
+
+# 19. DOM spatial adapter
+
+## Current classification
+
+```text
+CANONICAL STANDALONE / KEEP / EXTEND
+```
+
+Current DOM adapter already validates explicit conversion between:
+
+```text
+DOM bounds
+→ canonical PhysicsWorld coordinates
+```
+
+Measurement occurs through bounded lifecycle triggers such as:
+
+- mount
+- ResizeObserver
+- window resize
+- explicit layout invalidation
+
+Do not reintroduce per-frame DOM measurement as the default.
+
+Do not infer physical velocity from responsive relayout.
+
+---
+
+# 20. PhysicsSource legacy adapter
+
+## Current classification
+
+```text
+REFERENCE ONLY
+```
+
+Legacy PhysicsSource contained useful lessons:
 
 - explicit source ID
-- moving anchor
 - source radius
 - contact radius
-- velocity estimation
-- scroll-motion subtraction
-- visibility checks
+- velocity sampling
+- host-motion subtraction
+- visibility lifecycle
+
+The most important preserved principle is:
+
+> Camera, viewport, or layout movement must not become fictitious physical
+> velocity.
+
+Current standalone sources should use simulation truth when available.
+
+Example:
+
+```text
+RollerCoaster
+→ use route simulation velocity
+```
+
+not:
+
+```text
+measure moving SVG DOMRect
+→ estimate velocity
+```
 
 ---
 
-## Preserve conceptually
-
-The following principle is important:
-
-> Camera, viewport, or host-container motion must not be interpreted as actor
-> physical velocity.
-
-The Framer implementation subtracts host movement to avoid false velocity from
-native scrolling.
-
-The standalone project must preserve this principle using its new spatial
-contract.
-
----
-
-## Do not migrate directly
-
-Do not retain:
-
-- DOM selector-based actor identity as the universal source contract
-- Framer wrapper ownership
-- browser-layout measurement as the only possible source type
-
-Three.js, Canvas, DOM, and simulation-native actors may each need different
-source adapters.
-
----
-
-# 8. PhysicsReceiverOverrides
+# 21. PhysicsReceiverOverrides
 
 ## Classification
 
 ```text
-DROP AS CORE
+DROP AS CURRENT ARCHITECTURE
 REFERENCE ONLY
 ```
 
@@ -562,25 +974,55 @@ withPhysicsCard
 withPhysicsNavigation
 ```
 
-belong to the Framer prototype.
+must not return as standalone architecture.
 
-They should not become standalone architecture.
+Useful historical lesson:
 
-Useful reference:
+different content types may eventually require different response materials.
 
-- different content types may have different displacement limits
-- navigation should remain strongly anchored
-- card response can be stronger than navigation
-- text may use different bounds from rigid boxes
+Future material behavior should be added only when a current milestone requires
+it.
 
-These values are design references only.
-
-Future material / receiver contracts should be redesigned when the experience
-requires them.
+Do not create a general Material Response System prematurely.
 
 ---
 
-# 9. MotionWorldCore
+# 22. PhysicsDebugOverlay
+
+## Current classification
+
+```text
+CANONICAL DEVELOPMENT TOOL
+```
+
+Current debug overlay is part of standalone development infrastructure.
+
+It may expose:
+
+- impact position
+- radius
+- normal
+- force path
+- receiver position
+- received impulse
+- displacement
+- future wake geometry
+
+It must visualize actual PhysicsWorld state.
+
+It must not draw fake markers based directly on musical events.
+
+Preserve:
+
+```text
+?hide-physics-debug
+```
+
+or equivalent debug visibility control unless intentionally redesigned.
+
+---
+
+# 23. MotionWorldCore
 
 ## Classification
 
@@ -588,80 +1030,45 @@ requires them.
 REFERENCE / OPTIONAL FUTURE SIBLING SYSTEM
 ```
 
-MotionWorldCore is not AudioWorld.
+MotionWorld solves:
 
-It solves a different problem:
+- scroll choreography
+- page section progress
+- page-level ownership
+- viewport motion hierarchy
 
-```text
-scroll
-section progress
-ownership
-choreography role
-page motion intensity
-```
+It is not AudioWorld.
 
-Useful architecture ideas include:
-
-- one global measurement source
-- analytic section progress
-- ownership
-- explicit role semantics
-- offscreen lifecycle
-- reduced motion
-- demand-driven frame work
-- no per-frame React state
+It is not required by the current Music Box runtime.
 
 ---
 
-## Do not migrate into Music Box milestone 1
+## Current rule
 
-The initial Music Box does not require scroll choreography.
-
-Do not insert MotionWorld between:
+Do not insert MotionWorld into:
 
 ```text
 AudioWorld
-and
-Actors
+→ Actor
 ```
 
-AudioWorld and MotionWorld are sibling input/director domains.
+The current vertical development page does not imply that song progression
+should be scroll-driven.
 
-Future architecture may support:
-
-```text
-MotionWorld ─┐
-             ├─► shared experience
-AudioWorld ──┘
-```
-
-through explicit contracts.
+Future Park Map / Spatial Score may use camera or spatial navigation, but this
+must remain separate from musical time.
 
 ---
 
-## Preserve separately
-
-Keep the Framer MotionWorld implementation available as:
-
-```text
-legacy reference
-```
-
-or future reusable subsystem.
-
-Do not rewrite it during AudioWorld development.
-
----
-
-# 10. MotionShared
+# 24. MotionShared
 
 ## Classification
 
 ```text
-REFERENCE / REUSE SMALL PURE HELPERS
+REFERENCE / SMALL PURE HELPERS ONLY
 ```
 
-Existing helpers such as:
+Small functions such as:
 
 ```text
 clamp
@@ -669,36 +1076,26 @@ smoothstep
 expFollow
 ```
 
-are generic and may be reused.
+may be reused if needed.
 
-Existing motion token concepts may also be referenced:
+Do not import the entire legacy motion-token system merely because a helper is
+useful.
 
-```text
-durations
-curves
-springs
-role weights
-```
-
-Do not migrate the entire Framer motion token system merely because these
-helpers exist.
-
-Copy or reimplement only the small pure functions needed by the standalone
-project.
+Prefer small local pure utilities.
 
 ---
 
-# 11. SceneChoreography
+# 25. SceneChoreography
 
 ## Classification
 
 ```text
-DROP FOR MUSIC BOX CORE
+DROP
 ```
 
-SceneChoreography belongs to the previous page / Template experiment.
+SceneChoreography belongs to the old page-template experiment.
 
-It contains assumptions around:
+Legacy assumptions such as:
 
 ```text
 Hero
@@ -708,29 +1105,27 @@ About
 Contact
 ```
 
-and placeholder visual movement.
+do not belong to Music Box.
 
-These assumptions do not belong to Z.land Music Box core architecture.
+Do not restore:
 
-Do not migrate:
-
-- section-specific transforms
-- fixed page choreography
+- section-specific movement
 - template placeholder timing
+- page choreography as musical structure
 
-The Story Map now defines Music Box experience progression.
+The current Story Map defines experience progression.
 
 ---
 
-# 12. ZLandSceneConfig
+# 26. ZLandSceneConfig
 
 ## Classification
 
 ```text
-DROP FOR MUSIC BOX CORE
+DROP
 ```
 
-Legacy mappings such as:
+Old mappings such as:
 
 ```text
 RollerCoaster → Hero
@@ -740,13 +1135,15 @@ DropTower → About
 BumperCars → Contact
 ```
 
-belong to the old Template concept.
+are obsolete.
 
-They are obsolete for Music Box.
+Do not use them to infer:
 
-Do not use them to infer actor responsibility.
+- actor role
+- Park Map position
+- musical responsibility
 
-Current musical responsibilities are defined in:
+Current responsibilities come from:
 
 ```text
 ride-map.md
@@ -754,29 +1151,26 @@ ride-map.md
 
 ---
 
-# 13. ZLandLegacyAdapter
+# 27. ZLandLegacyAdapter
 
 ## Classification
 
 ```text
-DROP FOR STANDALONE CORE
+DROP
 ```
-
-The Legacy Adapter exists to bridge earlier Framer systems and placeholder
-consumers.
 
 Do not migrate:
 
-- reserved consumers
-- section placeholder replacement
-- deprecated physics contract aliases
-- Template-era ride/section mapping
+- placeholder consumer bridges
+- deprecated physics aliases
+- old Template mappings
+- old section consumers
 
-Its existence is useful historical context only.
+It is historical scaffolding only.
 
 ---
 
-# 14. SceneActor
+# 28. SceneActor
 
 ## Classification
 
@@ -784,346 +1178,67 @@ Its existence is useful historical context only.
 REFERENCE ONLY
 ```
 
-SceneActor demonstrated an important lifecycle pattern:
+Useful lifecycle ideas include:
 
 ```text
 visible
 +
 eligible
-↓
-actor may run
+→ actor may run
 ```
 
-Useful concepts include:
+and:
 
 - IntersectionObserver
-- lifecycle eligibility
-- reduced work while offscreen
-- actor-local autonomy
-- director does not own actor simulation
+- offscreen suspension
+- actor autonomy
+- reduced work
+- director not owning actor simulation
 
-These ideas may inform future runtime optimization.
+These ideas may inform future performance optimization.
 
 Do not migrate the Framer component itself.
 
 ---
 
-# 15. Carousel
+# 29. Balloons legacy
 
 ## Classification
 
 ```text
-EXTRACT / HIGH-VALUE ASSET
+REFERENCE / DO NOT MIGRATE AS FINAL FREE BODY
 ```
 
-Carousel is the first Music Box vertical actor.
-
-It should be migrated before other rides.
-
-Existing useful mechanics include:
-
-```text
-pose()
-orbital distribution
-projection
-angle
-velocity
-inertia
-drag interaction
-target selection
-selected item easing
-front / back ordering
-```
-
-These should be preserved where validated.
-
----
-
-## Critical redesign boundary
-
-Existing Carousel decorative bob / internal clock must not remain the musical
-timing source.
-
-Current concept:
-
-```text
-internal decorative clock
-↓
-bob
-```
-
-Music Box target:
-
-```text
-AudioWorld melody
-↓
-note expression
-```
-
-Do not remove useful orbital mechanics merely because note behavior changes.
-
----
-
-## Migration target
-
-Conceptually separate:
-
-```text
-CarouselSimulation
-```
-
-from:
-
-```text
-CarouselRenderer
-```
-
-and:
-
-```text
-CarouselAudioAdapter
-```
-
-Potential separation:
-
-```text
-rides/
-└── carousel/
-    ├── types.ts
-    ├── simulation.ts
-    ├── audioAdapter.ts
-    └── renderer.tsx
-```
-
-Exact file layout is not locked.
-
----
-
-## First milestone rule
-
-Do NOT redesign Carousel appearance during milestone 1.
-
-First prove:
-
-```text
-Authored AudioMap
-→ AudioClock
-→ AudioWorld
-→ Carousel melody response
-```
-
-with minimal presentation changes.
-
----
-
-# 16. FerrisWheel
-
-## Classification
-
-```text
-EXTRACT / REFERENCE CURRENT SIMULATION
-```
-
-Existing FerrisWheel contains useful physical mechanics including:
-
-```text
-rotation
-angular velocity
-acceleration
-suspended cabin behavior
-cabin spring / swing
-```
-
-Preserve the characteristic mechanical property:
-
-```text
-wheel rotates
-while
-cabins remain gravity-oriented
-```
-
-This is important for its harmony role.
-
----
-
-## Do not confuse with Carousel
-
-FerrisWheel is not the Melody Carousel.
-
-Do not merge implementations merely because both contain circular movement.
-
-Carousel:
-
-```text
-melody / pitch / rider expression
-```
-
-FerrisWheel:
-
-```text
-harmony / sustained relationship / suspended cabins
-```
-
-Shared math may later be extracted only if real duplication appears.
-
----
-
-# 17. DropTower
-
-## Classification
-
-```text
-EXTRACT / HIGH-VALUE SIMULATION
-```
-
-Existing DropTower state machine is valuable.
-
-Preserve concepts like:
-
-```text
-IDLE
-LIFTING
-HOLDING
-DROPPING
-REBOUND
-SETTLED / SETTLING
-```
-
-and its existing time-step simulation.
-
----
-
-## Preserve
-
-Preserve:
-
-- lift behavior
-- hold behavior
-- gravity-driven drop
-- braking
-- rebound / recovery
-- bounded dt
-- actor-local simulation ownership
-
-Do not replace the state machine with CSS keyframes or direct timeline
-scrubbing.
-
----
-
-## Audio integration comes later
-
-Future AudioWorld mapping:
-
-```text
-build
-→ lifting
-
-tension
-→ hold
-
-drop event
-→ release
-```
-
-This integration occurs only after Carousel milestone verifies AudioWorld.
-
----
-
-# 18. BumperCars / BumperCarsFooter
-
-## Classification
-
-```text
-EXTRACT / HIGH-VALUE PHYSICS
-```
-
-Existing BumperCars work contains valuable body simulation:
-
-```text
-position
-velocity
-rotation
-angularVelocity
-collision bounds
-body/body collision
-wall collision
-restitution
-damping
-speed limiting
-wander
-```
-
-Preserve the actual collision system.
-
----
-
-## Remove product-specific assumptions
-
-The old implementation may be designed as Footer navigation.
-
-Do not preserve:
-
-```text
-Footer-only layout assumptions
-```
-
-as simulation architecture.
-
-Separate:
-
-```text
-BumperCars simulation
-```
-
-from:
-
-```text
-navigation renderer / footer use case
-```
-
-The Music Box version uses BumperCars as percussion-driven physical bodies.
-
----
-
-# 19. Balloons
-
-## Classification
-
-```text
-REFERENCE / REBUILD
-```
-
-The existing Balloons implementation is useful as lifecycle reference but does
-not yet represent the desired Free Body architecture.
-
-Current behavior relies heavily on:
+Legacy Balloons used behavior approximately like:
 
 ```text
 sin(time)
-→ target position
+→ target
 → spring follow
 ```
 
-This is not sufficient for final Music Box Free Bodies.
+That is insufficient for current Free Body requirements.
 
 ---
 
-## Preserve concepts
+## Useful legacy lessons
 
-Useful:
+Keep only reference value such as:
 
-- actor-local RAF
-- spring-like motion
+- lightweight actor-local update
+- spring-like movement
 - hidden-tab lifecycle
 - reduced-motion handling
-- `invalidatePhysics()`
-- multiple lightweight bodies
+- multiple objects
+- physics invalidation ideas
 
 ---
 
-## Rebuild target
+## Future Free Body target
 
-Future Free Body should own real:
+Milestone 7A should build Free Bodies using current standalone architecture.
+
+Expected state may include:
 
 ```text
 position
@@ -1131,11 +1246,12 @@ velocity
 mass
 drag
 forces
+turbulence
 collision
 exclusion response
 ```
 
-and respond to:
+Inputs should include:
 
 ```text
 AudioWorld atmosphere
@@ -1143,21 +1259,41 @@ AudioWorld atmosphere
 PhysicsWorld forces
 ```
 
-Do not retain the literal balloon visual as a requirement.
-
-Possible representations:
-
-```text
-Orb
-light body
-particle body
-soft object
-abstract floating material
-```
+Do not copy the legacy sine-target implementation as final behavior.
 
 ---
 
-# 20. Framer Code Component wrappers
+# 30. Free Bodies visual identity
+
+## Classification
+
+```text
+NOT LOCKED
+```
+
+"Balloon" is historical terminology.
+
+The final object may be:
+
+- Orb
+- light body
+- particle-like body
+- soft abstract object
+- another media-neutral form
+
+Do not force literal balloon visuals.
+
+Use:
+
+```text
+Free Bodies / Orb
+```
+
+as the current conceptual name unless a future design decision replaces it.
+
+---
+
+# 31. Framer Code Component wrappers
 
 ## Classification
 
@@ -1165,7 +1301,7 @@ abstract floating material
 DROP FROM STANDALONE CORE
 ```
 
-Do not migrate into core:
+Do not migrate into current core:
 
 ```text
 addPropertyControls
@@ -1175,17 +1311,16 @@ RenderTarget
 Override
 ComponentInstance
 Framer Canvas guards
-Framer intrinsic sizing annotations
+Framer intrinsic-size annotations
 ```
 
-These may later reappear inside a dedicated Framer adapter package if Z.land
-returns to Framer.
+Equivalent lifecycle behavior may be reimplemented when genuinely needed.
 
-They do not belong to Music Box core.
+Do not keep Framer imports merely for historical compatibility.
 
 ---
 
-# 21. Existing static / reduced-motion lessons
+# 32. Static / reduced-motion lessons
 
 ## Classification
 
@@ -1193,20 +1328,19 @@ They do not belong to Music Box core.
 KEEP AS ENGINEERING PRINCIPLE
 ```
 
-Although Framer-specific implementation is not migrated, preserve the lessons:
+Preserve lessons learned from Framer Marketplace work:
 
-- continuous animation must have stable reduced-motion behavior
+- continuous animation needs stable reduced-motion behavior
 - hidden documents should not waste simulation work
-- render/export contexts must not leak live simulation
-- simulation cleanup must be explicit
+- cleanup must be explicit
 - static presentation should remain meaningful
+- simulation must not leak into inappropriate render contexts
 
-The standalone project must implement equivalent lifecycle behavior using its
-own runtime environment.
+Implementation must use current standalone environment, not old Framer APIs.
 
 ---
 
-# 22. Existing renderer techniques
+# 33. Existing renderer techniques
 
 ## Classification
 
@@ -1214,203 +1348,581 @@ own runtime environment.
 REFERENCE
 ```
 
-Existing renderers include useful techniques:
+Legacy renderer techniques may include:
 
-- SVG imperative transforms
-- pre-mounted SVG nodes
-- route-based trail sampling
+- imperative SVG transforms
+- pre-mounted nodes
+- route sampling
+- trail sampling
 - projection
 - painter ordering
-- DOM transform response layers
 - visual culling
+- DOM response layers
 
-Reuse individual techniques when appropriate.
+Reuse only when they improve current implementation.
 
-Do not preserve a renderer technology merely because an older component used
-it.
+Do not preserve a renderer technology because a legacy component used it.
 
-The new project may use:
-
-```text
-DOM
-SVG
-Canvas
-Three.js
-WebGL
-Shader
-```
-
-per actor.
-
-Renderer choice must remain independent from simulation truth.
+Simulation truth remains renderer-independent.
 
 ---
 
-# 23. Existing Framer assets as test references
+# 34. Musical evidence overrides legacy visuals
 
-Before deleting or archiving old work, preserve enough evidence to compare
-behavior.
+This is a new critical rule.
 
-Useful references may include:
+Legacy visuals were often created before the current "spatial score / precise
+musical evidence" direction was fully defined.
+
+Therefore:
+
+> Legacy visual behavior must never override current musical-evidence rules.
+
+Examples:
+
+If a legacy Carousel randomly emphasized riders:
+
+```text
+do not restore it
+```
+
+if it conflicts with exact melody-note evidence.
+
+If a legacy FerrisWheel illuminated cabins decoratively:
+
+```text
+do not restore it
+```
+
+if it conflicts with exact chord-tone membership.
+
+If a legacy ride used amplitude-based glow:
+
+```text
+treat it as optional presentation only
+```
+
+not musical truth.
+
+Current musical semantics take priority.
+
+---
+
+# 35. Experience composition overrides legacy template layout
+
+Legacy Template layouts are not current experience authority.
+
+The old project assumed:
+
+```text
+vertical sections
+ride per section
+scroll choreography
+```
+
+The current direction is:
+
+```text
+persistent shared park
++
+simultaneously visible musical actors
++
+Spatial Score
+```
+
+Therefore do not reuse old template page layout as the final Park Map merely
+because it already exists.
+
+The current vertical standalone page is also temporary development UI.
+
+Final Experience Composition will be designed later.
+
+---
+
+# 36. Legacy park / amusement visuals
+
+## Classification
+
+```text
+REFERENCE ONLY
+```
+
+Avoid automatically importing traditional amusement-park styling from old
+experiments.
+
+Current visual direction should remain compatible with:
+
+- abstract
+- mechanical
+- diagrammatic
+- computational
+- media-neutral
+- monochrome / restrained color
+
+Do not reintroduce:
+
+- horse riders
+- mascots
+- cartoon visitors
+- decorative pirate motifs
+- nostalgic fairground illustration
+
+unless the user explicitly decides otherwise.
+
+Mechanical identity is valuable.
+
+Theme-park decoration is not automatically valuable.
+
+---
+
+# 37. Current visual carriers
+
+Current validated visual semantics include:
+
+### Carousel
+
+```text
+media-neutral mechanical carriers
+```
+
+not horses.
+
+### FerrisWheel
+
+```text
+abstract cabins / harmonic carriers
+```
+
+### PirateShip
+
+```text
+abstract mechanical suspended body
+```
+
+### RollerCoaster
+
+```text
+neutral Orb rider
+```
+
+Do not replace these with themed characters without explicit design direction.
+
+---
+
+# 38. Current musical mappings are authoritative
+
+Current validated responsibility map:
+
+```text
+Carousel
+→ melody / exact note evidence
+
+FerrisWheel
+→ harmony / exact chord-tone membership
+
+PirateShip
+→ groove / swing
+
+BumperCars
+→ percussion
+
+DropTower
+→ build / tension / explicit drop
+
+RollerCoaster
+→ phrase / energy / tension / release
+
+Free Bodies
+→ future texture / atmosphere + PhysicsWorld forces
+```
+
+Legacy code must not change these responsibilities.
+
+---
+
+# 39. Current project state
+
+Current standalone implementation has objectively validated:
+
+```text
+Carousel
+FerrisWheel
+PirateShip
+BumperCars
+DropTower
+RollerCoaster
+```
+
+AudioWorld now supports authored development evidence for:
+
+```text
+melody
+harmony
+rhythm
+percussion
+structure
+phrase
+```
+
+Shared-world architecture has validated:
+
+```text
+BumperCars real collision
+→ PhysicsWorld
+→ Anchored Content
+```
+
+and:
+
+```text
+normal layout
++
+temporary physical response
+```
+
+Do not describe these as pending migrations.
+
+---
+
+# 40. Current near-term legacy relevance
+
+## Milestone 6B — RollerCoaster wake
+
+Legacy RollerCoaster PhysicsSource ideas may be consulted for:
+
+- moving source registration
+- source radius
+- velocity / forward concepts
+- lifecycle
+
+But implement the wake using:
+
+```text
+current standalone RollerCoaster simulation
++
+current standalone PhysicsWorld
+```
+
+Do not restore the legacy PhysicsSource wrapper.
+
+---
+
+## Milestone 7A — Free Bodies
+
+Legacy Balloons may be consulted only for:
+
+- lightweight lifecycle
+- earlier visual experimentation
+
+Do not use its sine-target movement as the new simulation baseline.
+
+Build Free Bodies against:
+
+```text
+current AudioWorld
++
+current PhysicsWorld
+```
+
+---
+
+## Experience Composition phase
+
+Do not use old Template scene structure as final map layout.
+
+Future Park Map / Spatial Score should be designed from current actors and
+current shared-world spatial relationships.
+
+---
+
+# 41. Migration checklist for any remaining legacy feature
+
+Before using legacy code, answer:
+
+1. Is this capability already implemented in standalone form?
+2. If yes, why is legacy code being consulted?
+3. Is the legacy behavior actually validated?
+4. Is it simulation, geometry, renderer, UI, or packaging?
+5. Does it conflict with current Musical Evidence rules?
+6. Does it conflict with current actor responsibility?
+7. Does it conflict with current PhysicsWorld ownership?
+8. Does it assume Framer layout / scroll / canvas?
+9. Can the useful part be extracted as a small pure function?
+10. Is the capability required by the current milestone?
+
+If the current standalone system already solves the problem, do not migrate the
+legacy version.
+
+---
+
+# 42. Regression rule
+
+Legacy parity is not automatically desirable.
+
+There are now three cases.
+
+### Case A — Intended preserved behavior
+
+Example:
+
+```text
+DropTower gravity / rebound
+```
+
+If standalone behavior regresses, compare against legacy implementation.
+
+---
+
+### Case B — Intentionally replaced behavior
+
+Example:
+
+```text
+Carousel decorative bob
+→ replaced by real melody-note expression
+```
+
+Do NOT restore legacy parity.
+
+---
+
+### Case C — Obsolete product behavior
+
+Example:
+
+```text
+BumperCarsFooter navigation product
+```
+
+Do not treat missing behavior as regression.
+
+Always classify the behavior before attempting parity.
+
+---
+
+# 43. Source preservation
+
+Preserve enough legacy evidence for regression investigation.
+
+Useful artifacts include:
 
 - source snapshots
 - screen recordings
 - screenshots
-- known parameter defaults
-- behavior notes
-- regression reports
-- test fixtures
+- parameter defaults
+- known good behavior notes
+- old test fixtures
+- bug reports
 
-Especially preserve validated behavior for:
+Especially preserve historical evidence for:
 
 ```text
 RollerCoaster
 Carousel
-DropTower
 FerrisWheel
+DropTower
 BumperCars
+PirateShip
 PhysicsWorld
 ```
 
-Do not rely on memory alone during migration.
+But do not keep old code in active runtime merely for archival purposes.
 
 ---
 
-# 24. Migration priority
+# 44. Current implementation is not disposable prototype code
 
-Current migration priority is NOT:
+The standalone repository has now accumulated validated architecture.
 
-```text
-move everything into the new repo
-```
+Do not treat current files as temporary throwaway implementations just because
+the final UI is unfinished.
 
-It is:
-
-```text
-1. Create standalone project skeleton
-2. Implement AudioClock
-3. Implement authored AudioMap fixture
-4. Implement AudioWorld
-5. Extract Carousel core
-6. Connect Carousel to AudioWorld
-7. Verify play / pause / seek / restart
-8. Add DebugConsole
-9. Only then choose second actor
-```
-
-PhysicsWorld may be migrated early if needed for project architecture, but
-milestone 1 does not require Full Park physics.
-
----
-
-# 25. Keep / Extract / Reference / Rebuild / Drop summary
-
-## KEEP / EXTRACT
+The following layers are already meaningful long-term architecture:
 
 ```text
-PhysicsWorld core
-NEW segmented RollerCoaster simulation
-Carousel orbital / inertia simulation
-DropTower state machine / physics
-BumperCars collision simulation
-FerrisWheel rotation / cabin simulation
-small pure math helpers
-```
-
----
-
-## REFERENCE
-
-```text
-MotionWorldCore
-MotionShared token ideas
-PhysicsParticipant pattern
-PhysicsSource adapter ideas
-SceneActor lifecycle ideas
-existing renderer techniques
-OLD RollerCoaster visual/history
-Balloons lifecycle
-Framer static-renderer lessons
-```
-
----
-
-## REBUILD
-
-```text
-Free Bodies / Orb actor
+AudioClock
 AudioWorld
+actor-local simulation
+PhysicsWorld
+spatial adapters
+Anchored Content
+musical evidence mapping
+```
+
+Final Experience Composition may change drastically without replacing these
+layers.
+
+---
+
+# 45. Final Park Map must use current systems
+
+When Park Map / Spatial Score work begins, do not rebuild actor behavior inside
+the map component.
+
+The map should compose existing systems.
+
+Correct:
+
+```text
+existing Carousel
+existing FerrisWheel
+existing PirateShip
+existing BumperCars
+existing DropTower
+existing RollerCoaster
+existing PhysicsWorld
+future Free Bodies
+↓
+Experience Composition
+```
+
+Wrong:
+
+```text
+ParkMap.tsx
+→ reimplements simplified fake versions of every ride
+```
+
+The Park Map is composition.
+
+It is not a replacement simulation layer.
+
+---
+
+# 46. Keep / Reference / Rebuild / Drop summary
+
+## CANONICAL STANDALONE
+
+```text
 AudioClock
 AudioMap runtime
-Audio analysis pipeline
-ControlSurface
+AudioWorld
+
+Carousel
+FerrisWheel
+PirateShip
+BumperCars
+DropTower
+RollerCoaster
+
+PhysicsWorld
+AnchoredReceiver
+AnchoredContentParticipant
+DOM spatial adapter
+PhysicsDebugOverlay
+
+ControlSurface development boundary
 DebugConsole
-PirateShip if no validated implementation exists
-material response system when required
-standalone spatial adapters
 ```
 
 ---
 
-## DROP FROM STANDALONE CORE
+## LEGACY SOURCE / CONSULT ONLY WHEN REQUIRED
+
+```text
+canonical segmented RollerCoaster legacy source
+legacy DropTower
+legacy BumperCarsFooter
+legacy FerrisWheel
+legacy PirateShip
+legacy Carousel
+legacy PhysicsWorld
+legacy PhysicsSource
+```
+
+These are historical extraction sources, not current runtime authority.
+
+---
+
+## REFERENCE ONLY
+
+```text
+old closed-circuit RollerCoaster
+MotionWorldCore
+MotionShared ideas
+PhysicsParticipant
+SceneActor lifecycle
+legacy renderer techniques
+legacy Balloons
+old visual experiments
+```
+
+---
+
+## REBUILD / FUTURE CURRENT ARCHITECTURE
+
+```text
+Free Bodies / Orb
+real Audio Analysis Pipeline
+final ControlSurface
+Gate / Ticket Booth presentation
+Experience Composition
+Park Map / Spatial Score
+future Material Response System when required
+future Three.js / 3D spatial adapters when required
+```
+
+---
+
+## DROP
 
 ```text
 ZLandSceneConfig
 ZLandLegacyAdapter
 SceneChoreography
-Template section mappings
+old Template section mappings
 reserved placeholder consumers
-Framer Property Controls
-RenderTarget-specific wrappers
-old Template visual scaffolding
-OLD RollerCoaster as architecture baseline
+Framer Property Controls in standalone core
+RenderTarget wrappers
+old Hero / Work / Process / About / Contact ride mapping
+legacy vertical Template architecture as final UX
+old RollerCoaster closed-loop architecture
 ```
 
 ---
 
-# 26. Legacy migration invariant
+# 47. Legacy invariant
 
-Existing code is valuable when it contains validated behavior.
+Ask:
 
-Existing code is not sacred merely because it already exists.
+> Is this legacy code teaching us something the current standalone system does
+> not already know?
 
-For every legacy system ask:
+If no:
 
 ```text
-Does this contain validated physical / musical / mathematical behavior?
+do not migrate it
 ```
 
 If yes:
 
 ```text
-preserve and extract
+extract only the required validated behavior
 ```
 
-If it contains only:
+Then ask:
+
+> Does it preserve current Musical Evidence, Actor Interpretation, and
+> PhysicsWorld ownership?
+
+If no:
 
 ```text
-old product assumptions
-old Framer packaging
-old section choreography
-temporary scaffolding
+adapt or reject it
 ```
 
-then:
-
-```text
-reference or discard
-```
-
-Never allow migration convenience to redefine the new architecture.
-
-The new project's source of truth is:
+The current project source of truth is:
 
 ```text
 AGENTS.md
+SKILL.md
 architecture.md
 story-map.md
 ride-map.md
-legacy-reuse.md
+current standalone implementation
+current tests
 ```
 
-Legacy source is implementation evidence, not architectural authority.
+Legacy source is evidence.
+
+It is not authority.

@@ -1,4 +1,4 @@
-# Z.land Music Box — Story Map v0.1
+# Z.land Music Box — Story Map v0.2
 
 ## 1. Experience premise
 
@@ -9,22 +9,133 @@ The visitor does not simply play a song while watching an audio visualizer.
 
 A song enters the park.
 
-Different musical dimensions are interpreted by different physical actors.
+The park reveals different kinds of musical evidence through different
+mechanical actors.
 
-Those actors then inhabit the same PhysicsWorld and can physically affect
-one another and surrounding content.
+Those actors then inhabit the same PhysicsWorld and may physically affect one
+another and surrounding content.
 
-The core experience should communicate:
+The experience should communicate:
 
 > The park is not dancing to the music.
 >
 > The music is operating the park.
 
+But it should also communicate something more precise:
+
+> When a note, chord tone, rhythmic event, or structural event appears,
+> the corresponding physical system is responding to something that actually
+> exists in the music.
+
+Z.land should therefore feel partly like:
+
+```text
+a physical amusement park
+```
+
+and partly like:
+
+```text
+a spatial score being transcribed in real time
+```
+
 ---
 
-## 2. Experience arc
+## 2. Core experience idea
 
-The initial experience follows this arc:
+The project has two simultaneous experience goals.
+
+### Physical world
+
+The visitor should perceive:
+
+```text
+one shared park
+```
+
+rather than:
+
+```text
+several independent music-reactive widgets
+```
+
+### Musical evidence
+
+The visitor should also be able to perceive:
+
+```text
+specific musical facts
+```
+
+rather than only:
+
+```text
+generic activity / energy
+```
+
+Examples:
+
+```text
+specific melody note
+→ specific Carousel carrier responds
+```
+
+```text
+C major
+→ C / E / G FerrisWheel carriers respond together
+```
+
+```text
+kick
+→ BumperCars receives an actual percussion impulse
+```
+
+```text
+drop event
+→ DropTower releases
+```
+
+The experience should preserve the feeling that musical information is being
+identified and physically expressed, not merely used as an animation trigger.
+
+---
+
+## 3. Development experience vs final experience
+
+The current development page uses a vertically stacked layout.
+
+That layout exists for:
+
+- actor inspection
+- debugging
+- manual QA
+- regression testing
+- development observability
+
+It is not the intended final experience.
+
+The final experience direction is:
+
+```text
+one persistent spatial world
++
+multiple simultaneous actors
++
+precise local musical evidence
++
+shared physical interaction
+```
+
+A future Park Map / Spatial Score may organize this world.
+
+Do not infer final navigation or information architecture from the current
+vertical scroll layout.
+
+---
+
+## 4. Experience arc
+
+The initial audience experience may follow this broad arc:
 
 ```text
 ARRIVAL
@@ -39,6 +150,8 @@ CLOSED PARK
 ↓
 MUSIC ENTERS
 ↓
+FIRST MUSICAL EVIDENCE
+↓
 MELODY
 ↓
 HARMONY
@@ -47,11 +160,13 @@ GROOVE
 ↓
 PERCUSSION
 ↓
-BUILD
+STRUCTURE / BUILD
+↓
+PHRASE / ENERGY
 ↓
 TENSION
 ↓
-DROP
+DROP / RELEASE
 ↓
 FULL PARK
 ↓
@@ -62,16 +177,16 @@ RECOVERY
 SILENCE
 ```
 
-The experience begins and ends with the same physical world in different
-states of energy.
+This is an onboarding / narrative sequence.
 
-The park should exist before the music starts.
+It is not a statement that the final Park Map must reveal actors one at a time.
 
-The park should continue physically settling after musical input stops.
+Once the visitor understands the world, multiple actors may remain visible
+simultaneously.
 
 ---
 
-## 3. Arrival
+## 5. Arrival
 
 The visitor arrives outside Z.land.
 
@@ -81,28 +196,34 @@ The current working metaphor is:
 
 ```text
 Z.LAND
-
 GATE
 +
 TICKET BOOTH
 ```
 
-The entrance should communicate that the visitor is about to bring something
-into a world, rather than merely open a media player.
+The entrance should communicate:
 
-The park may be partially visible beyond the entrance.
+```text
+you are bringing a song into a world
+```
 
-It should initially feel quiet, dormant, or mechanically at rest.
+rather than:
 
-Do not require the final entrance design during early engineering prototypes.
+```text
+you are opening a media player
+```
+
+The park may already be partially visible.
+
+It should feel mechanically present but musically dormant.
 
 ---
 
-## 4. Ticket — Bring a Song
+## 6. Ticket — Bring a Song
 
 The visitor provides a song.
 
-Working interaction language:
+Working interaction language may include:
 
 ```text
 BRING A SONG
@@ -116,7 +237,7 @@ ADMIT ONE SONG
 
 The song may conceptually receive a ticket.
 
-Example conceptual ticket:
+Example:
 
 ```text
 ┌────────────────────────────┐
@@ -130,25 +251,98 @@ Example conceptual ticket:
 │ MELODY      ✓              │
 │ RHYTHM      ✓              │
 │ HARMONY     ✓              │
-│ ENERGY      ✓              │
+│ STRUCTURE   ✓              │
 │                            │
 │        ADMIT ONE SONG      │
 └────────────────────────────┘
 ```
 
-This ticket is not merely decorative.
+The ticket is not merely decorative.
 
-In a future version it may present a human-readable summary of the AudioMap.
+It may eventually communicate:
 
-The exact fields and visual design are not locked.
+- available musical domains
+- duration
+- tempo
+- analysis readiness
+- song identity
 
-For early prototypes, authored AudioMap data may replace real song analysis.
+It should not expose raw engineering terminology by default.
 
 ---
 
-## 5. Gate — Start the experience
+## 7. Song preparation
 
-The gate is the current metaphor for transport start.
+A submitted song may require preparation.
+
+Preparation may eventually include:
+
+- audio decoding
+- beat analysis
+- melody extraction
+- harmony analysis
+- structure analysis
+- source separation
+- transcription
+
+The visitor-facing experience should not expose these as engineering tasks.
+
+Possible metaphor:
+
+```text
+ticket printing
+song inspection
+park admission processing
+```
+
+The important requirement:
+
+> The visitor understands that the song is being prepared, not that the
+> application has frozen.
+
+Early deterministic fixtures may complete this state instantly.
+
+---
+
+## 8. Partial musical understanding
+
+A song may not provide every musical domain reliably.
+
+Examples:
+
+```text
+melody available
+rhythm available
+harmony unavailable
+structure available
+```
+
+or:
+
+```text
+melody uncertain
+rhythm strong
+energy available
+```
+
+The park should degrade gracefully.
+
+If a musical domain is unavailable:
+
+- its actor may remain resting
+- it may remain mechanically present
+- it must not fabricate false musical evidence
+
+The ticket may eventually communicate available dimensions in a human-readable
+way.
+
+A smaller truthful performance is preferable to a visually fuller false one.
+
+---
+
+## 9. Gate — Enter the park
+
+The gate is the current metaphor for beginning transport.
 
 Conceptually:
 
@@ -161,421 +355,382 @@ Audio transport begins
 ↓
 Song enters Z.land
 ↓
-Park begins responding
+Park begins interpreting it
 ```
 
-Opening the gate may eventually correspond to the user gesture that resumes
-or starts the browser AudioContext.
+Opening the gate may eventually correspond to the user gesture required to
+resume the browser AudioContext.
 
-The gate is an experience metaphor.
+The gate is an interface metaphor.
 
-It does not own AudioWorld state or transport logic.
+It does not own AudioClock or AudioWorld state.
 
 ---
 
-## 6. Closed Park — Establish the world before performance
+## 10. Closed Park
 
-Before the musical performance becomes obvious, the user should briefly
-experience Z.land as a world that already exists.
+Before obvious musical behavior begins, the visitor should briefly perceive
+Z.land as a world that already exists.
 
-The park is not an empty loading screen.
+Possible resting state:
 
-Possible idle state:
+- Carousel still or nearly still
+- FerrisWheel extremely slow or still
+- PirateShip near equilibrium
+- BumperCars settled
+- DropTower at rest
+- RollerCoaster at station
+- Free Bodies / Orb drifting subtly
+- ordinary content anchored
 
-- Carousel is still or moving almost imperceptibly.
-- FerrisWheel may retain extremely slow mechanical presence.
-- PirateShip rests near equilibrium.
-- BumperCars are settled.
-- DropTower is at its resting position.
-- RollerCoaster is at or near the station.
-- Free Bodies / Orb / Balloon may retain subtle atmospheric motion.
-
-The important contrast is:
+The important contrast:
 
 ```text
-No musical input
+no active musical performance
 ≠
-No world
+no world
 ```
 
-PhysicsWorld exists independently of musical performance.
-
-This moment establishes a baseline so that the user can perceive what changes
-when the song begins.
+PhysicsWorld exists independently of musical input.
 
 ---
 
-## 7. Melody enters — Carousel wakes first
+## 11. First musical evidence
 
-The first clearly legible musical dimension is melody.
+The first musical change should teach the visitor one key rule:
+
+> A local response corresponds to something specific in the music.
+
+Do not begin with Full Park.
+
+The visitor should first observe a clear relationship between:
+
+```text
+one musical fact
+```
+
+and:
+
+```text
+one physical response
+```
+
+This is the foundation of the spatial-score reading.
+
+---
+
+## 12. Melody — Carousel as melodic transcription
+
+Carousel is the primary melody actor.
+
+Its most important role is not simply:
+
+```text
+move when melody exists
+```
+
+but:
+
+```text
+show specific melody evidence
+```
 
 Conceptually:
 
 ```text
-Melody
-↓
-Carousel
+G4
+→ one identifiable carrier responds
+
+A4
+→ another exact pitch position / carrier state responds
 ```
 
-The Carousel is responsible for:
+Possible local mappings:
 
-- melodic pitch
-- note events
-- note duration
-- melodic expression
+- note identity → carrier identity
+- pitch → bounded vertical target
+- note onset → local activation
+- note duration → expression lifetime
+- note intensity → bounded response amplitude
 
-The Carousel should not simply rotate faster whenever a note occurs.
+Whole-carousel rotation is mechanical behavior.
 
-Its musical response has at least two conceptual timescales.
+Local note activation is musical evidence.
 
-### Phrase / transport motion
+Do not confuse these.
 
-The Carousel as a whole may maintain continuous orbit or phrase-level movement.
+The visitor should be able to feel:
 
-### Individual note expression
+> these are the notes of the melody
 
-Individual riders/items respond to note information.
-
-Possible relationships:
-
-- pitch → vertical position or vertical target
-- note onset → rider activation
-- note duration → expression duration
-- note intensity → response amplitude
-- melodic phrase → overall rotational development
-
-The exact visual mapping is not locked yet.
-
-The story requirement is only:
-
-> The user should be able to perceive that melodic information belongs to the
-> Carousel.
-
-Other rides remain comparatively quiet.
-
-This is the first moment where the user understands:
-
-> The music is not merely background audio.
+even without reading traditional notation.
 
 ---
 
-## 8. Harmony enters — FerrisWheel opens the musical space
+## 13. Melody evidence must remain exact
 
-Harmony enters underneath or around the melody.
+Carousel activity must not become decorative blinking.
+
+Do not:
+
+- activate random riders
+- light extra riders for balance
+- suppress an actual note because the composition feels crowded
+- rotate the whole ride to fake note identity
+
+If the system visually claims a particular note is active, that claim must be
+supported by AudioWorld.
+
+This is a core experience requirement.
+
+---
+
+## 14. Harmony — FerrisWheel as simultaneous chord transcription
+
+FerrisWheel is the primary harmony actor.
+
+Harmony differs fundamentally from melody because several tones may coexist.
 
 Conceptually:
 
 ```text
-Harmony
-↓
-FerrisWheel
+C major
+→ C + E + G active together
 ```
-
-The FerrisWheel represents:
-
-- chords
-- sustained harmonic relationships
-- harmonic persistence
-- slower structural change
-
-Carousel and FerrisWheel must remain distinct.
-
-Carousel:
 
 ```text
-individual melodic movement
+A minor
+→ A + C + E active together
 ```
 
-FerrisWheel:
+The FerrisWheel should make simultaneous harmonic membership visible.
 
-```text
-simultaneous / sustained harmonic relationship
-```
+Its wheel and cabin mechanics provide physical continuity.
 
-Example:
+Its local harmonic carriers provide musical evidence.
 
-```text
-Melody:
-G4 → A4 → G4 → E4
+The experience should let the visitor notice:
 
-Harmony:
-C major → F major
-```
-
-The FerrisWheel should feel slower and more persistent than note-level
-Carousel activity.
-
-This stage tests whether AudioWorld can expose multiple musical dimensions
-simultaneously without collapsing them into one generic audio intensity.
+> this musical moment contains several tones at once.
 
 ---
 
-## 9. Groove enters — PirateShip begins to swing
+## 15. Harmony evidence must remain exact
 
-The next layer introduces groove.
-
-Conceptually:
+FerrisWheel should not reduce harmony to:
 
 ```text
-Groove / Swing
-↓
-PirateShip
+chord exists
+→ whole wheel lights up
 ```
+
+That may be used as secondary presentation, but it cannot replace the actual
+harmonic evidence.
+
+If the current chord representation contains:
+
+```text
+C / E / G
+```
+
+the corresponding carriers should reflect:
+
+```text
+C / E / G
+```
+
+not:
+
+```text
+C / F / G
+```
+
+because the latter creates a more visually balanced pattern.
+
+Musical accuracy takes priority over decorative symmetry.
+
+---
+
+## 16. Groove — PirateShip embodies rhythmic feel
 
 PirateShip represents:
 
-- continuous rhythmic phase
-- groove
-- swing
-- oscillatory weight transfer
-
-PirateShip is NOT a percussion trigger display.
-
-It should not behave like:
-
 ```text
-BEAT
-↓
-swing once
-
-BEAT
-↓
-swing once
+groove
+swing
+continuous rhythmic phase
 ```
 
-Instead, the musical phase influences an ongoing pendulum system.
+It should communicate:
 
-Conceptually:
+> how the music swings
 
-```text
-musical phase
-↓
-pendulum relationship
-↓
-continuous oscillation
-```
+rather than:
 
-Two songs at the same BPM may therefore produce different PirateShip behavior
-if their groove or swing differs.
+> where a drum hit occurred
 
-This distinction must remain visible in the experience.
+A groove may remain active continuously.
 
----
-
-## 10. Percussion enters — BumperCars receive impulses
-
-Percussion introduces discrete physical impulses.
-
-Conceptually:
+Possible interpretation:
 
 ```text
-Percussion
-↓
-BumperCars
-```
-
-Possible semantic relationships:
-
-- kick → strong linear impulse
-- snare → lateral or angular impulse
-- hi-hat → smaller perturbation
-- accent strength → impulse strength
-
-These mappings are provisional and may be refined later.
-
-The important story rule is:
-
-> Audio creates the initial cause.
->
-> Physics determines the consequence.
-
-Example:
-
-```text
-Kick
-↓
-Car A receives impulse
-↓
-Car A collides with Car B
-↓
-Car B changes trajectory
-↓
-Car B may collide with another object
-```
-
-Secondary collisions are not authored musical animations.
-
-They emerge from the physical world.
-
-This is the first major transition from:
-
-```text
-music visualization
-```
-
-to:
-
-```text
-music-driven physical causality
-```
-
----
-
-## 11. Build begins — Large-scale actors wake
-
-The music begins accumulating energy and tension.
-
-Two large-scale actors become important.
-
-### RollerCoaster
-
-Primary musical responsibility:
-
-- phrase energy
-- long-form musical development
-- tension
-- release
-
-### DropTower
-
-Primary musical responsibility:
-
-- build
-- anticipation
-- major drop
-- large accent / bass impact
-
-They may become active during the same musical passage, but they do not consume
-the same meaning.
-
-Conceptually:
-
-```text
-phraseEnergy
-↓
-RollerCoaster
+beat phase
+→ pendulum drive phase
 ```
 
 ```text
-buildState
-↓
-DropTower
-```
-
-RollerCoaster may leave the station and enter a rising or accelerating part of
-its route.
-
-DropTower begins lifting.
-
-The user should begin to feel that the park anticipates an upcoming musical
-event.
-
----
-
-## 12. Tension / Hold — The world anticipates
-
-Immediately before a major release, the music may reduce, suspend, or narrow.
-
-This is a deliberate tension state.
-
-Possible world behavior:
-
-- DropTower reaches HOLD.
-- RollerCoaster approaches a crest or tension point.
-- PirateShip amplitude may reduce.
-- BumperCars receive fewer impulses.
-- Carousel may sustain a note or simplify its expression.
-- FerrisWheel may continue carrying the harmony.
-- Free Bodies / Orb / Balloon motion may become quieter.
-
-The world is not frozen.
-
-It is waiting.
-
-This distinction matters:
-
-```text
-silence
-≠
-reset
-```
-
-Low musical activity may still contain significant physical and narrative
-tension.
-
----
-
-## 13. Drop — One musical moment produces multiple meanings
-
-A major drop occurs.
-
-AudioWorld may describe several simultaneous musical facts:
-
-- drop event
-- strong bass energy
-- strong onset
-- phrase release
-- percussion events
-- melody continuation or change
-- harmony change
-
-These facts are distributed semantically.
-
-Example:
-
-```text
-drop event
-↓
-DropTower releases
-```
-
-```text
-phrase release
-↓
-RollerCoaster enters a high-energy route state
-```
-
-```text
-kick / snare
-↓
-BumperCars receive impulses
+swing
+→ temporal asymmetry
 ```
 
 ```text
 groove
-↓
-PirateShip changes oscillatory behavior
+→ timing character / drive shape
 ```
 
-```text
-melody
-↓
-Carousel continues melodic interpretation
-```
+The actor-local pendulum remains physically continuous.
 
-```text
-harmony
-↓
-FerrisWheel continues harmonic interpretation
-```
-
-The system must NOT implement this as one global:
-
-```text
-BOOM()
-```
-
-that directly animates every object.
-
-One musical moment may contain multiple musical meanings.
-
-Each actor responds only to the meanings it owns.
+It is not snapped directly to musical phase.
 
 ---
 
-## 14. Full Park — The song becomes a world
+## 17. Percussion — BumperCars embody transient events
 
-After the major release, multiple musical layers are active simultaneously.
+BumperCars represent:
+
+```text
+percussion
+transient impact
+collision energy
+```
+
+Conceptually:
+
+```text
+kick
+→ strong local impulse
+
+snare
+→ lateral / angular impulse
+
+hat
+→ small perturbation
+```
+
+The important distinction:
+
+```text
+audio event
+→ initial physical cause
+```
+
+then:
+
+```text
+simulation
+→ actual collisions
+→ secondary motion
+```
+
+The musical event does not directly author every collision.
+
+---
+
+## 18. Structure — DropTower embodies anticipation and release
+
+DropTower represents:
+
+```text
+build
+tension
+major structural drop
+```
+
+Its experience arc may include:
+
+```text
+LIFT
+↓
+HOLD
+↓
+DROP
+↓
+REBOUND
+↓
+SETTLE
+```
+
+The explicit `drop` event is meaningful musical evidence.
+
+The tower should not release merely because the scene needs excitement.
+
+Continuous build / tension prepares the actor.
+
+The discrete drop event authorizes release.
+
+---
+
+## 19. Phrase — RollerCoaster embodies long-form development
+
+RollerCoaster represents:
+
+```text
+phrase
+energy trajectory
+tension
+release
+long-form momentum
+```
+
+It should not simply:
+
+```text
+go faster when music is louder
+```
+
+Instead, phrase state changes its physical conditions:
+
+- drive
+- restraint
+- braking
+- momentum
+- route behavior
+
+The route itself remains physical.
+
+Musical phrase progress does not directly scrub route position.
+
+The RollerCoaster should communicate the larger movement of the music across
+time.
+
+---
+
+## 20. Phrase and DropTower must remain distinct
+
+DropTower:
+
+```text
+one major structural event
+→ build / hold / drop
+```
+
+RollerCoaster:
+
+```text
+long-form phrase development
+→ momentum / anticipation / release / continuation
+```
+
+They may become active during the same musical passage.
+
+They should not perform identical interpretations.
+
+---
+
+## 21. Full Park
+
+After the visitor understands individual actor relationships, multiple musical
+dimensions may coexist.
 
 Conceptually:
 
@@ -588,43 +743,251 @@ Conceptually:
           │                  │                  │
       Carousel          FerrisWheel        PirateShip
 
-       percussion          build/drop          phrase
+       percussion          structure           phrase
           │                  │                  │
      BumperCars          DropTower        RollerCoaster
-
-                         texture
-                            │
-                  Free Bodies / Orb
 ```
 
-At this point, the park should feel like one instrument rather than several
-independent demos.
-
-This is a critical experience requirement.
-
-The user should NOT perceive:
+At this point the visitor should perceive:
 
 ```text
-several widgets reacting to one song
+one song
 ```
 
-The user should perceive:
+operating:
 
 ```text
-one physical world interpreting one song through different mechanical languages
+one shared world
 ```
+
+through several musical dimensions.
 
 ---
 
-## 15. Cross-actor physics — Musical causality becomes spatial causality
+## 22. Full Park is not a dashboard
 
-The Full Park section introduces an essential second layer.
+Do not present Full Park as:
+
+```text
+MELODY ACTIVE
+HARMONY ACTIVE
+GROOVE ACTIVE
+```
+
+with six separate indicator panels.
+
+Instead:
+
+```text
+the actors themselves expose the music
+```
+
+Examples:
+
+- Carousel carrier hits exact note
+- FerrisWheel cabins expose exact chord tones
+- BumperCars receives actual percussion impulses
+- PirateShip carries groove phase
+- DropTower enters hold
+- RollerCoaster moves through phrase release
+
+The park should be readable through behavior.
+
+---
+
+## 23. Spatial Score
+
+The long-term experience direction is a persistent shared spatial composition.
+
+A useful internal concept is:
+
+```text
+Spatial Score
+```
+
+Traditional score:
+
+```text
+time × pitch
+```
+
+Z.land may become:
+
+```text
+time
+×
+space
+×
+mechanical behavior
+×
+physical causality
+```
+
+The visitor watches a song occupy a world.
+
+---
+
+## 24. Park Map direction
+
+The future Park Map may organize:
+
+- Carousel
+- FerrisWheel
+- PirateShip
+- BumperCars
+- DropTower
+- RollerCoaster route
+- Free Bodies
+- content
+- paths
+- shared fields
+- Gate / Ticket Booth
+
+The map should not be divided into music-theory panels.
+
+Avoid:
+
+```text
+MELODY LAND
+HARMONY LAND
+RHYTHM LAND
+```
+
+unless such labels are deliberately used as optional educational overlays.
+
+Prefer physical actor geography.
+
+---
+
+## 25. RollerCoaster as spatial connector
+
+RollerCoaster should not necessarily live inside one isolated district.
+
+Its route may become one of the major spatial structures that ties the park
+together.
+
+Conceptually:
+
+```text
+RollerCoaster route
+→ crosses multiple park regions
+→ creates future wake interactions
+→ physically connects distant parts of the world
+```
+
+This reinforces its phrase / energy role.
+
+---
+
+## 26. Free Bodies as atmosphere
+
+Free Bodies / Orb should not necessarily occupy one dedicated district.
+
+They may move across:
+
+- actor regions
+- paths
+- RollerCoaster route zones
+- ordinary content
+
+They are intended to respond to:
+
+```text
+AudioWorld texture / spectral conditions
++
+PhysicsWorld forces
+```
+
+They help make the entire park feel physically continuous.
+
+---
+
+## 27. Region emphasis
+
+A park region may receive subtle emphasis when activity matters.
+
+This is an attention tool.
+
+It is not the musical evidence itself.
+
+Possible emphasis:
+
+- line weight
+- contrast
+- local fill
+- density
+- subtle illumination
+- motion trace
+- camera focus
+
+Do not replace precise note / chord / event behavior with whole-region
+activation.
+
+---
+
+## 28. Primary / Secondary / Ambient / Resting
+
+At any moment actors may occupy different perceptual roles.
+
+### Primary
+
+Carries the current dominant narrative or musical event.
+
+Examples:
+
+- Carousel during first melody reveal
+- DropTower during pre-drop tension
+- RollerCoaster during phrase release
+
+### Secondary
+
+Musically active and perceptible, but not dominant.
+
+### Ambient
+
+Maintains continuity without demanding attention.
+
+### Resting
+
+Physically present but musically inactive or settled.
+
+This hierarchy is for presentation.
+
+It must not alter musical evidence.
+
+---
+
+## 29. Evidence survives hierarchy
+
+This is critical.
+
+If FerrisWheel is visually Ambient:
+
+```text
+real chord tone
+→ still represented
+```
+
+If Carousel is Primary:
+
+```text
+only real melody notes
+→ represented
+```
+
+Do not add or remove Musical Evidence because of presentation hierarchy.
+
+Experience emphasis and musical truth are separate layers.
+
+---
+
+## 30. Cross-actor physics
 
 AudioWorld drives actors.
 
-Actors then affect other participants through PhysicsWorld.
+Actors may then affect other participants physically.
 
-Conceptually:
+Preferred chain:
 
 ```text
 AudioWorld
@@ -633,48 +996,89 @@ Actor A
 ↓
 Actor A simulation
 ↓
-spatial movement / force
+actual physical force / event
 ↓
 PhysicsWorld
 ↓
-Actor B or Content
+Actor B / Content
 ↓
-secondary physical response
+secondary response
 ```
 
-Example:
-
-```text
-phrase energy increases
-↓
-RollerCoaster accelerates
-↓
-RollerCoaster becomes a stronger moving PhysicsSource
-↓
-airflow field passes through nearby space
-↓
-Orb trajectory changes
-↓
-nearby physical content may respond
-```
-
-The Orb must not receive a separate hard-coded "chorus animation" merely
-because the RollerCoaster is also active during the chorus.
-
-The Orb response should occur because a physical source actually entered its
-influence region.
-
-This is the central distinction between Z.land and a conventional synchronized
-audio visualizer.
+This is a central identity of Z.land.
 
 ---
 
-## 16. Content may participate in the same world
+## 31. First validated shared causality
 
-Rides are the most expressive actors, but they are not the only physical
-participants.
+The project has already demonstrated:
 
-Other content may include:
+```text
+percussion event
+↓
+BumperCars impulse
+↓
+real collision
+↓
+PhysicsWorld impact
+↓
+Anchored Content Card
+↓
+temporary displacement
+↓
+recovery
+```
+
+The Content Card does not listen to percussion.
+
+It responds to the physical world.
+
+This distinction must remain visible in future interactions.
+
+---
+
+## 32. RollerCoaster wake
+
+The next shared-world extension should demonstrate:
+
+```text
+phrase / energy
+↓
+RollerCoaster simulation
+↓
+actual speed / position / direction
+↓
+PhysicsWorld directional wake
+↓
+nearby participant response
+```
+
+Wake strength should derive from physical motion.
+
+Not directly from musical energy.
+
+This is an important test of:
+
+```text
+Music
+→ Actor
+→ Physics
+```
+
+rather than:
+
+```text
+Music
+→ everything
+```
+
+---
+
+## 33. Ordinary content belongs to the world
+
+Rides are not the only physical participants.
+
+Ordinary content may include:
 
 - Text
 - Image
@@ -685,136 +1089,70 @@ Other content may include:
 - Icon
 - Shader object
 - 3D object
-- Free Bodies / Orb / particle bodies
 
-Possible interactions:
+Content may remain anchored while receiving temporary physical response.
 
-```text
-RollerCoaster passes nearby
-↓
-Title receives airflow displacement
-↓
-spring recovery
-```
+Conceptually:
 
 ```text
-RollerCoaster crosses an Image region
-↓
-Image receives an authored material response
-↓
-temporary split / distortion
-↓
-recovery
+authored layout
++
+PhysicsWorld response
+=
+rendered content
 ```
 
-```text
-Orb passes through a project grid
-↓
-nearby images tilt slightly
-```
-
-```text
-BumperCar collides near navigation
-↓
-navigation receives a small impulse
-```
-
-```text
-Orb approaches a Project Card
-↓
-card exclusion collider alters Orb trajectory
-```
-
-These responses must remain subordinate to readability and experience clarity.
-
-The entire interface should not constantly behave like loose debris.
+Do not make ordinary content into loose debris by default.
 
 ---
 
-## 17. Recovery — Musical layers leave in reverse complexity
+## 34. Recovery
 
-After the peak, musical layers begin disappearing.
-
-Example sequence:
-
-```text
-Percussion leaves
-↓
-BumperCars stop receiving new musical impulses
-```
-
-```text
-Energy falls
-↓
-RollerCoaster approaches a calmer state or station
-```
-
-```text
-Groove disappears
-↓
-PirateShip settles toward equilibrium
-```
-
-```text
-Harmony resolves
-↓
-FerrisWheel slows or stabilizes
-```
-
-```text
-Final melody phrase
-↓
-Carousel remains one of the final expressive actors
-```
-
-```text
-Silence
-↓
-Audio input ends
-```
-
-PhysicsWorld may continue briefly after musical input stops.
+When musical layers disappear, actors and content should resolve according to
+their own mechanics.
 
 Examples:
 
-- BumperCars finish existing motion.
-- displaced content springs back.
-- Free Bodies / Orb turbulence settles.
-- suspended bodies recover.
-- residual velocity damps naturally.
+```text
+percussion ends
+→ BumperCars stop receiving new impulses
+→ existing motion settles
+```
 
-The physical world therefore resolves rather than being abruptly reset.
+```text
+groove disappears
+→ PirateShip drive stops
+→ pendulum damps
+```
+
+```text
+phrase energy falls
+→ RollerCoaster returns toward lower-energy route behavior
+```
+
+```text
+PhysicsWorld disturbance ends
+→ anchored content springs back
+```
+
+Silence does not require an instantaneous global reset.
 
 ---
 
-## 18. Return to Closed Park
+## 35. Return to Closed Park
 
-After recovery, Z.land returns to a recognizable resting state.
+After recovery, the park returns to a recognizable resting state.
 
 Conceptually:
 
 ```text
 ORDER
 ↓
-MUSIC ENTERS
+MUSICAL EVIDENCE
 ↓
-MELODY
+PHYSICAL INTERPRETATION
 ↓
-HARMONY
-↓
-GROOVE
-↓
-PERCUSSION
-↓
-BUILD
-↓
-TENSION
-↓
-DROP
-↓
-FULL PARK
-↓
-PHYSICAL INTERACTION
+SHARED WORLD ACTIVITY
 ↓
 RECOVERY
 ↓
@@ -827,395 +1165,453 @@ The park has performed the song and returned to rest.
 
 ---
 
-## 19. Replay / another song
+## 36. Replay / another song
 
-After the performance, the user may:
+After performance, the visitor may:
 
-- replay the current song
-- seek within it
+- replay
+- seek
 - load another song
-- return to the entrance
+- return to entrance
 - remain in the resting park
 
-Loading another song should not require reconstructing the entire application.
-
-The world remains.
-
-The musical interpretation changes.
+Loading another song should not reconstruct the world.
 
 Conceptually:
 
 ```text
 same park
 +
-different song
+different musical evidence
 =
-different performance
+different physical performance
 ```
 
-This is an important identity of the project.
+Z.land defines rules.
 
-Z.land is not a fixed animation authored to one soundtrack.
-
-The world defines rules.
-
-The song provides musical conditions.
+The song supplies musical conditions.
 
 The performance emerges from both.
 
 ---
 
-## 20. ControlSurface story role
+## 37. Visitor interruption
 
-The audience-facing ControlSurface exists within the experience story.
+The visitor may:
+
+- pause
+- seek
+- restart
+- replace song
+- exit
+
+These are part of the experience.
+
+### Pause
+
+Stops musical progression.
+
+Does not automatically erase existing physical motion.
+
+### Seek
+
+Synchronizes to the new musical time.
+
+Does not replay historical notes, chord changes, impacts, or ride history.
+
+### Restart
+
+Returns musical transport to the beginning and restores deterministic actor
+initial states where required.
+
+### Replace Song
+
+Keeps the world while changing the musical conditions.
+
+---
+
+## 38. Viewpoint and camera
+
+The visitor observes one shared park.
+
+Camera and framing are experience tools.
+
+They are not musical actors.
+
+The camera may:
+
+- reveal the whole park
+- guide attention toward Primary activity
+- preserve peripheral awareness
+- show cross-actor physical relationships
+- move between overview and closer observation
+
+It should not turn the experience into disconnected ride clips.
+
+The visitor should retain a sense of:
+
+```text
+one continuous world
+```
+
+---
+
+## 39. Persistent overview
+
+One reason for the future Park Map direction is that musical dimensions happen
+simultaneously.
+
+The final experience should avoid requiring the visitor to scroll between
+musical domains while the song continues.
+
+A persistent spatial overview may let the visitor perceive:
+
+```text
+melody
++
+harmony
++
+groove
++
+percussion
++
+structure
++
+phrase
+```
+
+at the same musical moment.
+
+The visitor does not need to focus equally on all of them.
+
+They should remain part of one perceptible world.
+
+---
+
+## 40. First-time comprehension
+
+The first performance must teach the visitor how to read Z.land.
+
+Preferred progression:
+
+1. one clear musical fact
+2. one clear actor response
+3. second musical layer
+4. second distinct response
+5. several simultaneous layers
+6. structural development
+7. cross-actor physical interaction
+8. Full Park
+
+Do not begin with every actor equally active.
+
+The first experience is also onboarding.
+
+---
+
+## 41. Behavior first, terminology second
+
+The audience should not need prior music-theory knowledge.
+
+Prefer:
+
+```text
+see behavior
+↓
+form intuition
+↓
+optionally learn terminology
+```
+
+For example, a visitor may perceive:
+
+```text
+"that thing is following the tune"
+```
+
+before knowing:
+
+```text
+melody
+```
+
+or:
+
+```text
+"those three cabins keep lighting together"
+```
+
+before knowing:
+
+```text
+chord tones
+```
+
+Large technical labels are optional.
+
+They should not be required for basic comprehension.
+
+---
+
+## 42. Optional educational layer
+
+Because Musical Evidence is precise, Z.land may eventually support an optional
+educational / inspection mode.
+
+Possible information:
+
+- note name
+- pitch
+- chord label
+- active chord tones
+- beat
+- swing
+- build
+- phrase state
+
+This is not required for the main experience.
+
+It may enhance the feeling of:
+
+```text
+watching a song being transcribed
+```
+
+without turning the main interface into music-analysis software.
+
+---
+
+## 43. ControlSurface story role
+
+ControlSurface belongs to the audience experience.
 
 Current working metaphor:
 
 ```text
-Z.land entrance gate + ticket booth
+Gate + Ticket Booth
 ```
 
-This metaphor is NOT visually locked.
+Narrative responsibilities:
 
-Its narrative responsibilities are:
+1. arrive
+2. bring a song
+3. prepare it
+4. receive admission
+5. enter
+6. play / pause / seek
+7. replay / change song / exit
 
-1. Let the visitor arrive.
-2. Let the visitor bring a song.
-3. Represent successful song preparation.
-4. Give the visitor permission to enter/start.
-5. Provide access to necessary transport controls after entry.
-6. Allow replay, seek, restart, song replacement, or exit.
+The metaphor remains replaceable.
 
-The ControlSurface should not expose engineering terminology such as:
-
-- AudioMap
-- pitchConfidence
-- AudioSnapshot
-- PhysicsSource
-- event queue
-
-Those belong to development instrumentation.
+ControlSurface does not own musical truth.
 
 ---
 
-## 21. DebugConsole story role
+## 44. DebugConsole story role
 
-DebugConsole is not part of the fictional amusement-park interface.
+DebugConsole is not part of the fictional park interface.
 
 It exists beside the experience for development.
 
-It should make invisible system truth observable.
-
-Examples:
-
-### Transport
+It may expose:
 
 - time
-- playing
-- duration
-
-### Rhythm
-
-- BPM
-- bar
-- beat
-- beat phase
-- groove
-- swing
-
-### Melody
-
-- active note
-- MIDI
-- pitch
-- confidence
-- note progress
-
-### Harmony
-
-- chord
-- root
-
-### Structure
-
-- section
+- exact notes
+- exact chord tones
+- events
+- rhythm
+- structure
 - phrase
-- energy
-- tension
-- build
+- actor state
+- PhysicsWorld state
+- forces
+- collisions
+- wake
+- receiver response
 
-### Spectrum
+The DebugConsole may remain visually ugly.
 
-- low
-- mid
-- high
-- bass energy
-- brightness
-- texture
-
-### Events
-
-- note-on
-- note-off
-- beat
-- kick
-- snare
-- drop
-- seek
-
-### World
-
-- actor states
-- registered PhysicsSources
-- active collisions
-- physical energy / settling state
-
-DebugConsole may remain visually utilitarian.
+Accuracy and observability matter more than presentation.
 
 ---
 
-## 22. Reference prototype timeline
+## 45. Reference prototype timeline
 
-The following 42-second timeline is a development reference composition.
+The original controlled timeline remains useful as a development reference.
 
-It is NOT the required final song structure.
-
-Its purpose is to expose architecture requirements in a controlled order.
+It is not the required final song.
 
 ### 00–04s — Closed Park
 
-Music:
+World present, little musical activity.
 
-- silence or faint ambience
+Purpose:
 
-World:
-
-- rides resting
-- subtle world presence
-- no obvious musical choreography
-
-Architecture question:
-
-> Can the physical world exist without active musical input?
+```text
+prove world existence without active music
+```
 
 ---
 
 ### 04–09s — Melody
 
-Music:
+Carousel exposes specific melody evidence.
 
-- simple melodic phrase
+Purpose:
 
-World:
-
-- Carousel becomes the primary musical actor
-
-Architecture question:
-
-> Can AudioWorld expose melody without affecting unrelated actors?
+```text
+teach note → carrier relationship
+```
 
 ---
 
 ### 09–14s — Harmony
 
-Music:
+FerrisWheel exposes sustained simultaneous chord-tone evidence.
 
-- melody continues
-- harmony enters
+Purpose:
 
-World:
-
-- Carousel continues
-- FerrisWheel enters
-
-Architecture question:
-
-> Can melody and harmony coexist as independent semantic domains?
+```text
+teach melody and harmony as different dimensions
+```
 
 ---
 
 ### 14–18s — Groove
 
-Music:
+PirateShip begins continuous phase-driven motion.
 
-- rhythmic groove enters
-- percussion remains light or absent
+Purpose:
 
-World:
-
-- PirateShip begins meaningful oscillation
-
-Architecture question:
-
-> Can continuous rhythmic phase drive an actor independently of discrete beat
-> events?
+```text
+teach rhythmic feel without percussion-event confusion
+```
 
 ---
 
 ### 18–22s — Percussion
 
-Music:
+BumperCars receives discrete impulses.
 
-- kick / snare / hi-hat enter
+Purpose:
 
-World:
-
-- BumperCars receive impulses
-- collisions begin
-
-Architecture question:
-
-> Can discrete musical events produce physical impulses whose secondary effects
-> are simulated rather than authored?
+```text
+teach event → physical impulse → collision
+```
 
 ---
 
-### 22–27s — Build
+### 22–27s — Build / Phrase development
 
-Music:
+DropTower and RollerCoaster begin operating on longer timescales.
 
-- phrase energy rises
-- tension rises
+Purpose:
 
-World:
-
-- RollerCoaster begins large-scale movement
-- DropTower lifts
-
-Architecture question:
-
-> Can multiple long-timescale signals control different actors without sharing
-> one generic intensity value?
+```text
+introduce musical structure and long-form momentum
+```
 
 ---
 
-### 27–29s — Hold
+### 27–29s — Tension / Hold
 
-Music:
+DropTower holds.
 
-- reduced arrangement
-- near-silence or suspended tension
+RollerCoaster enters high-tension behavior.
 
-World:
+Purpose:
 
-- DropTower holds
-- RollerCoaster approaches tension point
-- other systems reduce activity without resetting
-
-Architecture question:
-
-> Can the world preserve tension and physical state during low musical activity?
+```text
+show that low immediate activity can contain strong anticipation
+```
 
 ---
 
-### 29s — Drop
+### 29s — Drop / Release
 
-Music:
+DropTower receives explicit drop event.
 
-- major drop
-- strong onset
-- bass impact
-- phrase release
-- percussion impact
+RollerCoaster enters phrase release through its own continuous structural
+interpretation.
 
-World:
+Purpose:
 
-- DropTower releases
-- RollerCoaster transitions into release/high-energy movement
-- BumperCars receive new impulses
-- PirateShip responds to groove
-- Carousel continues melody
-- FerrisWheel continues harmony
-
-Architecture question:
-
-> Can one musical moment produce several semantic events without becoming one
-> global animation trigger?
+```text
+show one musical moment containing several different meanings
+```
 
 ---
 
 ### 29–36s — Full Park
 
-Music:
+Multiple actors active simultaneously.
 
-- full arrangement
-
-World:
-
-- all relevant musical actors active
-- cross-actor PhysicsWorld interactions become visible
-
-Suggested first major cross-actor event:
+Purpose:
 
 ```text
-RollerCoaster passes near a Free Body / Orb or another registered participant.
+one song
+→ many simultaneous truths
+→ one shared world
 ```
-
-Architecture question:
-
-> Can musical causality become real spatial causality?
 
 ---
 
 ### 36–42s — Recovery
 
-Music:
+Musical layers leave.
 
-- layers leave progressively
-- final melodic/harmonic resolution
-- silence
+Physical systems settle according to their own mechanics.
 
-World:
+Purpose:
 
-- actors settle according to their own physical models
-- PhysicsWorld resolves residual motion
-- park returns to resting state
-
-Architecture question:
-
-> Can the system recover naturally without a global visual reset?
+```text
+prove recovery without global reset
+```
 
 ---
 
-## 23. Timescale hierarchy
+## 46. Timescale hierarchy
 
-Not every actor should react at the same temporal frequency.
+Actors intentionally operate at different musical timescales.
 
-This is required to avoid visual noise.
-
-Approximate hierarchy:
-
-### Fast / event scale
+### Fast transient scale
 
 BumperCars:
 
-- percussion
-- transient impulses
+- percussion events
+- impulses
 - collisions
 
 ### Note scale
 
 Carousel:
 
-- melodic notes
-- note duration
+- note identity
+- pitch
 - note expression
 
 ### Beat / groove scale
 
 PirateShip:
 
-- rhythmic phase
+- phase
 - swing
-- oscillation
+- groove
 
 ### Harmonic scale
 
 FerrisWheel:
 
-- chord duration
-- harmonic change
+- chord membership
 - sustained relationships
+
+### Structural scale
+
+DropTower:
+
+- build
+- hold
+- explicit drop
 
 ### Phrase scale
 
@@ -1225,376 +1621,89 @@ RollerCoaster:
 - tension
 - release
 
-### Structural event scale
-
-DropTower:
-
-- build
-- hold
-- major drop
-
 ### Atmospheric scale
 
-Free Bodies / Orb / Balloon:
+Free Bodies:
 
+- spectrum
 - texture
-- brightness
-- turbulence
-- physical environmental response
+- environmental forces
 
-The park should therefore contain multiple temporal layers.
-
-Do not make every actor visibly react to every beat.
+Do not make every actor respond visibly to every beat.
 
 ---
 
-## 24. Experience hierarchy
+## 47. Subjective QA
 
-At any moment, not every actor needs equal visual importance.
+The development system may objectively verify:
 
-The park should have a perceptual hierarchy even when multiple actors are
-musically active.
+- exact note mapping
+- chord-tone mapping
+- event timing
+- actor state
+- bounds
+- physical causality
+- deterministic behavior
 
-Use four conceptual levels.
+But visual and experiential approval belongs to the user.
 
-### Primary
+Codex should not decide:
 
-The actor currently carrying the most important musical or narrative event.
+- whether the map feels readable
+- whether the musical relationship feels intuitive
+- whether motion feels elegant
+- whether a ride feels mechanically convincing
+- whether the experience composition is successful
 
-Examples:
+These require manual QA.
 
-- Carousel during the first melody reveal
-- DropTower during a major build and drop
-- RollerCoaster during a large phrase release
+---
 
-Only one actor should usually dominate at a time.
+## 48. Current experience direction
 
-### Secondary
-
-Actors that remain musically active but support the primary event.
-
-Their motion should remain legible without competing for attention.
-
-Examples:
-
-- FerrisWheel sustaining harmony while Carousel carries melody
-- PirateShip continuing groove during a DropTower build
-
-### Ambient
-
-Actors that preserve world continuity without demanding attention.
-
-Examples:
-
-- Free Bodies / Orb / Balloon
-- subtle FerrisWheel motion
-- low-energy environmental physics
-
-### Resting
-
-Actors that remain physically present but are not currently musically expressive.
-
-Resting does not mean removed.
-
-The user should still perceive one continuous park.
-
-Visual intensity should therefore not be derived only from musical intensity.
-
-A loud song does not imply that every actor becomes visually dominant.
-
-Conceptually:
+The current final-experience direction is:
 
 ```text
-Musical activity
-↓
-Actor interpretation
-↓
-Experience hierarchy
-↓
-Visual emphasis
+one persistent Z.land
 ```
 
-Hierarchy is an experience-layer concern.
-
-It must not rewrite actor physics merely to make the composition cleaner.
-
-Prefer controlling:
-
-- framing
-- lighting
-- opacity where appropriate
-- visual detail
-- camera attention
-- renderer emphasis
-
-before changing the underlying simulation.
-
-The park should feel coordinated, not uniformly loud.
-
----
-
-## 25. Song preparation
-
-A submitted song may require preparation before it can enter the park.
-
-Preparation may eventually include:
-
-- audio decoding
-- AudioMap lookup
-- beat analysis
-- melody analysis
-- harmony analysis
-- structure analysis
-- source separation or transcription when required
-
-The visitor-facing experience should not expose these as engineering tasks.
-
-The current narrative metaphor may treat preparation as:
-
-- ticket printing
-- song inspection
-- park admission processing
-
-The final visual metaphor is not locked.
-
-The important story requirement is:
-
-> The visitor must understand that the song is being prepared, not that the
-> application has frozen.
-
-Early prototypes using authored AudioMap data may complete this state instantly.
-
----
-
-## 26. Partial musical understanding
-
-A song does not need to produce every musical domain successfully.
-
-Examples:
+containing:
 
 ```text
-melody available
-harmony uncertain
-rhythm available
-energy available
+multiple simultaneously visible actors
 ```
 
-or:
+where:
 
 ```text
-no reliable predominant melody
-strong rhythmic information
-clear structural energy
+specific musical evidence
+→ precise local actor response
 ```
 
-The park must degrade gracefully.
+and:
 
-If a musical domain is unavailable:
+```text
+actual actor motion
+→ shared physical consequence
+```
 
-- its actor may remain resting
-- it may use a reduced fallback mode where musically defensible
-- the system must not fabricate confident musical meaning
-- unrelated actors must continue functioning normally
-
-The audience-facing ticket may eventually communicate which musical dimensions
-are available without exposing raw technical confidence metrics.
-
-A smaller valid performance is preferable to a false complete performance.
+The Park Map / Spatial Score should help the visitor see the whole performance
+without replacing the precision of local musical evidence.
 
 ---
 
-## 27. Visitor interruption
-
-The visitor may interrupt the performance through:
-
-- pause
-- seek
-- restart
-- song replacement
-- exit
-
-These actions are part of the experience, not exceptional error states.
-
-### Pause
-
-Pausing stops musical transport.
-
-It does not necessarily erase physical energy already present in PhysicsWorld.
-
-A moving BumperCar may continue settling.
-
-A displaced object may continue spring recovery.
-
-A Free Body may continue damping.
-
-### Seek
-
-Seeking should feel like repositioning the musical performance,
-not rapidly replaying everything skipped.
-
-After seek:
-
-- musical interpretation synchronizes to the new position
-- continuous actor state is reconciled to the new musical state
-- historical musical events are not replayed
-- existing physical energy may be reconciled according to actor-specific rules
-
-### Restart
-
-Restart returns musical transport to the beginning.
-
-The park may require an authored transition back toward its initial performance
-state rather than an unexplained instantaneous world reset.
-
-### Replace song
-
-The park remains.
-
-The musical conditions change.
-
-The exact transition between songs is not visually locked.
-
-The experience should avoid violent unexplained discontinuities where possible.
-
----
-
-## 28. Viewpoint and camera
-
-The visitor observes one shared park.
-
-Camera and framing are experience tools, not musical actors.
-
-The camera may guide attention toward the current primary event, but it must
-not create false physical causality.
-
-Possible future behaviors:
-
-- wide park overview
-- actor-focused encounter
-- gradual reframing between musical layers
-- spatial emphasis during Full Park
-- return to a wider view during Recovery
-
-The final camera language is not locked.
-
-The camera should help the visitor understand relationships between actors.
-
-It should not turn the experience into a sequence of disconnected ride demos.
-
-The camera should reveal one world from changing viewpoints, not imply that
-each ride exists on an isolated stage.
-
----
-
-## 29. Park spatial continuity
-
-Z.land is one spatial world.
-
-Actor placement must support believable cross-actor interaction.
-
-Examples:
-
-- RollerCoaster may pass near Free Body / Orb fields.
-- BumperCars may occupy a shared ground region.
-- Carousel and FerrisWheel may remain visible from common viewpoints.
-- DropTower may form a strong vertical landmark.
-- PirateShip may occupy a region where its oscillation can be spatially read
-  against surrounding actors.
-
-Spatial relationships should not be authored only for visual composition.
-
-They should also create meaningful opportunities for PhysicsWorld interaction.
-
-For example:
-
-```text
-Coaster route near Orb field
-→ possible airflow event
-```
-
-```text
-Project object near Balloon path
-→ possible exclusion response
-```
-
-```text
-BumperCar region near physical content
-→ possible impulse propagation
-```
-
-The park layout may evolve.
-
-Actors must not behave as if they occupy unrelated isolated stages.
-
----
-
-## 30. First-time comprehension
-
-The first performance must teach the visitor how to read the park.
-
-The system should reveal musical domains progressively.
-
-Preferred teaching order:
-
-1. one musical domain
-2. one clear actor response
-3. a second musical domain
-4. a second distinct actor response
-5. progressively layered performance
-6. cross-actor physical interaction
-7. Full Park
-
-Do not begin with Full Park.
-
-If every actor is active immediately, the visitor cannot infer which musical
-meaning belongs to which mechanical language.
-
-The first performance is therefore also an onboarding sequence.
-
-The user should gradually understand:
-
-```text
-Carousel
-= melody
-
-FerrisWheel
-= harmony
-
-PirateShip
-= groove
-
-BumperCars
-= percussion
-
-DropTower
-= build / major drop
-
-RollerCoaster
-= phrase / energy
-
-Free Bodies
-= texture / atmosphere / world response
-```
-
-This understanding should emerge primarily through behavior.
-
-Do not rely on a large explanatory legend as the only way to understand the
-system.
-
----
-
-## 31. Story invariant
+## 49. Story invariant
 
 When evaluating a new experience idea, ask:
 
-> Does this help the visitor understand music operating one shared physical
-> world?
+> Does this help the visitor perceive real musical evidence operating one
+> shared physical world?
 
 Prefer:
 
 ```text
 Music
-→ Meaning
+→ Evidence
 → Actor
 → Physics
 → World
@@ -1604,15 +1713,21 @@ Avoid:
 
 ```text
 Music
-→ unrelated visual effect
+→ arbitrary visual effect
 ```
 
 The rides are not decorative metaphors placed on top of an audio visualizer.
 
-They are physical interpreters with different musical responsibilities.
+They are physical interpreters.
 
-The park is the instrument.
+The park is not only an instrument.
 
-The song is the operating condition.
+It is also a spatial score.
 
-The resulting performance emerges from both.
+The song provides the evidence.
+
+The actors interpret it.
+
+Physics connects the world.
+
+The visitor watches the transcription become physical.

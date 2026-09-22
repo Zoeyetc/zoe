@@ -15,6 +15,7 @@ export function toCarouselInput(frame: AudioFrame): CarouselInput {
     activeNote: frame.snapshot.melody.activeNote,
     noteProgress: frame.snapshot.melody.noteProgress,
     transportPlaying: frame.snapshot.transport.playing,
-    events: frame.events,
+    events: frame.events.filter(event => event.type === 'note-on'
+      || event.type === 'note-off' || event.type === 'seek'),
   };
 }
