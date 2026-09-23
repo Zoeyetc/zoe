@@ -16,6 +16,7 @@ export type CarouselState = Readonly<{
   baseAngle: number;
   baseAngularVelocity: number;
   activeMidi: number | null;
+  activeNoteName: string | null;
   activeRider: number | null;
   noteProgress: number;
   riders: readonly CarouselRiderState[];
@@ -34,6 +35,8 @@ const BASE_DRAG = 2.4;
 const RIDER_SPRING = 42;
 const RIDER_DAMPING = 10;
 const DEFAULT_PITCH_RANGE = { min: 60, max: 69 } as const;
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
+const noteNameForMidi = (midi: number) => `${NOTE_NAMES[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 const wrapAngle = (angle: number) => angle % (Math.PI * 2);
@@ -77,16 +80,19 @@ function stepRider(rider: CarouselRiderState, target: number, active: boolean, d
 /** Actor-local mechanics. Audio input selects rider targets; it never sets base angle. */
 export function createCarouselSimulation(options: CarouselSimulationOptions = {}) {
   const reducedMotion = options.reducedMotion ?? false;
-  const pitchRange = options.pitchRange ?? DEFAULT_PITCH_RANGE;
+  let pitchRange = options.pitchRange ?? DEFAULT_PITCH_RANGE;
   let state: CarouselState = {
     status: 'milestone-one-b', mode: 'resting', awake: false, reducedMotion,
     baseAngle: 0, baseAngularVelocity: 0,
-    activeMidi: null, activeRider: null, noteProgress: 0,
+    activeMidi: null, activeNoteName: null, activeRider: null, noteProgress: 0,
     riders: createRiders(), lastEvent: null,
   };
 
   return {
     read: (): CarouselState => state,
+    setPitchRange(range: Readonly<{ min: number; max: number }>): void {
+      if (Number.isFinite(range.min) && Number.isFinite(range.max) && range.max >= range.min) pitchRange = range;
+    },
     accept(input: CarouselInput, dt: number): void {
       const boundedDt = Math.min(0.1, Math.max(0, dt));
       const seek = input.events.some(event => event.type === 'seek');
@@ -94,7 +100,7 @@ export function createCarouselSimulation(options: CarouselSimulationOptions = {}
 
       if (!input.melodyAvailable) {
         state = { ...state, mode: 'resting', awake: false,
-          baseAngularVelocity: 0, activeMidi: null, activeRider: null,
+          baseAngularVelocity: 0, activeMidi: null, activeNoteName: null, activeRider: null,
           noteProgress: 0, riders: createRiders(),
           lastEvent: latestEvent?.type ?? state.lastEvent };
         return;
@@ -129,6 +135,7 @@ export function createCarouselSimulation(options: CarouselSimulationOptions = {}
         baseAngle: seek ? state.baseAngle : base.angle,
         baseAngularVelocity: base.velocity,
         activeMidi: note?.midi ?? null,
+        activeNoteName: note ? note.noteName ?? noteNameForMidi(note.midi) : null,
         activeRider,
         noteProgress: input.noteProgress,
         riders,

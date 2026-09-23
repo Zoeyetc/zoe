@@ -1,4 +1,4 @@
-import { createPreviewAudioClock } from '../audio/AudioClock';
+import { createPreviewAudioClock, type AudioClock } from '../audio/AudioClock';
 import { milestoneSevenAAudioMap } from '../audio/AudioMap';
 import { createAudioWorld } from '../audio/AudioWorld';
 import type { ControlActions } from '../control/types';
@@ -21,11 +21,19 @@ import { createRollerCoasterSimulation } from '../rides/roller-coaster/simulatio
 import { toFreeBodiesInput } from '../free-bodies/adapter';
 import { createFreeBodiesSimulation, FREE_BODIES_SEED } from '../free-bodies/simulation';
 import { PARK_BUMPER_CARS_BOUNDS, PARK_ROLLER_COASTER_BOUNDS } from './park/config';
+import { createAudioBufferPlaybackTransport, type AudioPlaybackTransport } from '../audio/AudioPlaybackTransport';
+import type { AudioPreparationState, PreparedRealAudio } from '../audio/AudioPreparationController';
+import type { AudioMap } from '../audio/types';
 
 /** Composition only: systems keep their own state and ownership. */
 export function createExperience(now: () => number, reducedMotion = false) {
-  const clock = createPreviewAudioClock(milestoneSevenAAudioMap.duration, now);
-  const world = createAudioWorld(milestoneSevenAAudioMap);
+  let clock: AudioClock | AudioPlaybackTransport = createPreviewAudioClock(milestoneSevenAAudioMap.duration, now);
+  let activeMap: AudioMap = milestoneSevenAAudioMap;
+  let world = createAudioWorld(activeMap);
+  let preparation: AudioPreparationState = {
+    sourceMode: 'fixture', filename: null, duration: activeMap.duration,
+    decodeState: 'idle', analysisState: 'idle', error: null, requestId: 0,
+  };
   const melodyMidi = (milestoneSevenAAudioMap.melody ?? []).map(note => note.midi);
   const carousel = createCarouselSimulation({
     reducedMotion,
@@ -79,6 +87,7 @@ export function createExperience(now: () => number, reducedMotion = false) {
     ), dt);
     freeBodies.accept(toFreeBodiesInput(frame), dt);
     content.step(dt);
+    const playback = 'diagnostics' in clock ? clock.diagnostics() : null;
     return {
       frame, recentEvents, carousel: carousel.read(), bumperCars: bumperCars.read(), pirateShip: pirateShip.read(),
       ferrisWheel: ferrisWheel.read(),
@@ -86,6 +95,20 @@ export function createExperience(now: () => number, reducedMotion = false) {
       rollerCoaster: rollerCoaster.read(),
       freeBodies: freeBodies.read(),
       physics: physicsWorld.read(), content: content.read(), seed: bumperCars.read().seed,
+      audio: {
+        preparation,
+        contextState: playback?.contextState ?? 'not-created',
+        musicalTime: frame.snapshot.transport.time,
+        playbackOffset: playback?.playbackOffset ?? frame.snapshot.transport.time,
+        sourceNodeState: playback?.sourceNodeState ?? (frame.snapshot.transport.playing ? 'fixture-playing' : 'fixture-idle'),
+        source: activeMap.source ?? { kind: 'fixture' as const, filename: null, mimeType: null },
+        analysis: activeMap.analysis ?? null,
+        rhythmAnalysis: activeMap.rhythmAnalysis ?? null,
+        melodyAnalysis: activeMap.melodyAnalysis ?? null,
+        harmonyAnalysis: activeMap.harmonyAnalysis ?? null,
+        tonalCenterAnalysis: activeMap.tonalCenterAnalysis ?? null,
+        structureAnalysis: activeMap.structureAnalysis ?? null,
+      },
     };
   };
   const seek = (time: number) => {
@@ -112,11 +135,53 @@ export function createExperience(now: () => number, reducedMotion = false) {
     seek,
     restart: () => seek(0),
   };
+  const stopClock = () => {
+    if ('dispose' in clock) clock.dispose();
+    else clock.pause();
+  };
+  const synchronizeNewSource = () => {
+    frame = world.synchronize(0, clock.read());
+    recentEvents = frame.events;
+    previousSimulationTime = now();
+    carousel.accept(toCarouselInput(frame), 0);
+    bumperCars.accept(toBumperCarsInput(frame), 0);
+    pirateShip.accept(toPirateShipInput(frame), 0);
+    ferrisWheel.accept(toFerrisWheelInput(frame), 0);
+    dropTower.accept(toDropTowerInput(frame), 0);
+    rollerCoaster.accept(toRollerCoasterInput(frame), 0);
+    freeBodies.accept(toFreeBodiesInput(frame), 0);
+    physicsWorld.clear();
+    content.reset();
+  };
   return {
     read, actions,
+    setAudioPreparationState: (next: AudioPreparationState) => { preparation = next; },
+    activateRealAudio(prepared: PreparedRealAudio) {
+      stopClock();
+      activeMap = prepared.map;
+      world = createAudioWorld(activeMap);
+      clock = createAudioBufferPlaybackTransport(prepared.context, prepared.buffer);
+      const analyzedRange = activeMap.melodyAnalysis?.pitchRange;
+      if (analyzedRange && analyzedRange.minMidi !== null && analyzedRange.maxMidi !== null) {
+        carousel.setPitchRange({ min: analyzedRange.minMidi, max: analyzedRange.maxMidi });
+      }
+      preparation = { ...preparation, sourceMode: 'real-audio', filename: activeMap.source?.filename ?? null,
+        duration: activeMap.duration, decodeState: 'ready', analysisState: 'ready', error: null };
+      synchronizeNewSource();
+    },
+    activateFixture() {
+      stopClock();
+      activeMap = milestoneSevenAAudioMap;
+      world = createAudioWorld(activeMap);
+      clock = createPreviewAudioClock(activeMap.duration, now);
+      carousel.setPitchRange({ min: Math.min(...melodyMidi), max: Math.max(...melodyMidi) });
+      preparation = { sourceMode: 'fixture', filename: null, duration: activeMap.duration,
+        decodeState: 'idle', analysisState: 'idle', error: null, requestId: preparation.requestId };
+      synchronizeNewSource();
+    },
     updateContentLayout: (bounds: WorldBounds) => content.updateLayout(bounds),
     dispose: () => {
-      clock.pause();
+      stopClock();
       unregisterFreeBodies.forEach(unregister => unregister());
       unregisterReceiver(); unregisterRollerSource(); unregisterBumperSource();
     },

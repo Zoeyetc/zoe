@@ -15,6 +15,7 @@ import { ParkMap } from './park/ParkMap';
 import { PARK_CONTENT_BOUNDS } from './park/config';
 import { physicsDebugVisible, resolveExperienceMode } from './mode';
 import { createAttentionController, type AttentionState } from './attention';
+import { createAudioPreparationController, FIXTURE_PREPARATION_STATE, type AudioPreparationState } from '../audio/AudioPreparationController';
 
 export function App() {
   const physicsStageRef = useRef<HTMLDivElement>(null);
@@ -26,6 +27,13 @@ export function App() {
     () => performance.now() / 1000,
     reduceMotion,
   ));
+  const [preparation, setPreparation] = useState<AudioPreparationState>(() => ({
+    ...FIXTURE_PREPARATION_STATE, duration: 24,
+  }));
+  const [audioPreparation] = useState(() => createAudioPreparationController(next => {
+    setPreparation(next);
+    experience.setAudioPreparationState(next);
+  }));
   const [attention] = useState(() => createAttentionController(() => performance.now() / 1000, reduceMotion));
   const [state, setState] = useState(() => experience.read());
   const [attentionState, setAttentionState] = useState<AttentionState>(() => attention.read());
@@ -35,25 +43,48 @@ export function App() {
   const showOverview = useCallback(() => {
     setAttentionState(attention.overview());
   }, [attention]);
+  const commitState = useCallback((next: ReturnType<typeof experience.read>, directResolve = false) => {
+    const latestSeek = [...next.recentEvents].reverse().find(event => event.type === 'seek');
+    setState(next);
+    if (mode === 'park') setAttentionState(attention.update({
+      snapshot: next.frame.snapshot,
+      dropTowerPhase: next.dropTower.phase,
+      rollerCoasterReleaseActive: next.rollerCoaster.releaseActive,
+      percussionStrength: next.bumperCars.eventStrength,
+      seek: directResolve,
+      seekToken: latestSeek?.type === 'seek' ? `${latestSeek.from}:${latestSeek.to}` : null,
+    }, next.frame.snapshot.transport.time));
+  }, [attention, experience, mode]);
+  const chooseAudio = useCallback((file: File) => {
+    void audioPreparation.prepare(file).then(prepared => {
+      if (!prepared) return;
+      experience.activateRealAudio(prepared);
+      commitState(experience.read(), true);
+    });
+  }, [audioPreparation, commitState, experience]);
+  const useFixture = useCallback(() => {
+    audioPreparation.useFixture();
+    experience.activateFixture();
+    commitState(experience.read(), true);
+  }, [audioPreparation, commitState, experience]);
   useEffect(() => {
     // Low-rate instrumentation refresh, not a transport or simulation clock.
     const timer = window.setInterval(() => {
       const next = experience.read();
-      setState(next);
-      if (mode === 'park') setAttentionState(attention.update({
-        snapshot: next.frame.snapshot,
-        dropTowerPhase: next.dropTower.phase,
-        rollerCoasterReleaseActive: next.rollerCoaster.releaseActive,
-        percussionStrength: next.bumperCars.eventStrength,
-      }, next.frame.snapshot.transport.time));
+      commitState(next);
     }, 100);
     // App is the root owner of this in-memory experience. React development remounts
     // effects without discarding that owner, so only the UI timer belongs to this effect.
     return () => window.clearInterval(timer);
-  }, [attention, experience, mode]);
+  }, [commitState, experience]);
   useEffect(() => {
     if (mode === 'park') experience.updateContentLayout(PARK_CONTENT_BOUNDS);
   }, [experience, mode]);
+  useEffect(() => {
+    const dispose = () => { audioPreparation.dispose(); experience.dispose(); };
+    window.addEventListener('pagehide', dispose, { once: true });
+    return () => window.removeEventListener('pagehide', dispose);
+  }, [audioPreparation, experience]);
 
   const workbench = <>
     <CarouselView state={state.carousel} />
@@ -73,16 +104,33 @@ export function App() {
     <PirateShipView state={state.pirateShip} />
     <DebugConsole state={state} />
   </>;
+  const controlActions = {
+    play: experience.actions.play,
+    pause: experience.actions.pause,
+    seek(time: number) {
+      experience.actions.seek(time);
+      commitState(experience.read(), true);
+    },
+    restart() {
+      experience.actions.restart();
+      commitState(experience.read(), true);
+    },
+  };
 
   return <main className={`experience experience--${mode}`}>
     <header className="experience-header">
-      <div><h1>Z.land Music Box</h1><p>Milestone 8B.1 · Monochrome Visual Language</p></div>
+      <div><h1>Z.land Music Box</h1><p>Milestone 9E.2 · Repetitive / Electronic Robustness</p></div>
       <nav aria-label="Experience mode">
         <a href="./" aria-current={mode === 'park' ? 'page' : undefined}>Park Map</a>
         <a href="?mode=workbench" aria-current={mode === 'workbench' ? 'page' : undefined}>Development Workbench</a>
       </nav>
     </header>
-    <ControlSurface transport={state.frame.snapshot.transport} actions={experience.actions} />
+    <ControlSurface transport={state.frame.snapshot.transport} melody={state.frame.snapshot.melody}
+      rhythm={state.frame.snapshot.rhythm} harmony={state.frame.snapshot.harmony} actions={controlActions}
+      tonalCenter={state.frame.snapshot.tonalCenter}
+      structure={state.frame.snapshot.structure}
+      structureSegmentCount={state.audio.structureAnalysis?.segments.length ?? null}
+      preparation={preparation} onChooseAudio={chooseAudio} onUseFixture={useFixture} />
     {mode === 'park' ? <>
       <ParkMap state={state} worldRef={physicsStageRef} showPhysicsDebug={showPhysicsDebug}
         onContentLayout={experience.updateContentLayout} attention={attentionState}

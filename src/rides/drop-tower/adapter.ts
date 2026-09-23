@@ -22,12 +22,12 @@ export function toDropTowerInput(frame: AudioFrame): DropTowerInput {
     (event): event is Extract<AudioEvent, { type: 'seek' }> => event.type === 'seek',
   );
   return {
-    structureAvailable: frame.snapshot.structure.available,
-    section: frame.snapshot.structure.section,
-    sectionProgress: frame.snapshot.structure.sectionProgress,
-    energy: frame.snapshot.structure.energy,
-    tension: frame.snapshot.structure.tension,
-    build: frame.snapshot.structure.build,
+    structureAvailable: frame.snapshot.structure.source === 'authored',
+    section: frame.snapshot.structure.source === 'authored' ? frame.snapshot.structure.section : null,
+    sectionProgress: frame.snapshot.structure.source === 'authored' ? frame.snapshot.structure.sectionProgress : 0,
+    energy: frame.snapshot.structure.source === 'authored' ? frame.snapshot.structure.energy : 0,
+    tension: frame.snapshot.structure.source === 'authored' ? frame.snapshot.structure.tension : 0,
+    build: frame.snapshot.structure.source === 'authored' ? frame.snapshot.structure.build : 0,
     transportPlaying: frame.snapshot.transport.playing,
     drop: drops.at(-1) ?? null,
     seek: seeks.length > 0,

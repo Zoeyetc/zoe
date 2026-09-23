@@ -11,6 +11,7 @@ import { AnchoredContentView } from '../../physics/AnchoredContentView';
 import type { WorldBounds } from '../../physics/AnchoredContentParticipant';
 import { bumperArenaPointToWorld } from '../../physics/adapters/bumperCars';
 import { ParkTrain } from './ParkTrain';
+import { DoodleCircle, DoodlePath, DoodlePolyline } from '../doodle/DoodleSvg';
 import type { AttentionActorId, AttentionRole, AttentionState } from '../attention';
 import {
   PARK_ACTOR_ANCHORS, PARK_BUMPER_CARS_BOUNDS, PARK_CONTENT_BOUNDS,
@@ -67,8 +68,9 @@ function ParkRollerCoaster({ state, role, focused }: {
         ? <path key={index} d={piece.d} className="roller-connector" />
         : <g key={index} className={`park-track-piece park-track-piece--${piece.kind.toLowerCase()}`}
           data-track-segment={piece.kind}>
-          <path d={piece.d} className="park-track-bed" />
-          <path d={piece.d} className={`park-track-rail roller-segment roller-segment--${piece.kind.toLowerCase()}`} />
+          <DoodlePath d={piece.d} seed={`coaster-${piece.kind}-${index}-bed`} roughness={0.72} className="park-track-bed" />
+          <DoodlePath d={piece.d} seed={`coaster-${piece.kind}-${index}-rail`} roughness={0.48}
+            secondary className={`park-track-rail roller-segment roller-segment--${piece.kind.toLowerCase()}`} />
           {piece.samples.filter((_, sampleIndex) => sampleIndex % 5 === 2).map((point, sampleIndex, samples) => {
             const previous = samples[Math.max(0, sampleIndex - 1)] ?? point;
             const next = samples[Math.min(samples.length - 1, sampleIndex + 1)] ?? point;
@@ -135,7 +137,8 @@ function ParkFreeBodies({ state }: { state: ExperienceState['freeBodies'] }) {
         data-free-body-id={body.id} data-world-x={body.position.x} data-world-y={body.position.y}
         data-density={quiet ? 'quiet' : 'open'}
         transform={`translate(${point.x} ${point.y})`}>
-        <circle r={Math.max(quiet ? 2.5 : 4, body.radius * (quiet ? 150 : 280))} />
+        <DoodleCircle cx={0} cy={0} r={Math.max(quiet ? 2.5 : 4, body.radius * (quiet ? 150 : 280))}
+          seed={`free-body-${body.id}`} roughness={quiet ? 0.28 : 0.55} secondary={body.id === state.selectedBodyId} />
         {body.id === state.selectedBodyId && <line x1="0" y1="0"
           x2={body.velocity.x * 150} y2={body.velocity.y * 150} />}
       </g>;
@@ -170,7 +173,7 @@ export function ParkMap({
 
   return <section className="park-composition" aria-labelledby="park-map-heading">
     <div className="park-composition-heading">
-      <div><p className="eyebrow">Monochrome system · shared spatial score</p>
+        <div><p className="eyebrow">Technical doodle · shared spatial score</p>
         <h2 id="park-map-heading">Park Map</h2></div>
       <div className="park-attention-navigation">
         <span>{attention.mode === 'focus' ? `${ACTOR_LABELS[attention.focusActorId!]} Focus` : 'Overview'}</span>
@@ -191,15 +194,34 @@ export function ParkMap({
         <ParkTrain />
         <g className="park-districts">
           {(Object.entries(PARK_DISTRICT_CONTOURS) as [keyof typeof PARK_DISTRICT_CONTOURS, string][])
-            .map(([district, d]) => <path key={district} className={`park-district park-district--${district}`} d={d}
-              data-park-district={district} data-attention-role={attention.roles[district]} />)}
+            .map(([district, d]) => <g key={district} className="park-district-group"
+              data-park-district={district} data-attention-role={attention.roles[district]}>
+              <path className={`park-district-fill park-district-fill--${district}`} d={d} />
+              <DoodlePath className={`park-district park-district--${district}`} d={d}
+                seed={`district-${district}`} roughness={2.1} secondary />
+            </g>)}
         </g>
-        {PARK_PATHS.map((d, index) => <path key={index} className="park-path" d={d} />)}
+        {PARK_PATHS.map((d, index) => <DoodlePath key={index} className="park-path" d={d}
+          seed={`park-path-${index}`} roughness={1.25} />)}
         <ParkRollerCoaster state={state.rollerCoaster} role={attention.roles.rollerCoaster}
           focused={attention.focusActorId === 'rollerCoaster'} />
         <ParkBumperCars state={state.bumperCars} role={attention.roles.bumperCars}
           focused={attention.focusActorId === 'bumperCars'} />
         <ParkFreeBodies state={state.freeBodies} />
+        <g className="park-annotations" aria-hidden="true">
+          <DoodlePolyline className="park-annotation-line" seed="annotation-carousel" roughness={1.2}
+            points={[{ x: 250, y: 91 }, { x: 279, y: 75 }, { x: 322, y: 78 }]} />
+          <text x="326" y="81">ROTATION / NOTE LIFT</text>
+          <DoodlePolyline className="park-annotation-line" seed="annotation-ferris" roughness={1.2}
+            points={[{ x: 827, y: 78 }, { x: 862, y: 61 }, { x: 904, y: 64 }]} />
+          <text x="908" y="67">12 SUSPENDED CARRIERS</text>
+          <DoodlePolyline className="park-annotation-line" seed="annotation-drop" roughness={1.35}
+            points={[{ x: 116, y: 98 }, { x: 86, y: 82 }, { x: 48, y: 88 }]} />
+          <text x="34" y="80">LIFT / HOLD / RELEASE</text>
+          <DoodlePolyline className="park-annotation-line" seed="annotation-coaster" roughness={1.45}
+            points={[{ x: 316, y: 522 }, { x: 349, y: 540 }, { x: 405, y: 537 }]} />
+          <text x="410" y="540">PHRASE ROUTE</text>
+        </g>
       </svg>
 
       {(['carousel', 'ferrisWheel', 'pirateShip', 'dropTower'] as const).map(actor => <div key={actor}
@@ -210,12 +232,12 @@ export function ParkMap({
         data-focused={attention.focusActorId === actor || undefined}
         data-anchor-x={PARK_ACTOR_ANCHORS[actor].x} data-anchor-y={PARK_ACTOR_ANCHORS[actor].y}>
         <span className="park-node-label">{actor === 'ferrisWheel' ? 'FerrisWheel' : actor === 'pirateShip' ? 'PirateShip' : actor === 'dropTower' ? 'DropTower' : 'Carousel'}</span>
-        {actor === 'carousel' && <CarouselView state={state.carousel} />}
-        {actor === 'ferrisWheel' && <FerrisWheelView state={state.ferrisWheel} />}
+        {actor === 'carousel' && <CarouselView state={state.carousel} doodle />}
+        {actor === 'ferrisWheel' && <FerrisWheelView state={state.ferrisWheel} doodle />}
         {actor === 'pirateShip' && <PirateShipView state={state.pirateShip}
-          districtFit={PARK_PIRATE_SHIP_RENDERER.fit === 'district-height'} />}
+          districtFit={PARK_PIRATE_SHIP_RENDERER.fit === 'district-height'} doodle />}
         {actor === 'dropTower' && <DropTowerView state={state.dropTower}
-          districtFit={PARK_DROP_TOWER_RENDERER.fit === 'district-height'} />}
+          districtFit={PARK_DROP_TOWER_RENDERER.fit === 'district-height'} doodle />}
       </div>)}
 
       <div className="park-gate" style={boundsStyle(PARK_GATE_BOUNDS)} data-park-landmark="gate"

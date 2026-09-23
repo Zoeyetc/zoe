@@ -9,7 +9,10 @@ const transport = (time: number, playing = true): TransportState => ({ time, dur
 test('snapshot lookup is deterministic and handles unavailable melody', () => {
   assert.deepEqual(lookupSnapshot(milestoneOneAudioMap, transport(1.5)), lookupSnapshot(milestoneOneAudioMap, transport(1.5)));
   assert.equal(lookupSnapshot(milestoneOneAudioMap, transport(1.5)).melody.activeNote?.midi, 60);
-  assert.deepEqual(lookupSnapshot(unavailableMelodyAudioMap, transport(1.5)).melody, { available: false, active: false, activeNote: null, noteProgress: 0 });
+  assert.deepEqual(lookupSnapshot(unavailableMelodyAudioMap, transport(1.5)).melody, {
+    available: false, active: false, activeNote: null, noteProgress: 0,
+    midi: null, pitchHz: null, noteName: null, intensity: 0, confidence: 0,
+  });
 });
 
 test('timeline crossing delivers each note event once even across a skipped frame', () => {

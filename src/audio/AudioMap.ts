@@ -5,7 +5,7 @@ export const milestoneOneAudioMap: AudioMap = {
   version: 1,
   id: 'milestone-one-melody',
   duration: 12,
-  capabilities: { melody: true, rhythm: false, harmony: false, structure: false, spectrum: false },
+  capabilities: { melody: true, rhythm: false, harmony: false, tonalCenter: false, structure: false, spectrum: false },
   melody: [
     { id: 'c4-1', start: 1, end: 2.1, midi: 60, intensity: 0.68 },
     { id: 'e4-1', start: 2.35, end: 3.3, midi: 64, intensity: 0.78 },
@@ -110,7 +110,7 @@ export const unavailableMelodyAudioMap: AudioMap = {
   version: 1,
   id: 'melody-unavailable',
   duration: 12,
-  capabilities: { melody: false, rhythm: false, harmony: false, structure: false, spectrum: false },
+  capabilities: { melody: false, rhythm: false, harmony: false, tonalCenter: false, structure: false, spectrum: false },
   melody: null,
   percussion: null,
   rhythm: null,

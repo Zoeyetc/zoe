@@ -1,4 +1,4 @@
-/* Milestone 8B.1 visual foundation: one monochrome structure system and one evidence accent. */
+/* Milestone 8B.2: deterministic technical doodle over the 8B.1 monochrome foundation. */
 :root {
   --z-background: #f2f0e9;
   --z-surface: #faf8f2;
@@ -32,6 +32,9 @@ main { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
 section { margin-block: 1rem; padding: 1.25rem; background: var(--z-surface); border: 1px solid var(--z-district); }
 h2 { margin-top: 0; font-size: 1.2rem; }
 .buttons { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.audio-source-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin-bottom: 1rem; }
+.audio-source-controls input[type="file"] { max-width: min(100%, 28rem); }
+.audio-source-controls [role="status"] { flex-basis: 100%; }
 button { padding: .5rem 1rem; font: inherit; }
 label, input[type='range'] { display: block; width: 100%; }
 pre { overflow: auto; font-size: .8rem; }
@@ -84,6 +87,9 @@ pre { overflow: auto; font-size: .8rem; }
 .ferris-cabin--active .ferris-suspension { stroke: var(--z-evidence-strong); }
 .ferris-cabin--active .ferris-carrier-media { fill: var(--z-evidence); }
 .ferris-cabin--active text { fill: var(--z-surface); }
+.ferris-cabin--tonic .ferris-carrier { stroke-width: calc(var(--stroke-evidence) + 0.5px); }
+.ferris-boarding line { stroke: var(--z-infrastructure); stroke-width: var(--stroke-guide); }
+.ferris-boarding text { fill: var(--z-text-muted); font-size: 7px; letter-spacing: 0.12em; }
 .drop-tower-stage { overflow: hidden; border: 1px solid var(--z-district); background: var(--z-surface); }
 .drop-tower-machine { display: block; width: 100%; height: auto; }
 .drop-tower-guide { stroke: var(--actor-primary, var(--z-structure-primary)); stroke-width: calc(var(--stroke-actor-primary) * 1.65); stroke-linecap: round; }
@@ -169,11 +175,13 @@ pre { overflow: auto; font-size: .8rem; }
 .park-attention-navigation { display: flex; align-items: center; gap: .65rem; }
 .park-attention-navigation > span { color: var(--z-muted-text); font: 700 .7rem/1 var(--font-sans); letter-spacing: .08em; text-transform: uppercase; }
 .park-attention-navigation button { padding: .35rem .55rem; border: 1px solid var(--z-structure-secondary); background: var(--z-surface); font-size: .72rem; }
-.park-map { position: relative; width: 100%; aspect-ratio: 1000 / 640; min-height: 440px; overflow: hidden; border: 1px solid var(--z-district); background: var(--z-surface); isolation: isolate; }
+.park-map { position: relative; width: 100%; aspect-ratio: 1000 / 640; min-height: 440px; overflow: hidden; border: 1px solid var(--z-district); background-color: var(--z-surface); background-image: radial-gradient(circle at 19% 23%, rgb(116 113 107 / .025) 0 .6px, transparent .75px), radial-gradient(circle at 73% 62%, rgb(36 35 33 / .018) 0 .5px, transparent .7px); background-size: 19px 23px, 29px 31px; isolation: isolate; }
 .park-viewport { position: absolute; inset: 0; transform: translate(var(--park-camera-x), var(--park-camera-y)) scale(var(--park-camera-scale)); transform-origin: 0 0; transition: transform 360ms ease-in-out; }
 .park-map[data-reduced-motion='true'] .park-viewport { transition-duration: 1ms; }
 .park-map-base, .park-physics-debug { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 .park-map-base { z-index: 1; }
+.doodle-stroke { vector-effect: non-scaling-stroke; }
+.doodle-stroke--echo { opacity: .18; transform: translate(.45px, -.35px); }
 .park-path { fill: none; stroke: var(--z-guide); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 1 17; }
 .park-train path { fill: none; vector-effect: non-scaling-stroke; }
 .park-train-bed { stroke: var(--z-guide); stroke-width: 4; }
@@ -181,14 +189,16 @@ pre { overflow: auto; font-size: .8rem; }
 .park-train-rail { stroke: var(--z-infrastructure); stroke-width: var(--stroke-infrastructure); }
 .park-train-station line { stroke: var(--z-infrastructure); stroke-width: var(--stroke-infrastructure); vector-effect: non-scaling-stroke; }
 .park-train-station circle { fill: var(--z-surface); stroke: var(--z-infrastructure); stroke-width: var(--stroke-infrastructure); vector-effect: non-scaling-stroke; }
-.park-district { fill: var(--z-surface-secondary); fill-opacity: .08; stroke: var(--z-district); stroke-width: var(--stroke-district); stroke-dasharray: 8 11; }
+.park-district-fill { fill: var(--z-surface-secondary); fill-opacity: .08; stroke: none; }
+.park-district { fill: none; stroke: var(--z-district); stroke-width: var(--stroke-district); stroke-dasharray: 19 5 7 11; stroke-linecap: round; }
 .park-district--carousel { fill-opacity: .07; }
 .park-district--ferrisWheel, .park-district--dropTower { fill-opacity: .06; }
 .park-district--rollerCoaster { fill-opacity: .09; stroke-dasharray: 10 10; }
-.park-district[data-attention-role='primary'] { fill-opacity: .16; stroke: var(--z-infrastructure); stroke-width: 1px; }
-.park-district[data-attention-role='secondary'] { fill-opacity: .1; }
-.park-district[data-attention-role='ambient'] { fill-opacity: .055; }
-.park-district[data-attention-role='resting'] { fill-opacity: .035; }
+.park-district-group[data-attention-role='primary'] .park-district-fill { fill-opacity: .16; }
+.park-district-group[data-attention-role='primary'] .park-district { stroke: var(--z-infrastructure); stroke-width: 1px; }
+.park-district-group[data-attention-role='secondary'] .park-district-fill { fill-opacity: .1; }
+.park-district-group[data-attention-role='ambient'] .park-district-fill { fill-opacity: .055; }
+.park-district-group[data-attention-role='resting'] .park-district-fill { fill-opacity: .035; }
 .park-map-label { fill: var(--z-muted-text); font: 700 10px/1 var(--font-sans); letter-spacing: 1.5px; }
 .park-roller-track { opacity: .9; }
 .park-roller-track path { fill: none; }
@@ -196,6 +206,7 @@ pre { overflow: auto; font-size: .8rem; }
 .park-roller-track .park-track-rail { stroke-width: var(--stroke-actor-primary) !important; }
 .park-track-tie { stroke: var(--actor-secondary, var(--z-structure-secondary)); stroke-width: var(--stroke-actor-secondary); vector-effect: non-scaling-stroke; }
 .park-track-label { fill: var(--z-muted-text); font: 700 8px/1 var(--font-sans); letter-spacing: .8px; text-transform: uppercase; }
+.park-track-label:nth-of-type(even) { transform: rotate(-1.2deg); transform-box: fill-box; transform-origin: center; }
 .park-roller-track .roller-connector { opacity: .48; }
 .park-roller-orb circle { fill: var(--z-surface); stroke: var(--z-evidence-strong); stroke-width: var(--stroke-evidence); }
 .park-roller-orb line { stroke: var(--z-evidence); stroke-width: var(--stroke-evidence); }
@@ -216,7 +227,12 @@ pre { overflow: auto; font-size: .8rem; }
 .park-map[data-attention-mode='focus'] .park-map-base [data-park-actor]:not([data-park-actor='free-bodies']):not([data-focused='true']) { --actor-primary: var(--z-structure-secondary); --actor-secondary: var(--z-infrastructure); filter: contrast(.88); }
 .park-map[data-attention-mode='focus'] .park-map-base [data-park-actor='free-bodies'] { opacity: .48; }
 .park-map[data-attention-mode='focus'] .park-train { opacity: .56; }
-.park-node-label { position: absolute; z-index: 4; top: .15rem; left: .3rem; color: var(--z-muted-text); font-size: .59rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.park-node-label { position: absolute; z-index: 4; top: .15rem; left: .3rem; color: var(--z-muted-text); font-size: .59rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; transform: rotate(-.7deg); transform-origin: left center; }
+.park-node--ferrisWheel .park-node-label, .park-node--dropTower .park-node-label { transform: rotate(.65deg); }
+.park-annotations { pointer-events: none; opacity: .58; }
+.park-annotation-line { fill: none; stroke: var(--z-structure-secondary); stroke-width: .8; stroke-linecap: round; stroke-linejoin: round; }
+.park-annotations text { fill: var(--z-muted-text); font: 600 7px/1 var(--font-sans); letter-spacing: .45px; }
+.park-map[data-attention-mode='focus'] .park-annotations { opacity: .74; }
 .park-node > section { width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; }
 .park-node > section > .section-heading, .park-node > section > .eyebrow,
 .park-node > section > h2, .park-node > section > p, .park-node > section > .actor-readout { display: none; }
@@ -230,6 +246,7 @@ pre { overflow: auto; font-size: .8rem; }
 .park-gate strong { font-size: .65rem; }
 .park-map .content-participant-layout { position: absolute; z-index: 5; margin: 0; align-self: auto; justify-self: auto; }
 .park-map .content-participant-response { box-sizing: border-box; width: 100%; height: 100%; min-width: 0; place-content: center; padding: .25rem 0 .25rem .55rem; border: 0; border-left: var(--stroke-actor-secondary) solid var(--z-structure-secondary); border-radius: 0; background: transparent; text-align: left; }
+.park-map .content-participant-response::after { width: 72%; height: 4px; margin-top: .05rem; border-bottom: 1px solid var(--z-structure-secondary); content: ''; transform: rotate(-1.4deg); opacity: .5; }
 .park-map .content-participant-response .eyebrow { font-size: .52rem; }
 .park-map .content-participant-response span { font-size: .6rem; }
 .park-physics-debug { z-index: 8; pointer-events: none; }

@@ -1,12 +1,14 @@
 import type { DropTowerState } from './simulation';
+import { DoodleLine } from '../../experience/doodle/DoodleSvg';
 
 const TOP_Y = 54;
 const REST_Y = 382;
 const CARRIAGE_WIDTH = 220;
 
-export function DropTowerView({ state, districtFit = false }: {
+export function DropTowerView({ state, districtFit = false, doodle = false }: {
   state: DropTowerState;
   districtFit?: boolean;
+  doodle?: boolean;
 }) {
   const carriageY = TOP_Y + (REST_Y - TOP_Y) * state.position;
   return <section data-actor="drop-tower" aria-labelledby="drop-tower-heading">
@@ -19,7 +21,8 @@ export function DropTowerView({ state, districtFit = false }: {
         preserveAspectRatio={districtFit ? 'none' : 'xMidYMid meet'}
         data-district-fit={districtFit || undefined} role="img"
         aria-label={`Drop tower ${state.phase.toLowerCase()}; carriage position ${state.position.toFixed(2)}`}>
-        <line className="drop-tower-guide" x1="280" y1="36" x2="280" y2="420" />
+        {doodle ? <DoodleLine className="drop-tower-guide" x1={280} y1={36} x2={280} y2={420}
+          seed="drop-tower-guide" roughness={0.45} secondary /> : <line className="drop-tower-guide" x1="280" y1="36" x2="280" y2="420" />}
         <line className="drop-tower-bound" x1="250" y1={TOP_Y} x2="310" y2={TOP_Y} />
         <line className="drop-tower-bound" x1="236" y1={REST_Y + 35} x2="324" y2={REST_Y + 35} />
         <rect className="drop-tower-cap" x="273" y="28" width="14" height="14" rx="2" />

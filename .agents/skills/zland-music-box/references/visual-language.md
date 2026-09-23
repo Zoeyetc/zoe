@@ -62,6 +62,43 @@ musical evidence
 
 rather than decorative styling.
 
+### Milestone 8B.2 — technical doodle lock
+
+The Park Map rendering language is now:
+
+```text
+technical doodle
++ mechanical sketch
++ restrained annotation
++ precise Musical Evidence
+```
+
+Canonical geometry remains exact. Deterministic renderer-level perturbation may
+make structure, infrastructure, district contours, and annotations look drawn
+by hand, but it must never change musical lookup, simulation state, collision
+geometry, PhysicsWorld coordinates, focus bounds, or route geometry.
+
+The precision hierarchy is:
+
+```text
+Musical Evidence → cleanest
+actor mechanics → lightly hand-drawn
+Park Train infrastructure → slightly looser
+district contours → visibly sketched
+annotations → loosest
+```
+
+The same input geometry and semantic seed must always create the same visible
+mark. Render-time randomness and frame-to-frame line boil are prohibited.
+Typography for transport, evidence, controls, and diagnostics remains the
+restrained sans-serif system. Annotation character comes from sparse leader
+lines, underlines, brackets, slight label rotation, and spacing rather than a
+global handwriting font.
+
+Doodle affects rendering, never physical or musical truth. The result must read
+as an annotated mechanical drawing, not a cartoon park, coloring book,
+scrapbook, sticker interface, or generic hand-drawn SaaS page.
+
 ---
 
 ## 3. Avoid generic AI / futuristic visual language
