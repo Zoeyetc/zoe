@@ -85,11 +85,11 @@ test('retained frames jump exactly without interpolation or smoothing', () => {
   assert.equal(after.indexes.amplitude, 1);
 });
 
-test('low-confidence retained pitch remains visible as analysis evidence', () => {
+test('low-confidence retained Melody frame remains visible as interpretation evidence', () => {
   const telemetry = selectSignalTelemetry(observation(map(), .01));
-  assert.equal(field(telemetry, 'PITCH', 'PITCH HZ'), '487.26');
-  assert.equal(field(telemetry, 'PITCH', 'FRAME CONF'), '0.120');
-  assert.equal(field(telemetry, 'PITCH', 'SALIENCE'), '0.190');
+  assert.equal(field(telemetry, 'MELODY FRAME', 'PITCH HZ'), '487.26');
+  assert.equal(field(telemetry, 'MELODY FRAME', 'FRAME CONF'), '0.120');
+  assert.equal(field(telemetry, 'MELODY FRAME', 'SALIENCE'), '0.190');
 });
 
 test('paused seek resolves destination frames instead of suppressing synchronization', () => {
@@ -140,7 +140,7 @@ test('exact end resolves every retained domain to its own last valid frame', () 
   assert.equal(field(ended, 'LEVEL', 'RMS'), '0.276');
   assert.equal(field(ended, 'TRANSIENT', 'ONSET'), '0.800');
   assert.equal(field(ended, 'SPECTRUM', 'LOW'), '0.600');
-  assert.equal(field(ended, 'PITCH', 'PITCH HZ'), '489.02');
+  assert.equal(field(ended, 'MELODY FRAME', 'PITCH HZ'), '489.02');
   assert.equal(field(ended, 'TONAL', 'ENERGY'), '0.500');
   assert.equal(field(ended, 'TONAL', 'KEY CANDIDATE'), 'G major 0.760');
   assert.equal(field(ended, 'STRUCTURE', 'ENERGY'), '0.750');
@@ -161,7 +161,7 @@ test('end policy never replaces available last retained evidence with zero fallb
   const ended = selectSignalTelemetry(observation(map(), 2, 0, false));
   for (const [domain, label] of [
     ['LEVEL', 'RMS'], ['TRANSIENT', 'ONSET'], ['SPECTRUM', 'LOW'], ['SPECTRUM', 'BRIGHTNESS'],
-    ['PITCH', 'FRAME CONF'], ['TONAL', 'ENERGY'], ['TONAL', 'KEY CONF'], ['STRUCTURE', 'NOVELTY'],
+    ['MELODY FRAME', 'FRAME CONF'], ['TONAL', 'ENERGY'], ['TONAL', 'KEY CONF'], ['STRUCTURE', 'NOVELTY'],
   ] as const) assert.notEqual(field(ended, domain, label), '0.000');
 });
 
@@ -175,7 +175,7 @@ test('restart resolves actual time-zero retained analysis instead of clearing fi
   });
   assert.equal(field(restarted, 'LEVEL', 'RMS'), '0.284');
   assert.equal(field(restarted, 'SPECTRUM', 'LOW'), '0.100');
-  assert.equal(field(restarted, 'PITCH', 'PITCH HZ'), '487.26');
+  assert.equal(field(restarted, 'MELODY FRAME', 'PITCH HZ'), '487.26');
   assert.equal(interpretation('BEAT PHASE'), '0.000');
 });
 

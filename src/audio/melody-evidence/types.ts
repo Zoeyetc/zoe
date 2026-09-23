@@ -70,6 +70,16 @@ export type MelodyRejectedCandidate = Readonly<{
   reason: MelodyRejectedCandidateReason;
 }>;
 
+export type ObservedPitchEvidence = Readonly<{
+  frequencyHz: number | null;
+  midi: number | null;
+  noteName: string | null;
+  score: number | null;
+  source: 'USABLE_CANDIDATE' | 'RANGE_REJECTED' | 'NONE';
+  melodyRangeStatus: 'IN_RANGE' | 'BELOW_MELODY_RANGE' | 'ABOVE_MELODY_RANGE' | 'UNAVAILABLE';
+  rangeReason: MelodyRejectedCandidateReason | null;
+}>;
+
 export type MelodyEvidenceObservation = Readonly<{
   frameIndex: number;
   time: number;
@@ -78,6 +88,7 @@ export type MelodyEvidenceObservation = Readonly<{
   generation: MelodyCandidateGenerationEvidence;
   outOfRangeCandidateCount: number;
   rejectedCandidates: readonly MelodyRejectedCandidate[];
+  observedPitch: ObservedPitchEvidence;
   selectedCandidateIndex: number | null;
   selectedPitchHz: number | null;
   selectedMidiFloat: number | null;

@@ -4,7 +4,9 @@ import type {
 } from '../audio/types';
 import type { SignalConsoleObservation } from './types';
 import { melodyEvidenceIndexAt, selectMelodyEvidenceForTransport } from '../audio/melody-evidence/selectMelodyEvidence.ts';
-import type { MelodyEvidenceCandidate, MelodyEvidenceObservation } from '../audio/melody-evidence/types';
+import type {
+  MelodyEvidenceCandidate, MelodyEvidenceObservation, ObservedPitchEvidence,
+} from '../audio/melody-evidence/types';
 
 export type SignalField = Readonly<{
   label: string;
@@ -151,6 +153,14 @@ const pitchFields = (frame: MelodyPitchFrame | null): readonly SignalField[] => 
   signal('FRAME CONF', number(frame?.confidence)), signal('SALIENCE', number(frame?.salience)),
   signal('VOICED', frame ? bool(frame.voiced) : '—'),
 ];
+const observedPitchFields = (pitch: ObservedPitchEvidence | null): readonly SignalField[] => [
+  signal('OBSERVED', number(pitch?.frequencyHz, 2)),
+  signal('NOTE', pitch?.noteName ?? '—'),
+  signal('MIDI FLOAT', number(pitch?.midi, 2)),
+  signal('SCORE', number(pitch?.score)),
+  anchor('SOURCE', pitch?.source.replaceAll('_', ' ') ?? 'NONE'),
+  anchor('MELODY RANGE STATUS', pitch?.melodyRangeStatus.replaceAll('_', ' ') ?? 'UNAVAILABLE', 'wide'),
+];
 const tonalFields = (chroma: ChromaFrame | null, tonal: TonalCenterFrame | null): readonly SignalField[] => [
   signal('CHROMA', chroma?.chroma.map(value => number(value, 2)).join(' ') ?? '—', 'wide'),
   signal('ENERGY', number(chroma?.energy)), signal('FRAME CONF', number(chroma?.confidence)),
@@ -295,7 +305,8 @@ export function selectSignalTelemetry(observation: SignalConsoleObservation): Si
       { id: 'LEVEL', layer: 'analysis', fields: levelFields(amplitude) },
       { id: 'TRANSIENT', layer: 'analysis', fields: transientFields(amplitude) },
       { id: 'SPECTRUM', layer: 'analysis', fields: spectrumFields(spectrum) },
-      { id: 'PITCH', layer: 'analysis', fields: pitchFields(pitch) },
+      { id: 'PITCH', layer: 'analysis', fields: observedPitchFields(melodyEvidence?.observedPitch ?? null) },
+      { id: 'MELODY FRAME', layer: 'analysis', fields: pitchFields(pitch) },
       { id: 'TONAL', layer: 'analysis', fields: tonalFields(chroma, tonal) },
       { id: 'RHYTHM', layer: 'analysis', fields: rhythmFields(map) },
       { id: 'STRUCTURE', layer: 'analysis', fields: structureFields(map, structure, indexes.structure) },

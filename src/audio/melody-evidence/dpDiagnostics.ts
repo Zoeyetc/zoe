@@ -55,6 +55,24 @@ export type MelodyYinFrameDiagnostic = Readonly<{
   lagPoints: readonly MelodyYinLagPointDiagnostic[];
 }>;
 
+export type MelodySubharmonicRelationDiagnostic = Readonly<{
+  multiple: 2 | 3 | 4;
+  centsDeviation: number;
+  higherCandidateIndex: number;
+  higherFrequencyHz: number;
+  higherOriginalScore: number;
+  higherPeriodicity: number;
+  higherSalience: number;
+}>;
+
+export type MelodySubharmonicAmbiguityStateDiagnostic = Readonly<{
+  eligible: boolean;
+  relations: readonly MelodySubharmonicRelationDiagnostic[];
+  originalCandidateScore: number;
+  experimentalCandidateScore: number;
+  appliedPenalty: number;
+}>;
+
 export type MelodyDpStateDiagnostic = Readonly<{
   stateIndex: number;
   candidateIndex: number | null;
@@ -74,6 +92,8 @@ export type MelodyDpStateDiagnostic = Readonly<{
   predecessorBestTieCount: number;
   bestContinuationObjective: number;
   objectiveThroughState: number;
+  /** Present only for the explicit Subharmonic Ambiguity experiment. */
+  subharmonicAmbiguity?: MelodySubharmonicAmbiguityStateDiagnostic;
 }>;
 
 export type MelodyDpFrameDiagnostic = Readonly<{
@@ -94,4 +114,11 @@ export type MelodyDpDiagnostics = Readonly<{
   selectedTerminalStateIndex: number;
   selectedTotalObjective: number;
   terminalBestTieCount: number;
+  /** Absent from baseline and NO_CLIFF diagnostics. */
+  subharmonicAmbiguityExperiment?: Readonly<{
+    penalty: number;
+    relationshipToleranceCents: 50;
+    multiples: readonly [2, 3, 4];
+    eligibilityRule: 'USABLE_HIGHER_INTEGER_RELATED_CANDIDATE_COEXISTS';
+  }>;
 }>;

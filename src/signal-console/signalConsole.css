@@ -42,6 +42,19 @@
 .signal-token[data-signal-role='anchor'][data-signal-metric='tonal-center'] .signal-value { display: inline-block; inline-size: 12ch; }
 .signal-token[data-signal-role='anchor'][data-signal-metric='section'] .signal-value { display: inline-block; inline-size: 8ch; }
 .signal-token[data-signal-role='anchor'][data-signal-metric='bpm'] .signal-value { display: inline-block; inline-size: 8ch; }
+.signal-telemetry-line[data-signal-domain='pitch'] .signal-token[data-signal-metric='source'] .signal-value,
+.signal-telemetry-line[data-signal-domain='pitch'] .signal-token[data-signal-metric='melody-range-status'] .signal-value {
+  color: var(--signal-muted-text);
+  font-weight: 600;
+}
+.signal-telemetry-line[data-signal-domain='pitch'] .signal-token[data-signal-metric='source'] .signal-value {
+  display: inline-block;
+  inline-size: 18ch;
+}
+.signal-telemetry-line[data-signal-domain='pitch'] .signal-token[data-signal-metric='melody-range-status'] .signal-value {
+  display: inline-block;
+  inline-size: 22ch;
+}
 .signal-telemetry-line > strong, .signal-stream-section h3 { color: var(--signal-label); }
 .signal-metric { color: var(--signal-muted-text); }
 .signal-separator { color: var(--signal-separator); }

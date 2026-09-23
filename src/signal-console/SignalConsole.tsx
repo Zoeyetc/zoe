@@ -15,7 +15,10 @@ type SignalConsoleProps = Readonly<{
 type MelodyEvidenceVisualState = 'accepted' | 'active' | 'candidate' | 'rejected' | 'empty';
 
 function displayField(item: SignalField) {
-  if (item.label === 'PITCH HZ') return <><span className="signal-value">{item.value}</span> Hz</>;
+  if (item.label === 'PITCH HZ' || item.label === 'OBSERVED') {
+    return <><span className="signal-metric">{item.label.toLowerCase()}</span>{' '}
+      <span className="signal-value">{item.value}</span>{item.value === '—' ? '' : ' Hz'}</>;
+  }
   return <><span className="signal-metric">{item.label.toLowerCase()}</span>{' '}
     <span className="signal-value">{item.value}</span></>;
 }

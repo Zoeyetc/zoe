@@ -6,8 +6,9 @@ import type {
 } from '../melody-evidence/types';
 import type {
   MelodyCandidateScoreDiagnostic, MelodyDpDiagnostics, MelodyDpFrameDiagnostic, MelodyDpStateDiagnostic,
-  MelodyYinFrameDiagnostic,
+  MelodySubharmonicAmbiguityStateDiagnostic, MelodySubharmonicRelationDiagnostic, MelodyYinFrameDiagnostic,
 } from '../melody-evidence/dpDiagnostics.ts';
+import { hzToMidi, midiToNoteName } from '../pitch.ts';
 
 export const MELODY_ANALYSIS = {
   version: 1 as const,
@@ -69,14 +70,19 @@ type MutableDpStateDiagnostic = Omit<MelodyDpStateDiagnostic,
 };
 
 export type MelodyLocalObjectiveVariant = 'BASELINE' | 'NO_CLIFF';
+export const MELODY_SUBHARMONIC_AMBIGUITY = Object.freeze({
+  relationshipToleranceCents: 50 as const,
+  multiples: Object.freeze([2, 3, 4] as const),
+  penalties: Object.freeze([0, 0.02, 0.04, 0.06, 0.08, 0.10] as const),
+  eligibilityRule: 'USABLE_HIGHER_INTEGER_RELATED_CANDIDATE_COEXISTS' as const,
+});
+export type MelodySubharmonicAmbiguityPenalty = typeof MELODY_SUBHARMONIC_AMBIGUITY.penalties[number];
 
 const clamp01 = (value: number) => Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
-const hzToMidi = (frequency: number) => 69 + 12 * Math.log2(frequency / 440);
 const midiToHz = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
-const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
 const YIN_WINDOW = Float64Array.from({ length: MELODY_ANALYSIS.frameSize }, (_, index) =>
   0.5 - 0.5 * Math.cos(2 * Math.PI * index / (MELODY_ANALYSIS.frameSize - 1)));
-export const midiToNoteName = (midi: number) => `${NOTE_NAMES[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
+export { midiToNoteName } from '../pitch.ts';
 
 function median(values: readonly number[]) {
   if (!values.length) return 0;
@@ -406,18 +412,56 @@ function transitionTerms(previous: Candidate | null, current: Candidate | null):
 const transitionScore = (previous: Candidate | null, current: Candidate | null) =>
   transitionTerms(previous, current).total;
 
+function subharmonicAmbiguityForCandidates(candidates: readonly Candidate[], penalty: number) {
+  return candidates.map((candidate, candidateIndex): MelodySubharmonicAmbiguityStateDiagnostic => {
+    const relations: MelodySubharmonicRelationDiagnostic[] = [];
+    for (const multiple of MELODY_SUBHARMONIC_AMBIGUITY.multiples) {
+      const expectedHigherFrequency = candidate.pitchHz * multiple;
+      candidates.forEach((higher, higherCandidateIndex) => {
+        if (higherCandidateIndex === candidateIndex || higher.pitchHz <= candidate.pitchHz) return;
+        const centsDeviation = 1200 * Math.log2(higher.pitchHz / expectedHigherFrequency);
+        if (Math.abs(centsDeviation) > MELODY_SUBHARMONIC_AMBIGUITY.relationshipToleranceCents) return;
+        relations.push(Object.freeze({
+          multiple,
+          centsDeviation,
+          higherCandidateIndex,
+          higherFrequencyHz: higher.pitchHz,
+          higherOriginalScore: higher.score,
+          higherPeriodicity: higher.periodicity,
+          higherSalience: higher.salience,
+        }));
+      });
+    }
+    relations.sort((a, b) => a.multiple - b.multiple
+      || Math.abs(a.centsDeviation) - Math.abs(b.centsDeviation)
+      || a.higherCandidateIndex - b.higherCandidateIndex);
+    const eligible = relations.length > 0;
+    return Object.freeze({
+      eligible,
+      relations: Object.freeze(relations),
+      originalCandidateScore: candidate.score,
+      experimentalCandidateScore: candidate.score - (eligible ? penalty : 0),
+      appliedPenalty: eligible ? penalty : 0,
+    });
+  });
+}
+
 function choosePath(frames: readonly AnalyzedFrame[], collectDiagnostics: boolean,
-  localObjectiveVariant: MelodyLocalObjectiveVariant) {
+  localObjectiveVariant: MelodyLocalObjectiveVariant, ambiguityPenalty: number | null) {
   const layers: PathState[][] = [];
   const diagnosticLayers: MutableDpStateDiagnostic[][] | null = collectDiagnostics ? [] : null;
   for (let frameIndex = 0; frameIndex < frames.length; frameIndex += 1) {
     const frame = frames[frameIndex];
     const states = [null, ...frame.candidates];
+    const ambiguity = ambiguityPenalty === null ? null
+      : subharmonicAmbiguityForCandidates(frame.candidates, ambiguityPenalty);
     const diagnosticLayer: MutableDpStateDiagnostic[] = [];
     const layer: PathState[] = states.map((candidate, stateIndex) => {
-      const emission = candidate
-        ? candidate.score - (localObjectiveVariant === 'BASELINE'
-          && candidate.score < MELODY_ANALYSIS.voicingThreshold ? 0.22 : 0)
+      const candidateScore = candidate ? ambiguity?.[stateIndex - 1]?.experimentalCandidateScore
+        ?? candidate.score : null;
+      const emission = candidateScore !== null
+        ? candidateScore - (localObjectiveVariant === 'BASELINE'
+          && candidateScore < MELODY_ANALYSIS.voicingThreshold ? 0.22 : 0)
         : frame.rms < MELODY_ANALYSIS.minimumRms ? 0.58 : 0.18;
       if (frameIndex === 0) {
         diagnosticLayer.push({
@@ -439,6 +483,7 @@ function choosePath(frames: readonly AnalyzedFrame[], collectDiagnostics: boolea
           predecessorBestTieCount: 0,
           bestContinuationObjective: 0,
           objectiveThroughState: emission,
+          ...(candidate && ambiguity ? { subharmonicAmbiguity: ambiguity[stateIndex - 1] } : {}),
         });
         return { candidate, score: emission, previous: -1 };
       }
@@ -477,6 +522,7 @@ function choosePath(frames: readonly AnalyzedFrame[], collectDiagnostics: boolea
         predecessorBestTieCount,
         bestContinuationObjective: 0,
         objectiveThroughState: bestScore,
+        ...(candidate && ambiguity ? { subharmonicAmbiguity: ambiguity[stateIndex - 1] } : {}),
       });
       return { candidate, score: bestScore, previous };
     });
@@ -546,6 +592,12 @@ function choosePath(frames: readonly AnalyzedFrame[], collectDiagnostics: boolea
     selectedTerminalStateIndex,
     selectedTotalObjective,
     terminalBestTieCount,
+    ...(ambiguityPenalty === null ? {} : { subharmonicAmbiguityExperiment: Object.freeze({
+      penalty: ambiguityPenalty,
+      relationshipToleranceCents: MELODY_SUBHARMONIC_AMBIGUITY.relationshipToleranceCents,
+      multiples: MELODY_SUBHARMONIC_AMBIGUITY.multiples,
+      eligibilityRule: MELODY_SUBHARMONIC_AMBIGUITY.eligibilityRule,
+    }) }),
   });
   return { path, diagnostics };
 }
@@ -705,7 +757,7 @@ function metadata(): MelodyAnalysis['metadata'] {
 
 /** Deterministic local predominant-melody foundation. No actor or runtime clock state enters analysis. */
 export function analyzeMelody(input: MelodyAnalysisInput): MelodyAnalysis {
-  return runMelodyAnalysis(input, false, false, 'BASELINE').analysis;
+  return runMelodyAnalysis(input, false, false, 'BASELINE', null).analysis;
 }
 
 export type MelodyAnalysisWithEvidence = Readonly<{
@@ -714,7 +766,7 @@ export type MelodyAnalysisWithEvidence = Readonly<{
 }>;
 
 export function analyzeMelodyWithEvidence(input: MelodyAnalysisInput): MelodyAnalysisWithEvidence {
-  const result = runMelodyAnalysis(input, true, false, 'BASELINE');
+  const result = runMelodyAnalysis(input, true, false, 'BASELINE', null);
   return { analysis: result.analysis, evidence: result.evidence! };
 }
 
@@ -724,22 +776,33 @@ export type MelodyAnalysisWithDpDiagnostics = MelodyAnalysisWithEvidence & Reado
 
 /** Explicit diagnostic path. Normal analysis and retained evidence do not allocate DP decomposition storage. */
 export function analyzeMelodyWithDpDiagnostics(input: MelodyAnalysisInput): MelodyAnalysisWithDpDiagnostics {
-  const result = runMelodyAnalysis(input, true, true, 'BASELINE');
+  const result = runMelodyAnalysis(input, true, true, 'BASELINE', null);
   return { analysis: result.analysis, evidence: result.evidence!, dpDiagnostics: result.dpDiagnostics! };
 }
 
 /** Explicit A/B experiment. The production entry points never select this local objective. */
 export function analyzeMelodyWithNoCliffExperiment(input: MelodyAnalysisInput): MelodyAnalysisWithDpDiagnostics {
-  const result = runMelodyAnalysis(input, true, true, 'NO_CLIFF');
+  const result = runMelodyAnalysis(input, true, true, 'NO_CLIFF', null);
+  return { analysis: result.analysis, evidence: result.evidence!, dpDiagnostics: result.dpDiagnostics! };
+}
+
+/** Isolated A/B entry point. Raw candidates and production entry points remain baseline. */
+export function analyzeMelodyWithSubharmonicAmbiguityExperiment(input: MelodyAnalysisInput,
+  options: Readonly<{ penalty: MelodySubharmonicAmbiguityPenalty }>): MelodyAnalysisWithDpDiagnostics {
+  if (!MELODY_SUBHARMONIC_AMBIGUITY.penalties.includes(options.penalty)) {
+    throw new RangeError('penalty must be one of the fixed Subharmonic Ambiguity sweep values');
+  }
+  const result = runMelodyAnalysis(input, true, true, 'BASELINE', options.penalty);
   return { analysis: result.analysis, evidence: result.evidence!, dpDiagnostics: result.dpDiagnostics! };
 }
 
 function runMelodyAnalysis(input: MelodyAnalysisInput, collectEvidence: boolean,
-  collectDpDiagnostics: boolean, localObjectiveVariant: MelodyLocalObjectiveVariant) {
+  collectDpDiagnostics: boolean, localObjectiveVariant: MelodyLocalObjectiveVariant,
+  ambiguityPenalty: MelodySubharmonicAmbiguityPenalty | null) {
   const signal = resampleForAnalysis(input.mono, input.sampleRate);
   const duration = input.mono.length / input.sampleRate;
   const frames = candidateFrames(signal, collectDpDiagnostics);
-  const pathResult = choosePath(frames, collectDpDiagnostics, localObjectiveVariant);
+  const pathResult = choosePath(frames, collectDpDiagnostics, localObjectiveVariant, ambiguityPenalty);
   const path = pathResult.path;
   const contourResult = contourFromPath(frames, path);
   const contour = [...contourResult.contour];

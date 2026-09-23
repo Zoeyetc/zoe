@@ -3,9 +3,10 @@ import { decodeNormalizedEvidence, MELODY_CANDIDATE_SEARCH_MODE_CODE, MELODY_EVI
   readCompactMelodyEvidenceStorage } from './compactTimeline.ts';
 import type {
   MelodyCandidateGenerationOutcome, MelodyCandidateSearchMode, MelodyEvidenceObservation,
-  MelodyEvidenceTimeline, MelodyFrameDecisionReason,
+  MelodyEvidenceTimeline, MelodyFrameDecisionReason, ObservedPitchEvidence,
 } from './types';
 import type { TransportState } from '../types';
+import { hzToMidi, midiToNoteName } from '../pitch.ts';
 
 const REASON_BY_CODE = Object.fromEntries(Object.entries(MELODY_EVIDENCE_REASON_CODE)
   .map(([reason, code]) => [code, reason])) as Record<number, MelodyFrameDecisionReason>;
@@ -13,8 +14,47 @@ const GENERATION_OUTCOME_BY_CODE = Object.fromEntries(Object.entries(MELODY_GENE
   .map(([outcome, code]) => [code, outcome])) as Record<number, MelodyCandidateGenerationOutcome>;
 const SEARCH_MODE_BY_CODE = Object.fromEntries(Object.entries(MELODY_CANDIDATE_SEARCH_MODE_CODE)
   .map(([mode, code]) => [code, mode])) as Record<number, MelodyCandidateSearchMode>;
-const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
-const midiToNoteName = (midi: number) => `${NOTE_NAMES[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
+
+const NO_OBSERVED_PITCH: ObservedPitchEvidence = Object.freeze({
+  frequencyHz: null,
+  midi: null,
+  noteName: null,
+  score: null,
+  source: 'NONE',
+  melodyRangeStatus: 'UNAVAILABLE',
+  rangeReason: null,
+});
+
+/** Selects raw pitch evidence before path, frame-confidence, note, or track interpretation.
+ * Candidate and rejected arrays are both score-descending and retain their strongest item. */
+export function selectObservedPitchEvidence(evidence: Pick<MelodyEvidenceObservation,
+  'candidates' | 'rejectedCandidates'>): ObservedPitchEvidence {
+  const usable = evidence.candidates[0];
+  const rejected = evidence.rejectedCandidates[0];
+  if (!usable && !rejected) return NO_OBSERVED_PITCH;
+  if (!rejected || (usable && usable.score >= rejected.score)) {
+    return Object.freeze({
+      frequencyHz: usable!.pitchHz,
+      midi: usable!.midiFloat,
+      noteName: usable!.noteName,
+      score: usable!.score,
+      source: 'USABLE_CANDIDATE',
+      melodyRangeStatus: 'IN_RANGE',
+      rangeReason: null,
+    });
+  }
+  const midi = hzToMidi(rejected.frequencyHz);
+  return Object.freeze({
+    frequencyHz: rejected.frequencyHz,
+    midi,
+    noteName: midiToNoteName(Math.round(midi)),
+    score: rejected.score,
+    source: 'RANGE_REJECTED',
+    melodyRangeStatus: rejected.reason === 'BELOW_PITCH_RANGE'
+      ? 'BELOW_MELODY_RANGE' : 'ABOVE_MELODY_RANGE',
+    rangeReason: rejected.reason,
+  });
+}
 
 export function melodyEvidenceIndexAt(timeline: MelodyEvidenceTimeline, time: number, ended = false) {
   if (!timeline.frameCount) return -1;
@@ -65,6 +105,7 @@ export function selectMelodyEvidence(
         ? 'BELOW_PITCH_RANGE' as const : 'ABOVE_PITCH_RANGE' as const,
     });
   }));
+  const observedPitch = selectObservedPitchEvidence({ candidates, rejectedCandidates });
   const finalPitchHz = storage.finalPitchHz[frameIndex];
   const derivedFinalMidi = Number.isFinite(finalPitchHz) ? 69 + 12 * Math.log2(finalPitchHz / 440) : null;
   const reason = REASON_BY_CODE[storage.reasonCodes[frameIndex]];
@@ -86,6 +127,7 @@ export function selectMelodyEvidence(
     }),
     outOfRangeCandidateCount: storage.outOfRangeCandidateCounts[frameIndex],
     rejectedCandidates,
+    observedPitch,
     selectedCandidateIndex: selectedCandidateIndex < 0 ? null : selectedCandidateIndex,
     selectedPitchHz: selected?.pitchHz ?? null,
     selectedMidiFloat: selected?.midiFloat ?? null,
