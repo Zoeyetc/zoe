@@ -128,7 +128,7 @@ test('continuous slide keeps contour without chromatic note chatter', () => {
   assert.ok(result.notes.length <= 4);
 });
 
-test('real AudioMap drives existing AudioWorld timeline and Carousel boundary', () => {
+test('real AudioMap preserves absolute melody at Carousel boundary when tonal context is unavailable', () => {
   const signal = concat(tone(261.6256, 0.65), tone(329.6276, 0.65), tone(391.9954, 0.65));
   const map = analyzePcmAudio({ sampleRate: SAMPLE_RATE, channels: [signal] }, source);
   assert.equal(map.capabilities.melody, true);
@@ -151,7 +151,9 @@ test('real AudioMap drives existing AudioWorld timeline and Carousel boundary', 
   carousel.accept(toCarouselInput(first), 0);
   assert.equal(carousel.read().activeMidi, 60);
   assert.equal(carousel.read().activeNoteName, 'C4');
-  assert.equal(carousel.read().riders.filter(rider => rider.active).length, 1);
+  assert.equal(carousel.read().riders.filter(rider => rider.active).length, 0);
+  assert.equal(carousel.read().chromaticMarker.visible, true);
+  assert.equal(carousel.read().chromaticMarker.noteName, 'C4');
 
   const crossed = world.read({ time: map.melody![1].start + 0.02, duration: map.duration, playing: true });
   assert.deepEqual(crossed.events.filter(event => event.type === 'note-off' || event.type === 'note-on')

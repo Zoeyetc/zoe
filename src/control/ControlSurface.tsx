@@ -45,6 +45,9 @@ export function ControlSurface({ transport, melody, rhythm, percussion, percussi
       {preparation.analysisState === 'ready' && <span data-melody-status>Melody: {melody.available
         ? `ready · ${melody.noteName ?? 'rest'} · confidence ${melody.confidence.toFixed(2)}`
         : 'unavailable'}</span>}
+      {preparation.analysisState === 'ready' && <span data-degree-status>Melody Degree: {melody.scaleDegree.available
+        ? `${melody.scaleDegree.displayDegree ?? melody.scaleDegree.degree} · confidence ${melody.scaleDegree.confidence.toFixed(2)}`
+        : melody.active ? 'unavailable · absolute note retained' : 'unavailable'}</span>}
       {preparation.analysisState === 'ready' && <span data-harmony-status>Harmony: {harmony.available
         ? `ready · ${harmony.chord ?? 'no chord'} · confidence ${harmony.confidence.toFixed(2)}`
         : 'unavailable'}</span>}

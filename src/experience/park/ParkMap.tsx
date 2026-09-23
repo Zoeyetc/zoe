@@ -15,6 +15,7 @@ import type { AttentionActorId, AttentionRole, AttentionState } from '../attenti
 import {
   PARK_ACTOR_ANCHORS, PARK_BUMPER_CARS_BOUNDS, PARK_CONTENT_BOUNDS,
   PARK_DISTRICT_CONTOURS, PARK_DROP_TOWER_RENDERER, PARK_FREE_BODY_QUIET_ZONES, PARK_GATE_BOUNDS, PARK_PATHS,
+  PARK_FREE_BODY_PRESENTATION,
   PARK_PIRATE_SHIP_RENDERER,
   PARK_FOCUS_BOUNDS, PARK_OVERVIEW_VIEWPORT, focusViewport,
   PARK_ROLLER_COASTER_BOUNDS, PARK_VIEWBOX,
@@ -128,6 +129,11 @@ function ParkBumperCars({ state, role, focused }: {
 
 function ParkFreeBodies({ state }: { state: ExperienceState['freeBodies'] }) {
   return <g data-park-actor="free-bodies" data-spatial-role="global-atmosphere"
+    style={{
+      '--park-free-body-opacity': PARK_FREE_BODY_PRESENTATION.opacity,
+      '--park-free-body-selected-opacity': PARK_FREE_BODY_PRESENTATION.selectedOpacity,
+      '--park-free-body-quiet-opacity': PARK_FREE_BODY_PRESENTATION.quietOpacity,
+    } as CSSProperties}
     aria-label={`${state.bodies.length} Free Bodies`}>
     {state.bodies.map(body => {
       const point = worldToPark(body.position);
@@ -136,7 +142,8 @@ function ParkFreeBodies({ state }: { state: ExperienceState['freeBodies'] }) {
         data-free-body-id={body.id} data-world-x={body.position.x} data-world-y={body.position.y}
         data-density={quiet ? 'quiet' : 'open'}
         transform={`translate(${point.x} ${point.y})`}>
-        <DoodleCircle cx={0} cy={0} r={Math.max(quiet ? 2.5 : 4, body.radius * (quiet ? 150 : 280))}
+        <DoodleCircle cx={0} cy={0} r={Math.min(PARK_FREE_BODY_PRESENTATION.maximumRadius,
+          Math.max(quiet ? 2.5 : 4, body.radius * (quiet ? 150 : 280)))}
           seed={`free-body-${body.id}`} roughness={quiet ? 0.28 : 0.55} secondary={body.id === state.selectedBodyId} />
         {body.id === state.selectedBodyId && <line x1="0" y1="0"
           x2={body.velocity.x * 150} y2={body.velocity.y * 150} />}
@@ -202,18 +209,18 @@ export function ParkMap({
         </g>
         {PARK_PATHS.map((d, index) => <DoodlePath key={index} className="park-path" d={d}
           seed={`park-path-${index}`} roughness={1.25} />)}
+        <ParkFreeBodies state={state.freeBodies} />
         <ParkRollerCoaster state={state.rollerCoaster} trackMap={state.rollerCoasterTrackMap} role={attention.roles.rollerCoaster}
           focused={attention.focusActorId === 'rollerCoaster'} />
         <ParkBumperCars state={state.bumperCars} role={attention.roles.bumperCars}
           focused={attention.focusActorId === 'bumperCars'} />
-        <ParkFreeBodies state={state.freeBodies} />
         <g className="park-annotations" aria-hidden="true">
           <DoodlePolyline className="park-annotation-line" seed="annotation-carousel" roughness={1.2}
             points={[{ x: 250, y: 91 }, { x: 279, y: 75 }, { x: 322, y: 78 }]} />
           <text x="326" y="81">ROTATION / NOTE LIFT</text>
           <DoodlePolyline className="park-annotation-line" seed="annotation-ferris" roughness={1.2}
-            points={[{ x: 827, y: 78 }, { x: 862, y: 61 }, { x: 904, y: 64 }]} />
-          <text x="908" y="67">12 SUSPENDED CARRIERS</text>
+            points={[{ x: 827, y: 78 }, { x: 855, y: 61 }, { x: 900, y: 64 }]} />
+          <text x="970" y="67" textAnchor="end">12 SUSPENDED CARRIERS</text>
           <DoodlePolyline className="park-annotation-line" seed="annotation-drop" roughness={1.35}
             points={[{ x: 116, y: 98 }, { x: 86, y: 82 }, { x: 48, y: 88 }]} />
           <text x="34" y="80">LIFT / HOLD / RELEASE</text>

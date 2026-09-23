@@ -1,5 +1,5 @@
 import type {
-  PhysicsDebugState, PhysicsImpact, PhysicsReceiverRegistration, PhysicsWake, PhysicsWakeReception, WorldPoint,
+  PhysicsDebugState, PhysicsImpact, PhysicsPulse, PhysicsPulseReception, PhysicsReceiverRegistration, PhysicsWake, PhysicsWakeReception, WorldPoint,
 } from './types';
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
@@ -15,6 +15,9 @@ export function createPhysicsWorld() {
   const wakes = new Map<string, PhysicsWake>();
   let latestWake: PhysicsWake | null = null;
   let latestWakeReception: PhysicsWakeReception | null = null;
+  let pulseCount = 0;
+  let latestPulse: PhysicsPulse | null = null;
+  let latestPulseReception: PhysicsPulseReception | null = null;
 
   const normalize = (point: WorldPoint): WorldPoint => {
     const length = Math.hypot(point.x, point.y);
@@ -26,6 +29,7 @@ export function createPhysicsWorld() {
     registeredSources: sources.size, registeredReceivers: receivers.size,
     impactCount, latestImpact, latestReceiverDistance,
     activeWakeCount: wakes.size, latestWake, latestWakeReception,
+    pulseCount, latestPulse, latestPulseReception,
   });
   return {
     read,
@@ -120,6 +124,41 @@ export function createPhysicsWorld() {
         if (falloff > 0 && boundedDt > 0) receiver.receiveWake?.(bounded, reception, boundedDt);
       }
     },
+    updatePulse(pulse: PhysicsPulse, dt: number) {
+      if (!sources.has(pulse.sourceId)) throw new Error(`Unknown physics source: ${pulse.sourceId}`);
+      const bounded: PhysicsPulse = {
+        ...pulse,
+        position: { x: clamp01(pulse.position.x), y: clamp01(pulse.position.y) },
+        strength: clamp01(pulse.strength),
+        radius: Math.max(0, pulse.radius),
+        active: pulse.active && pulse.strength > 0 && pulse.radius > 0,
+      };
+      latestPulse = bounded;
+      latestPulseReception = null;
+      if (!bounded.active) return;
+      pulseCount += 1;
+      const boundedDt = Math.min(0.1, Math.max(0, dt));
+      for (const receiver of receivers.values()) {
+        const delta = {
+          x: receiver.position.x - bounded.position.x,
+          y: receiver.position.y - bounded.position.y,
+        };
+        const distance = Math.hypot(delta.x, delta.y);
+        const falloff = distance <= bounded.radius ? Math.pow(clamp01(1 - distance / bounded.radius), 1.5) : 0;
+        const direction = distance > 1e-9 ? { x: delta.x / distance, y: delta.y / distance } : { x: 0, y: -1 };
+        const reception: PhysicsPulseReception = {
+          receiverId: receiver.id,
+          sourceId: bounded.sourceId,
+          distance,
+          falloff,
+          force: { x: direction.x * bounded.strength * falloff, y: direction.y * bounded.strength * falloff },
+        };
+        if (latestPulseReception === null || reception.distance < latestPulseReception.distance) {
+          latestPulseReception = reception;
+        }
+        if (falloff > 0 && boundedDt > 0) receiver.receivePulse?.(bounded, reception, boundedDt);
+      }
+    },
     removeWake(sourceId: string) {
       wakes.delete(sourceId);
       if (latestWake?.sourceId === sourceId) {
@@ -135,6 +174,9 @@ export function createPhysicsWorld() {
       wakes.clear();
       latestWake = null;
       latestWakeReception = null;
+      pulseCount = 0;
+      latestPulse = null;
+      latestPulseReception = null;
     },
   };
 }

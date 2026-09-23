@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { milestoneOneAudioMap, milestoneTwoAudioMap, milestoneTwoBAudioMap, unavailableMelodyAudioMap } from '../src/audio/AudioMap.ts';
 import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
+import { emptyScaleDegree } from '../src/audio/ScaleDegree.ts';
 import type { TransportState } from '../src/audio/types.ts';
 
 const transport = (time: number, playing = true): TransportState => ({ time, duration: 12, playing });
@@ -10,8 +11,9 @@ test('snapshot lookup is deterministic and handles unavailable melody', () => {
   assert.deepEqual(lookupSnapshot(milestoneOneAudioMap, transport(1.5)), lookupSnapshot(milestoneOneAudioMap, transport(1.5)));
   assert.equal(lookupSnapshot(milestoneOneAudioMap, transport(1.5)).melody.activeNote?.midi, 60);
   assert.deepEqual(lookupSnapshot(unavailableMelodyAudioMap, transport(1.5)).melody, {
-    available: false, active: false, activeNote: null, noteProgress: 0,
+    available: false, active: false, source: 'unavailable', activeNote: null, noteProgress: 0,
     midi: null, pitchHz: null, noteName: null, intensity: 0, confidence: 0,
+    scaleDegree: emptyScaleDegree(),
   });
 });
 

@@ -6,6 +6,7 @@ import { createAnchoredReceiver } from '../src/physics/AnchoredReceiver.ts';
 import { createPhysicsWorld } from '../src/physics/PhysicsWorld.ts';
 import { bumperArenaPointToWorld, bumperCollisionToWorldImpact } from '../src/physics/adapters/bumperCars.ts';
 import type { PhysicsImpact } from '../src/physics/types.ts';
+import type { PhysicsPulse } from '../src/physics/types.ts';
 import type { BumperCarsInput } from '../src/rides/bumper-cars/adapter.ts';
 import { toBumperCarsInput } from '../src/rides/bumper-cars/adapter.ts';
 import {
@@ -134,6 +135,21 @@ test('near receiver responds more strongly than a distant receiver', () => {
   const nearSpeed = Math.hypot(near.read().velocity.x, near.read().velocity.y);
   const farSpeed = Math.hypot(far.read().velocity.x, far.read().velocity.y);
   assert.ok(nearSpeed > farSpeed);
+});
+
+test('Park Pulse reaches receivers only through PhysicsWorld pulse delivery', () => {
+  const world = createPhysicsWorld();
+  const receiver = createAnchoredReceiver({ position: { x: 0.6, y: 0.5 } });
+  world.registerSource('park-pulse');
+  world.registerReceiver(receiver.registration);
+  const pulse: PhysicsPulse = {
+    sourceId: 'park-pulse', sourceType: 'pulse', position: { x: 0.5, y: 0.5 },
+    strength: 0.03, radius: 0.8, timestamp: 1, active: true,
+  };
+  world.updatePulse(pulse, 0.1);
+  assert.equal(world.read().latestPulse?.sourceId, 'park-pulse');
+  assert.equal(receiver.read().latestPulseSource, 'park-pulse');
+  assert.ok(Math.hypot(receiver.read().latestPulseForce.x, receiver.read().latestPulseForce.y) > 0);
 });
 
 test('receiver exposes the actual delivered impact and impulse for debugging', () => {

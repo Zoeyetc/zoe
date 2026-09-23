@@ -1,4 +1,4 @@
-import type { PhysicsImpact, PhysicsReceiverRegistration, PhysicsWake, PhysicsWakeReception, WorldPoint } from '../physics/types';
+import type { PhysicsImpact, PhysicsPulse, PhysicsPulseReception, PhysicsReceiverRegistration, PhysicsWake, PhysicsWakeReception, WorldPoint } from '../physics/types';
 import type { FreeBodiesInput } from './adapter';
 
 export const FREE_BODIES_SEED = 7301;
@@ -17,6 +17,7 @@ export type FreeBodyState = Readonly<{
   combinedForce: WorldPoint;
   latestImpactImpulse: WorldPoint;
   latestWakeSource: string | null;
+  latestPulseSource: string | null;
   active: boolean;
   sleeping: boolean;
 }>;
@@ -51,9 +52,11 @@ type MutableBody = {
   physicsForce: { x: number; y: number };
   combinedForce: { x: number; y: number };
   pendingWakeForce: { x: number; y: number };
+  pendingPulseForce: { x: number; y: number };
   pendingImpactImpulse: { x: number; y: number };
   latestImpactImpulse: { x: number; y: number };
   latestWakeSource: string | null;
+  latestPulseSource: string | null;
   sleeping: boolean;
 };
 
@@ -98,8 +101,8 @@ function createInitialBodies(seed: number, count: number, supplied?: readonly In
       frequencyX: 0.55 + random() * 0.42,
       frequencyY: 0.48 + random() * 0.38,
       atmosphericForce: zero(), physicsForce: zero(), combinedForce: zero(),
-      pendingWakeForce: zero(), pendingImpactImpulse: zero(), latestImpactImpulse: zero(),
-      latestWakeSource: null,
+      pendingWakeForce: zero(), pendingPulseForce: zero(), pendingImpactImpulse: zero(), latestImpactImpulse: zero(),
+      latestWakeSource: null, latestPulseSource: null,
       sleeping: false,
     };
   });
@@ -141,6 +144,13 @@ export function createFreeBodiesSimulation(options: FreeBodiesOptions = {}) {
       body.latestWakeSource = wake.sourceId;
       if (reception.falloff > 0) body.sleeping = false;
     },
+    receivePulse(pulse: PhysicsPulse, reception: PhysicsPulseReception) {
+      const scale = (reducedMotion ? 0.05 : 0.26) / body.mass;
+      body.pendingPulseForce.x += reception.force.x * scale;
+      body.pendingPulseForce.y += reception.force.y * scale;
+      body.latestPulseSource = pulse.sourceId;
+      if (reception.falloff > 0) body.sleeping = false;
+    },
   }));
 
   const reset = () => {
@@ -164,7 +174,10 @@ export function createFreeBodiesSimulation(options: FreeBodiesOptions = {}) {
     if (body.position.x > 1 - margin) containment.x -= (body.position.x - (1 - margin)) * stiffness;
     if (body.position.y < margin) containment.y += (margin - body.position.y) * stiffness;
     if (body.position.y > 1 - margin) containment.y -= (body.position.y - (1 - margin)) * stiffness;
-    const physicsForce = { ...body.pendingWakeForce };
+    const physicsForce = {
+      x: body.pendingWakeForce.x + body.pendingPulseForce.x,
+      y: body.pendingWakeForce.y + body.pendingPulseForce.y,
+    };
     const combinedForce = {
       x: atmosphericForce.x + physicsForce.x + containment.x - body.velocity.x * body.drag,
       y: atmosphericForce.y + physicsForce.y + containment.y - body.velocity.y * body.drag,
@@ -203,6 +216,7 @@ export function createFreeBodiesSimulation(options: FreeBodiesOptions = {}) {
       atmosphericForce: { ...body.atmosphericForce }, physicsForce: { ...body.physicsForce },
       combinedForce: { ...body.combinedForce }, latestImpactImpulse: { ...body.latestImpactImpulse },
       latestWakeSource: body.latestWakeSource,
+      latestPulseSource: body.latestPulseSource,
       active: !body.sleeping, sleeping: body.sleeping,
     }));
     const speeds = states.map(body => magnitude(body.velocity));
@@ -235,6 +249,7 @@ export function createFreeBodiesSimulation(options: FreeBodiesOptions = {}) {
       }
       for (const body of bodies) {
         body.pendingWakeForce = zero();
+        body.pendingPulseForce = zero();
         body.pendingImpactImpulse = zero();
       }
     },

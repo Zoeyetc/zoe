@@ -184,12 +184,27 @@ becomes available only after at least 0.5 seconds of usable evidence, a minimum
 voiced ratio, and track confidence of `0.58`. Silence, noise, brief pitched
 fragments, and low-confidence candidates remain unavailable.
 
-Real notes use the existing AudioWorld timeline and existing Carousel adapter.
-The Carousel's eight media-neutral carriers remain mechanical voice slots;
-their number is not a pitch alphabet. The active carrier now displays the exact
-AudioWorld note name/MIDI, while its vertical expression uses the reliable
-per-song analyzed MIDI range. This preserves exact identity without pretending
-that `midi % 8` is an absolute-note mapping.
+Milestone 9H derives scale-degree evidence in AudioWorld from the current
+absolute melody note and validated tonal-center segment. The Carousel's eight
+media-neutral carriers now have fixed identities: degrees 1–7 plus the next
+octave tonic. Major and natural-minor mappings preserve exact note name, MIDI,
+pitch, timing, confidence, and source provenance. A stable segment reference
+tonic near the melody's lower quartile distinguishes carrier 1 from carrier 8.
+Chromatic, low-confidence, out-of-range, and no-key notes never use a nearest
+carrier or modulo fallback; they retain absolute identity in a separate precise
+marker. FerrisWheel represents the tonal world, while Carousel represents the
+melody's position inside it.
+
+Milestone 9H.1 adds one shared `ParkPulse` interpreter. It reads only the
+AudioWorld rhythm snapshot, publishes a bounded low-energy `park-pulse` source
+through PhysicsWorld, and reaches the existing anchored-content and Free Bodies
+receivers there. Pause stops new rhythmic pulse generation; seek resolves the
+current beat phase without replaying pulse history. Actors never subscribe to
+ParkPulse directly. Carousel retains immediate note and scale-degree truth while
+a presentation-only 150 ms attack / 450 ms release changes secondary mechanical
+presence. When melody is unavailable its evidence remains resting while the
+mechanism may keep a neutral idle rotation. Free Bodies keep the same physics
+state and use only a lower Park Map presentation ceiling.
 
 Known foundation limits include dense polyphonic masking, breathy or noisy
 vocals, accompaniment with comparable salience, residual octave ambiguity,

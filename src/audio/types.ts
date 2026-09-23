@@ -7,6 +7,8 @@ export type TransportState = Readonly<{
 export type MusicalDomain = 'melody' | 'rhythm' | 'percussion' | 'harmony' | 'tonalCenter' | 'structure' | 'spectrum';
 export type MusicalCapabilities = Readonly<Record<MusicalDomain, boolean>>;
 
+export type MelodySource = 'midi' | 'isolated-stem' | 'predominant-analysis' | 'authored' | 'unavailable';
+
 export type MelodyNote = Readonly<{
   id: string;
   start: number; // seconds, inclusive
@@ -16,6 +18,26 @@ export type MelodyNote = Readonly<{
   noteName?: string;
   intensity: number; // 0..1
   confidence?: number; // 0..1; authored notes may omit analysis confidence
+  source?: MelodySource;
+}>;
+
+export type ScaleDegree = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+
+/** Derived tonal relation. Absolute note fields remain the authoritative evidence. */
+export type ScaleDegreeEvidence = Readonly<{
+  available: boolean;
+  inScale: boolean;
+  degree: ScaleDegree | null;
+  displayDegree: string | null;
+  tonicPitchClass: number | null;
+  mode: TonalMode | null;
+  absoluteMidi: number | null;
+  absoluteNoteName: string | null;
+  relativeSemitones: number | null;
+  referenceTonicMidi: number | null;
+  octaveRelation: number | null;
+  chromaticOffset: number | null;
+  confidence: number;
 }>;
 
 export type MelodyPitchFrame = Readonly<{
@@ -446,6 +468,7 @@ export type AudioSnapshot = Readonly<{
   melody: Readonly<{
     available: boolean;
     active: boolean;
+    source: MelodySource;
     activeNote: MelodyNote | null;
     noteProgress: number;
     midi: number | null;
@@ -453,6 +476,7 @@ export type AudioSnapshot = Readonly<{
     noteName: string | null;
     intensity: number;
     confidence: number;
+    scaleDegree: ScaleDegreeEvidence;
   }>;
   percussion: Readonly<{
     available: boolean;
@@ -491,6 +515,7 @@ export type AudioSnapshot = Readonly<{
     segmentProgress: number;
     circleOfFifthsIndex: number | null;
     distanceFromPrevious: number | null;
+    segmentId: string | null;
   }>;
   structure: Readonly<{
     source: 'authored' | 'analysis' | null;

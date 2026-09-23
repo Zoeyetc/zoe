@@ -1091,12 +1091,7 @@ local melodic motion
 note expression
 ```
 
-Current implementation may still contain transitional modulo-based 8-slot
-allocation.
-
-This is not the final representation.
-
-Final target:
+The canonical representation is:
 
 ```text
 8 carriers
@@ -1139,7 +1134,10 @@ local melodic evidence
 
 Do not make whole-carousel motion chase fast note changes.
 
-If tonal context is unavailable, do not fabricate scale degree.
+If tonal context is unavailable or insufficiently confident, do not fabricate scale degree.
+Chromatic notes preserve absolute identity in a separate marker and never round
+to the nearest diatonic degree. AudioWorld owns the derived degree evidence;
+Carousel owns the explicit degree-to-carrier interpretation.
 
 ---
 
@@ -2705,3 +2703,29 @@ Musically Resting ≠ Physically Inactive
 Arrangement evidence remains analysis-only. It does not emit section changes,
 retune Structural Attention, activate DropTower, create RollerCoaster phrase
 evidence, or alter actor simulation and PhysicsWorld state.
+
+---
+
+## 64. Milestone 9H.1 park liveness
+
+Shared rhythmic liveness follows one causal route:
+
+```text
+AudioWorld rhythm snapshot
+→ ParkPulse interpretation
+→ PhysicsWorld pulse source
+→ registered receivers
+```
+
+`ParkPulse` does not assign ride animation and actors do not subscribe to it.
+The initial receivers are Anchored Content and Free Bodies. The source is broad,
+low-energy, bounded, and separately observable from collision impacts and the
+RollerCoaster wake. Pause stops new rhythmic pulse generation. Seek resolves the
+current phase without replaying beat history.
+
+Musical truth remains immediate. Carousel may smooth only secondary presentation
+presence with a 150 ms attack and 450 ms release. Missing melody keeps Carousel
+musically resting while neutral mechanical idle may continue. Missing harmony,
+tonal center, percussion, structure, or phrase evidence never fabricates those
+domains. Free Bodies retain canonical physics and use a lower renderer-only
+visual ceiling in the Park overview.

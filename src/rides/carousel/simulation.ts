@@ -2,6 +2,7 @@ import type { CarouselInput } from './adapter';
 
 export type CarouselRiderState = Readonly<{
   index: number;
+  degree: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
   position: number;
   velocity: number;
   target: number;
@@ -18,9 +19,16 @@ export type CarouselState = Readonly<{
   activeMidi: number | null;
   activeNoteName: string | null;
   activeRider: number | null;
+  activeDegree: number | null;
+  displayDegree: string | null;
+  chromaticMarker: Readonly<{ visible: boolean; noteName: string | null; midi: number | null; offset: number | null }>;
   noteProgress: number;
   riders: readonly CarouselRiderState[];
   lastEvent: string | null;
+  presentationEnvelope: number;
+  presentationActive: boolean;
+  mechanicalIdleActive: boolean;
+  movementSource: 'melody-evidence' | 'mechanical-idle' | 'settling' | 'none';
 }>;
 
 export type CarouselSimulationOptions = Readonly<{
@@ -34,6 +42,8 @@ const BASE_ACCELERATION = 2.8;
 const BASE_DRAG = 2.4;
 const RIDER_SPRING = 42;
 const RIDER_DAMPING = 10;
+export const CAROUSEL_PRESENTATION_ATTACK_SECONDS = 0.15;
+export const CAROUSEL_PRESENTATION_RELEASE_SECONDS = 0.45;
 const DEFAULT_PITCH_RANGE = { min: 60, max: 69 } as const;
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
 const noteNameForMidi = (midi: number) => `${NOTE_NAMES[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
@@ -47,8 +57,14 @@ const describeEvent = (event: CarouselInput['events'][number]) =>
 
 const createRiders = (): CarouselRiderState[] => Array.from(
   { length: RIDER_COUNT },
-  (_, index) => ({ index, position: 0, velocity: 0, target: 0, active: false }),
+  (_, index) => ({ index, degree: (index + 1) as CarouselRiderState['degree'], position: 0, velocity: 0, target: 0, active: false }),
 );
+
+const stepPresentation = (current: number, target: number, dt: number) => {
+  if (dt <= 0) return current;
+  const seconds = target > current ? CAROUSEL_PRESENTATION_ATTACK_SECONDS : CAROUSEL_PRESENTATION_RELEASE_SECONDS;
+  return current + (target - current) * (1 - Math.exp(-dt / seconds));
+};
 
 function pitchTarget(midi: number, intensity: number, min: number, max: number) {
   const normalizedPitch = max === min ? 0.5 : clamp01((midi - min) / (max - min));
@@ -84,8 +100,10 @@ export function createCarouselSimulation(options: CarouselSimulationOptions = {}
   let state: CarouselState = {
     status: 'milestone-one-b', mode: 'resting', awake: false, reducedMotion,
     baseAngle: 0, baseAngularVelocity: 0,
-    activeMidi: null, activeNoteName: null, activeRider: null, noteProgress: 0,
+    activeMidi: null, activeNoteName: null, activeRider: null, activeDegree: null, displayDegree: null,
+    chromaticMarker: { visible: false, noteName: null, midi: null, offset: null }, noteProgress: 0,
     riders: createRiders(), lastEvent: null,
+    presentationEnvelope: 0, presentationActive: false, mechanicalIdleActive: false, movementSource: 'none',
   };
 
   return {
@@ -98,16 +116,9 @@ export function createCarouselSimulation(options: CarouselSimulationOptions = {}
       const seek = input.events.some(event => event.type === 'seek');
       const latestEvent = input.events.at(-1) ?? null;
 
-      if (!input.melodyAvailable) {
-        state = { ...state, mode: 'resting', awake: false,
-          baseAngularVelocity: 0, activeMidi: null, activeNoteName: null, activeRider: null,
-          noteProgress: 0, riders: createRiders(),
-          lastEvent: latestEvent?.type ?? state.lastEvent };
-        return;
-      }
-
-      const note = input.activeNote;
-      const activeRider = note ? note.midi % RIDER_COUNT : null;
+      const note = input.melodyAvailable ? input.activeNote : null;
+      const degree = note && input.scaleDegree.available ? input.scaleDegree.degree : null;
+      const activeRider = degree === null ? null : degree - 1;
       const requestedTarget = note
         ? pitchTarget(note.midi, note.intensity, pitchRange.min, pitchRange.max)
         : 0;
@@ -127,19 +138,35 @@ export function createCarouselSimulation(options: CarouselSimulationOptions = {}
       const riderMoving = riders.some(rider => Math.abs(rider.velocity) > 0.01 || rider.position > 0.01);
       const baseMoving = base.velocity > 0.01;
       const musicallyActive = note !== null && input.transportPlaying;
+      const fallbackVisible = note !== null && degree === null;
+      const presentationEnvelope = seek
+        ? (musicallyActive ? 1 : 0)
+        : stepPresentation(state.presentationEnvelope, musicallyActive ? 1 : 0, boundedDt);
+      const mechanicalIdleActive = input.transportPlaying && !musicallyActive;
+      const movementSource = musicallyActive ? 'melody-evidence'
+        : mechanicalIdleActive ? 'mechanical-idle'
+          : baseMoving || riderMoving ? 'settling' : 'none';
 
       state = {
         ...state,
-        mode: musicallyActive ? 'active' : baseMoving || riderMoving ? 'settling' : 'resting',
+        mode: musicallyActive ? 'active' : input.melodyAvailable && (baseMoving || riderMoving) ? 'settling' : 'resting',
         awake: musicallyActive || baseMoving || riderMoving,
         baseAngle: seek ? state.baseAngle : base.angle,
         baseAngularVelocity: base.velocity,
         activeMidi: note?.midi ?? null,
         activeNoteName: note ? note.noteName ?? noteNameForMidi(note.midi) : null,
         activeRider,
+        activeDegree: degree,
+        displayDegree: input.scaleDegree.displayDegree,
+        chromaticMarker: { visible: fallbackVisible, noteName: note ? note.noteName ?? noteNameForMidi(note.midi) : null,
+          midi: note?.midi ?? null, offset: input.scaleDegree.chromaticOffset },
         noteProgress: input.noteProgress,
         riders,
         lastEvent: latestEvent ? describeEvent(latestEvent) : state.lastEvent,
+        presentationEnvelope,
+        presentationActive: presentationEnvelope > 0.01,
+        mechanicalIdleActive,
+        movementSource,
       };
     },
   };

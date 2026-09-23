@@ -54,6 +54,10 @@ pre { overflow: auto; font-size: .8rem; }
 .carousel-machine { display: block; width: min(100%, 680px); height: auto; overflow: visible; }
 .carousel-shadow { fill: var(--z-guide); }
 .carousel-canopy { fill: var(--z-surface-secondary); stroke: var(--actor-primary, var(--z-structure-primary)); stroke-width: var(--stroke-actor-primary); }
+.carousel-machine .carousel-canopy,
+.carousel-machine .carousel-ring,
+.carousel-machine .carousel-mast,
+.carousel-machine .carousel-platform { opacity: calc(.68 + var(--carousel-presence, 0) * .32); transition: opacity 80ms linear; }
 .carousel-ring { fill: none; stroke: var(--actor-primary, var(--z-structure-primary)); stroke-width: var(--stroke-actor-primary); }
 .carousel-mast { stroke: var(--actor-primary, var(--z-structure-primary)); stroke-width: calc(var(--stroke-actor-primary) * 3); stroke-linecap: round; }
 .carousel-finial { fill: var(--actor-primary, var(--z-structure-primary)); }
@@ -73,6 +77,10 @@ pre { overflow: auto; font-size: .8rem; }
 .carousel-carrier--active .carousel-carrier-mount { stroke: var(--z-evidence-strong); }
 .carousel-carrier--active .carousel-carrier-base { fill: var(--z-evidence-strong); }
 .carousel-carrier--active text { fill: var(--z-evidence-strong); }
+.carousel-carrier .carousel-note-label { font-size: 7px; font-weight: 700; }
+.carousel-chromatic-marker circle { fill: var(--z-surface); stroke: var(--z-evidence-strong); stroke-width: var(--stroke-evidence); stroke-dasharray: 3 3; }
+.carousel-chromatic-marker text { fill: var(--z-evidence-strong); font-size: 10px; font-weight: 800; }
+.carousel-chromatic-marker .carousel-chromatic-caption { font-size: 7px; font-weight: 700; }
 .ferris-stage { overflow: hidden; border: 1px solid var(--z-district); background: var(--z-surface); }
 .ferris-machine { display: block; width: 100%; height: auto; }
 .ferris-support { fill: none; stroke: var(--actor-primary, var(--z-structure-primary)); stroke-width: var(--stroke-actor-primary); stroke-linecap: round; stroke-linejoin: round; }
@@ -214,9 +222,9 @@ pre { overflow: auto; font-size: .8rem; }
 .park-bumper-boundary { fill: var(--z-surface-secondary); fill-opacity: .38; stroke: var(--actor-secondary, var(--z-structure-secondary)); stroke-width: var(--stroke-actor-secondary); stroke-dasharray: 7 7; vector-effect: non-scaling-stroke; }
 .park-map-base .bumper-car rect { stroke-width: var(--stroke-actor-secondary); vector-effect: non-scaling-stroke; }
 .park-map-base .bumper-car circle { r: 2.5px; }
-.park-map-base .free-body { opacity: .55; }
-.park-map-base .free-body--selected { opacity: .82; }
-.park-map-base .free-body[data-density="quiet"] { opacity: .2; }
+.park-map-base .free-body { opacity: var(--park-free-body-opacity); }
+.park-map-base .free-body--selected { opacity: var(--park-free-body-selected-opacity); }
+.park-map-base .free-body[data-density="quiet"] { opacity: var(--park-free-body-quiet-opacity); }
 .park-map-base .free-body circle { stroke-width: var(--stroke-actor-secondary); vector-effect: non-scaling-stroke; }
 .park-node { position: absolute; z-index: 3; }
 .park-node, .park-map-base [data-park-actor] { transition: filter 240ms ease; }
@@ -229,6 +237,7 @@ pre { overflow: auto; font-size: .8rem; }
 .park-map[data-attention-mode='focus'] .park-train { opacity: .56; }
 .park-node-label { position: absolute; z-index: 4; top: .15rem; left: .3rem; color: var(--z-muted-text); font-size: .59rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; transform: rotate(-.7deg); transform-origin: left center; }
 .park-node--ferrisWheel .park-node-label, .park-node--dropTower .park-node-label { transform: rotate(.65deg); }
+.park-node--ferrisWheel .park-node-label { padding: .08rem .22rem; background: color-mix(in srgb, var(--z-surface) 88%, transparent); }
 .park-annotations { pointer-events: none; opacity: .58; }
 .park-annotation-line { fill: none; stroke: var(--z-structure-secondary); stroke-width: .8; stroke-linecap: round; stroke-linejoin: round; }
 .park-annotations text { fill: var(--z-muted-text); font: 600 7px/1 var(--font-sans); letter-spacing: .45px; }
@@ -247,8 +256,9 @@ pre { overflow: auto; font-size: .8rem; }
 .park-map .content-participant-layout { position: absolute; z-index: 5; margin: 0; align-self: auto; justify-self: auto; }
 .park-map .content-participant-response { box-sizing: border-box; width: 100%; height: 100%; min-width: 0; place-content: center; padding: .25rem 0 .25rem .55rem; border: 0; border-left: var(--stroke-actor-secondary) solid var(--z-structure-secondary); border-radius: 0; background: transparent; text-align: left; }
 .park-map .content-participant-response::after { width: 72%; height: 4px; margin-top: .05rem; border-bottom: 1px solid var(--z-structure-secondary); content: ''; transform: rotate(-1.4deg); opacity: .5; }
-.park-map .content-participant-response .eyebrow { font-size: .52rem; }
-.park-map .content-participant-response span { font-size: .6rem; }
+.park-map .content-participant-response .eyebrow { font-size: .48rem; line-height: 1.1; white-space: nowrap; }
+.park-map .content-participant-response strong { line-height: 1; }
+.park-map .content-participant-response span { font-size: .56rem; line-height: 1.05; white-space: nowrap; }
 .park-physics-debug { z-index: 8; pointer-events: none; }
 .park-focus-trigger { position: absolute; z-index: 9; box-sizing: border-box; padding: 0; border: 0; border-radius: 12px; background: transparent; cursor: pointer; }
 .park-focus-trigger:focus-visible { outline: 3px solid var(--z-evidence-strong); outline-offset: -3px; }

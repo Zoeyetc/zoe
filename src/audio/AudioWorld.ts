@@ -1,4 +1,5 @@
 import type { AudioEvent, AudioFrame, AudioMap, AudioSnapshot, TransportState } from './types';
+import { deriveScaleDegreeEvidence, selectReferenceTonicMidi } from './ScaleDegree.ts';
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
 const noteNameForMidi = (midi: number) => `${NOTE_NAMES[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
@@ -84,6 +85,13 @@ export function lookupSnapshot(map: AudioMap, transport: TransportState): AudioS
     const decay = Math.max(0, 1 - (transport.time - hit.time) / 0.35);
     return Math.min(1, sum + hit.strength * decay);
   }, 0);
+  const activeNoteName = activeNote?.noteName ?? (activeNote ? noteNameForMidi(activeNote.midi) : null);
+  const referenceTonicMidi = tonalCenterSegment
+    ? selectReferenceTonicMidi(map.melody ?? [], tonalCenterSegment.rootPitchClass, tonalCenterSegment)
+    : null;
+  const scaleDegree = deriveScaleDegreeEvidence({ note: activeNote, noteName: activeNoteName,
+    melodyConfidence: activeNote?.confidence ?? (activeNote ? 1 : 0),
+    tonalCenter: tonalCenterSegment, referenceTonicMidi });
   return {
     mapId: map.id,
     transport,
@@ -91,15 +99,18 @@ export function lookupSnapshot(map: AudioMap, transport: TransportState): AudioS
     melody: {
       available: map.capabilities.melody && map.melody !== null,
       active: activeNote !== null,
+      source: activeNote?.source ?? (map.melodyAnalysis ? 'predominant-analysis'
+        : map.capabilities.melody && map.melody !== null ? 'authored' : 'unavailable'),
       activeNote,
       noteProgress: activeNote
         ? Math.min(1, Math.max(0, (transport.time - activeNote.start) / (activeNote.end - activeNote.start)))
         : 0,
       midi: activeNote?.midi ?? null,
       pitchHz: activeNote?.pitchHz ?? (activeNote ? pitchForMidi(activeNote.midi) : null),
-      noteName: activeNote?.noteName ?? (activeNote ? noteNameForMidi(activeNote.midi) : null),
+      noteName: activeNoteName,
       intensity: activeNote?.intensity ?? 0,
       confidence: activeNote?.confidence ?? (activeNote ? 1 : 0),
+      scaleDegree,
     },
     percussion: {
       available: percussionAvailable,
@@ -142,6 +153,7 @@ export function lookupSnapshot(map: AudioMap, transport: TransportState): AudioS
         : 0,
       circleOfFifthsIndex: tonalCenterSegment?.circleOfFifthsIndex ?? null,
       distanceFromPrevious: tonalCenterSegment?.distanceFromPrevious ?? null,
+      segmentId: tonalCenterSegment?.id ?? null,
     },
     structure: {
       source: structureSegment ? 'analysis' : structureRegion ? 'authored' : null,

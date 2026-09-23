@@ -35,12 +35,32 @@ export type PhysicsWakeReception = Readonly<{
   force: WorldPoint;
 }>;
 
+/** A broad, low-energy PhysicsWorld source derived from shared rhythmic phase. */
+export type PhysicsPulse = Readonly<{
+  sourceId: string;
+  sourceType: 'pulse';
+  position: WorldPoint;
+  strength: number;
+  radius: number;
+  timestamp: number;
+  active: boolean;
+}>;
+
+export type PhysicsPulseReception = Readonly<{
+  receiverId: string;
+  sourceId: string;
+  distance: number;
+  falloff: number;
+  force: WorldPoint;
+}>;
+
 export type PhysicsReceiverRegistration = Readonly<{
   id: string;
   roles?: readonly PhysicsRole[];
   position: WorldPoint;
   receive(impact: PhysicsImpact, influence: number, distance: number): void;
   receiveWake?(wake: PhysicsWake, reception: PhysicsWakeReception, dt: number): void;
+  receivePulse?(pulse: PhysicsPulse, reception: PhysicsPulseReception, dt: number): void;
 }>;
 
 export type PhysicsDebugState = Readonly<{
@@ -54,4 +74,7 @@ export type PhysicsDebugState = Readonly<{
   activeWakeCount: number;
   latestWake: PhysicsWake | null;
   latestWakeReception: PhysicsWakeReception | null;
+  pulseCount: number;
+  latestPulse: PhysicsPulse | null;
+  latestPulseReception: PhysicsPulseReception | null;
 }>;

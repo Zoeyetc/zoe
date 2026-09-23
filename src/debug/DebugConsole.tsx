@@ -79,6 +79,14 @@ export function DebugConsole({ state, attention }: { state: ExperienceState; att
         `${id}=${score.score.toFixed(2)} [available:${String(score.available)}, active:${String(score.active)}, base:${score.baseActivity.toFixed(2)}, structure:${score.structuralBias.toFixed(2)}, continuity:${score.continuity.toFixed(2)}]`).join(' · ')}
     </p></div>}
     <p>AudioWorld: timeline crossings active · BumperCars seed: {state.bumperCars.seed}</p>
+    <p className="event-log" data-debug-park-pulse><strong>Park Pulse:</strong>{' '}
+      available {String(state.parkPulse.available)} · BPM {state.parkPulse.bpm?.toFixed(2) ?? '—'} ·{' '}
+      phase {state.parkPulse.beatPhase.toFixed(3)} · confidence {state.parkPulse.rhythmConfidence.toFixed(2)} ·{' '}
+      envelope {state.parkPulse.envelope.toFixed(3)} · source strength {state.parkPulse.sourceStrength.toFixed(4)} ·{' '}
+      position {state.parkPulse.position.x.toFixed(2)}, {state.parkPulse.position.y.toFixed(2)} · radius {state.parkPulse.radius.toFixed(2)} ·{' '}
+      last beat {state.parkPulse.lastBeatTime?.toFixed(3) ?? '—'} · pulse count {state.parkPulse.pulseCount} ·{' '}
+      active {String(state.parkPulse.active)} · provenance {state.parkPulse.movementSource}
+    </p>
     <p className="event-log" data-debug-melody><strong>Melody / Carousel:</strong>{' '}
       capability {String(state.frame.snapshot.melody.available)} · track confidence {melodyAnalysis?.confidence.toFixed(2) ?? 'authored'} ·{' '}
       voiced ratio {melodyAnalysis?.voicedFrameRatio.toFixed(2) ?? '—'} · notes {melodyAnalysis?.notes.length ?? 'authored'} ·{' '}
@@ -86,13 +94,17 @@ export function DebugConsole({ state, attention }: { state: ExperienceState; att
       median note confidence {melodyAnalysis?.medianNoteConfidence.toFixed(2) ?? '—'} · contour voiced {String(currentContour?.voiced ?? false)} ·{' '}
       pitch {currentContour?.pitchHz?.toFixed(2) ?? '—'} Hz · MIDI float {currentContour?.midiFloat?.toFixed(2) ?? '—'} ·{' '}
       frame confidence {currentContour?.confidence.toFixed(2) ?? '—'} · salience {currentContour?.salience.toFixed(2) ?? '—'} ·{' '}
-      current {currentNote?.id ?? '—'} / {state.frame.snapshot.melody.noteName ?? '—'} / MIDI {state.frame.snapshot.melody.midi ?? '—'} ·{' '}
-      range {currentNote ? `${currentNote.start.toFixed(3)}–${currentNote.end.toFixed(3)}` : '—'} ·{' '}
+      source {state.frame.snapshot.melody.source} · current {currentNote?.id ?? '—'} / {state.frame.snapshot.melody.noteName ?? '—'} / MIDI {state.frame.snapshot.melody.midi ?? '—'} ·{' '}
+      pitch {state.frame.snapshot.melody.pitchHz?.toFixed(2) ?? '—'} Hz · range {currentNote ? `${currentNote.start.toFixed(3)}–${currentNote.end.toFixed(3)}` : '—'} ·{' '}
       duration {currentNote ? (currentNote.end - currentNote.start).toFixed(3) : '—'} · progress {state.frame.snapshot.melody.noteProgress.toFixed(2)} ·{' '}
       intensity {state.frame.snapshot.melody.intensity.toFixed(2)} · confidence {state.frame.snapshot.melody.confidence.toFixed(2)} ·{' '}
+      tonal {state.frame.snapshot.tonalCenter.segmentId ?? '—'} / {state.frame.snapshot.tonalCenter.label ?? '—'} · root {state.frame.snapshot.tonalCenter.rootPitchClass ?? '—'} · mode {state.frame.snapshot.tonalCenter.mode ?? '—'} · tonal confidence {state.frame.snapshot.tonalCenter.confidence.toFixed(2)} ·{' '}
+      degree available {String(state.frame.snapshot.melody.scaleDegree.available)} · in scale {String(state.frame.snapshot.melody.scaleDegree.inScale)} · degree {state.frame.snapshot.melody.scaleDegree.degree ?? '—'} / {state.frame.snapshot.melody.scaleDegree.displayDegree ?? '—'} ·{' '}
+      relative {state.frame.snapshot.melody.scaleDegree.relativeSemitones ?? '—'} semitones · reference tonic MIDI {state.frame.snapshot.melody.scaleDegree.referenceTonicMidi ?? '—'} · octave {state.frame.snapshot.melody.scaleDegree.octaveRelation ?? '—'} · chromatic offset {state.frame.snapshot.melody.scaleDegree.chromaticOffset ?? '—'} · degree confidence {state.frame.snapshot.melody.scaleDegree.confidence.toFixed(2)} ·{' '}
       octave corrections {melodyAnalysis?.octaveCorrectionCount ?? '—'} · rejected frames {melodyAnalysis?.rejectedLowConfidenceFrameCount ?? '—'} ·{' '}
-      rejected short notes {melodyAnalysis?.rejectedShortNoteCount ?? '—'} · carrier slot {state.carousel.activeRider === null ? '—' : state.carousel.activeRider + 1} ·{' '}
-      {state.carousel.mode}
+      rejected short notes {melodyAnalysis?.rejectedShortNoteCount ?? '—'} · carrier {state.carousel.activeRider === null ? '—' : state.carousel.activeRider + 1} / degree {state.carousel.activeDegree ?? '—'} · marker {String(state.carousel.chromaticMarker.visible)} ·{' '}
+      presentation {state.carousel.presentationEnvelope.toFixed(2)} · mechanical idle {String(state.carousel.mechanicalIdleActive)} ·{' '}
+      provenance {state.carousel.movementSource} · {state.carousel.mode}
     </p>
     <p className="event-log"><strong>Spectrum / Free Bodies:</strong>{' '}
       available {String(state.frame.snapshot.spectrum.available)} · brightness {state.frame.snapshot.spectrum.brightness.toFixed(2)} ·{' '}
@@ -111,6 +123,7 @@ export function DebugConsole({ state, attention }: { state: ExperienceState; att
         ? `${state.freeBodies.bodies[0].physicsForce.x.toFixed(3)}, ${state.freeBodies.bodies[0].physicsForce.y.toFixed(3)}` : '—'} · combined{' '}
       {state.freeBodies.bodies[0]
         ? `${state.freeBodies.bodies[0].combinedForce.x.toFixed(3)}, ${state.freeBodies.bodies[0].combinedForce.y.toFixed(3)}` : '—'}
+      {' '}· pulse source {state.freeBodies.bodies[0]?.latestPulseSource ?? '—'} · wake source {state.freeBodies.bodies[0]?.latestWakeSource ?? '—'}
     </p>
     <p className="event-log" data-debug-harmony><strong>Harmony / FerrisWheel:</strong>{' '}
       capability {String(state.frame.snapshot.harmony.available)} · track confidence {harmonyAnalysis?.confidence.toFixed(2) ?? 'authored'} ·{' '}
@@ -246,6 +259,16 @@ export function DebugConsole({ state, attention }: { state: ExperienceState; att
       strength {state.physics.latestImpact?.strength.toFixed(2) ?? '—'} · radius {state.physics.latestImpact?.radius.toFixed(2) ?? '—'} ·{' '}
       receiver distance {state.physics.latestReceiverDistance?.toFixed(2) ?? '—'}
     </p>
+    <p className="event-log" data-debug-physics-pulse><strong>PhysicsWorld Park Pulse:</strong>{' '}
+      updates {state.physics.pulseCount} · source {state.physics.latestPulse?.sourceId ?? '—'} ·{' '}
+      active {String(state.physics.latestPulse?.active ?? false)} · timestamp {state.physics.latestPulse?.timestamp.toFixed(3) ?? '—'} ·{' '}
+      position {state.physics.latestPulse ? `${state.physics.latestPulse.position.x.toFixed(2)}, ${state.physics.latestPulse.position.y.toFixed(2)}` : '—'} ·{' '}
+      strength {state.physics.latestPulse?.strength.toFixed(4) ?? '—'} · radius {state.physics.latestPulse?.radius.toFixed(2) ?? '—'} ·{' '}
+      receiver {state.physics.latestPulseReception?.receiverId ?? '—'} · distance {state.physics.latestPulseReception?.distance.toFixed(3) ?? '—'} ·{' '}
+      falloff {state.physics.latestPulseReception?.falloff.toFixed(3) ?? '—'} · force{' '}
+      {state.physics.latestPulseReception
+        ? `${state.physics.latestPulseReception.force.x.toFixed(4)}, ${state.physics.latestPulseReception.force.y.toFixed(4)}` : '—'}
+    </p>
     <p className="event-log"><strong>RollerCoaster Physics Source:</strong>{' '}
       registered {state.physics.registeredSources >= 2 ? 'true' : 'false'} ·{' '}
       active {String(state.physics.latestWake?.active ?? false)} ·{' '}
@@ -270,6 +293,9 @@ export function DebugConsole({ state, attention }: { state: ExperienceState; att
       wake {state.content.latestWakeSource ?? '—'} · wake distance {state.content.latestWakeDistance?.toFixed(3) ?? '—'} ·{' '}
       alignment {state.content.latestWakeAlignment.toFixed(3)} · falloff {state.content.latestWakeFalloff.toFixed(3)} ·{' '}
       received force {state.content.latestReceivedForce.x.toFixed(3)}, {state.content.latestReceivedForce.y.toFixed(3)} ·{' '}
+      pulse {state.content.latestPulseSource ?? '—'} · pulse distance {state.content.latestPulseDistance?.toFixed(3) ?? '—'} ·{' '}
+      pulse falloff {state.content.latestPulseFalloff.toFixed(3)} · pulse force{' '}
+      {state.content.latestPulseForce.x.toFixed(4)}, {state.content.latestPulseForce.y.toFixed(4)} ·{' '}
       offset {state.content.offset.x.toFixed(3)}, {state.content.offset.y.toFixed(3)} ({state.content.displacement.toFixed(3)}) ·{' '}
       rotation {(state.content.rotation * 180 / Math.PI).toFixed(2)}° ·{' '}
       {state.content.active ? 'active' : 'settled'} · spring {state.content.springState} · layout revision {state.content.layoutRevision}

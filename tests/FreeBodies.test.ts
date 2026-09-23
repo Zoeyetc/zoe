@@ -6,7 +6,7 @@ import { toFreeBodiesInput, type FreeBodiesInput } from '../src/free-bodies/adap
 import { createFreeBodiesSimulation, FREE_BODY_MAX_SPEED } from '../src/free-bodies/simulation.ts';
 import { createPhysicsWorld } from '../src/physics/PhysicsWorld.ts';
 import type { AudioFrame, AudioEvent } from '../src/audio/types.ts';
-import type { PhysicsImpact, PhysicsWake } from '../src/physics/types.ts';
+import type { PhysicsImpact, PhysicsPulse, PhysicsWake } from '../src/physics/types.ts';
 
 const atmosphere = (overrides: Partial<FreeBodiesInput> = {}): FreeBodiesInput => ({
   spectrumAvailable: true,
@@ -126,6 +126,23 @@ test('atmosphere and PhysicsWorld force compose into one trajectory', () => {
   assert.ok(Math.hypot(body.atmosphericForce.x, body.atmosphericForce.y) > 0);
   assert.ok(Math.hypot(body.physicsForce.x, body.physicsForce.y) > 0);
   assert.ok(Math.hypot(body.combinedForce.x, body.combinedForce.y) > 0);
+});
+
+test('Free Bodies receive Park Pulse through PhysicsWorld without changing their physics constants', () => {
+  const { world, simulation } = worldWithBody({ x: 0.6, y: 0.5 });
+  world.registerSource('park-pulse');
+  const pulse: PhysicsPulse = {
+    sourceId: 'park-pulse', sourceType: 'pulse', position: { x: 0.5, y: 0.5 },
+    strength: 0.03, radius: 0.8, timestamp: 1, active: true,
+  };
+  const before = simulation.read().bodies[0];
+  world.updatePulse(pulse, 0.05);
+  simulation.accept(atmosphere({ spectrumAvailable: false, brightness: 0, texture: 0 }), 0.05);
+  const after = simulation.read().bodies[0];
+  assert.equal(after.mass, before.mass);
+  assert.equal(after.radius, before.radius);
+  assert.equal(after.latestPulseSource, 'park-pulse');
+  assert.ok(Math.hypot(after.physicsForce.x, after.physicsForce.y) > 0);
 });
 
 test('pause-style updates retain velocity, seek reconfigures without movement, and restart is deterministic', () => {

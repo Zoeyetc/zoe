@@ -1,5 +1,5 @@
 import type {
-  PhysicsImpact, PhysicsReceiverRegistration, PhysicsWake, PhysicsWakeReception, WorldPoint,
+  PhysicsImpact, PhysicsPulse, PhysicsPulseReception, PhysicsReceiverRegistration, PhysicsWake, PhysicsWakeReception, WorldPoint,
 } from './types';
 
 export type AnchoredReceiverState = Readonly<{
@@ -24,6 +24,11 @@ export type AnchoredReceiverState = Readonly<{
   latestWakeAlignment: number;
   latestWakeFalloff: number;
   latestReceivedForce: WorldPoint;
+  receivedPulseSamples: number;
+  latestPulseSource: string | null;
+  latestPulseDistance: number | null;
+  latestPulseFalloff: number;
+  latestPulseForce: WorldPoint;
 }>;
 export type AnchoredReceiverOptions = Readonly<{
   id?: string;
@@ -56,6 +61,9 @@ export function createAnchoredReceiver(options: AnchoredReceiverOptions = {}) {
   let receivedWakeSamples = 0; let latestWakeSource: string | null = null;
   let latestWakeDistance: number | null = null; let latestWakeAlignment = 0; let latestWakeFalloff = 0;
   let latestReceivedForce: WorldPoint = { x: 0, y: 0 };
+  let receivedPulseSamples = 0; let latestPulseSource: string | null = null;
+  let latestPulseDistance: number | null = null; let latestPulseFalloff = 0;
+  let latestPulseForce: WorldPoint = { x: 0, y: 0 };
   let springState: AnchoredReceiverState['springState'] = 'settled';
   let justReceived = false;
   const active = () => Math.abs(x) + Math.abs(y) + Math.abs(vx) + Math.abs(vy)
@@ -67,7 +75,26 @@ export function createAnchoredReceiver(options: AnchoredReceiverOptions = {}) {
     latestReceivedImpulse = { x: 0, y: 0 };
     receivedWakeSamples = 0; latestWakeSource = null; latestWakeDistance = null;
     latestWakeAlignment = 0; latestWakeFalloff = 0; latestReceivedForce = { x: 0, y: 0 };
+    receivedPulseSamples = 0; latestPulseSource = null; latestPulseDistance = null;
+    latestPulseFalloff = 0; latestPulseForce = { x: 0, y: 0 };
     springState = 'settled'; justReceived = false;
+  };
+  const receivePulse = (pulse: PhysicsPulse, reception: PhysicsPulseReception, dt: number) => {
+    const boundedDt = Math.min(0.1, Math.max(0, dt));
+    const responseScale = (reducedMotion ? 0.08 : 0.34) * debugResponseGain;
+    const force = { x: reception.force.x * responseScale, y: reception.force.y * responseScale };
+    vx += force.x * boundedDt;
+    vy += force.y * boundedDt;
+    const armX = anchor.x - pulse.position.x;
+    const armY = anchor.y - pulse.position.y;
+    angularVelocity += (armX * force.y - armY * force.x) * boundedDt * 0.8;
+    receivedPulseSamples += 1;
+    latestPulseSource = pulse.sourceId;
+    latestPulseDistance = reception.distance;
+    latestPulseFalloff = reception.falloff;
+    latestPulseForce = force;
+    springState = 'responding';
+    justReceived = true;
   };
   const receiveWake = (wake: PhysicsWake, reception: PhysicsWakeReception, dt: number) => {
     const boundedDt = Math.min(0.1, Math.max(0, dt));
@@ -120,6 +147,7 @@ export function createAnchoredReceiver(options: AnchoredReceiverOptions = {}) {
     get position() { return anchor; },
     receive,
     receiveWake,
+    receivePulse,
   };
   const read = (): AnchoredReceiverState => ({
     id, anchor, worldPosition: { x: anchor.x + x, y: anchor.y + y },
@@ -129,6 +157,7 @@ export function createAnchoredReceiver(options: AnchoredReceiverOptions = {}) {
     latestImpactId, latestImpactDistance, latestReceivedImpulse,
     receivedWakeSamples, latestWakeSource, latestWakeDistance,
     latestWakeAlignment, latestWakeFalloff, latestReceivedForce,
+    receivedPulseSamples, latestPulseSource, latestPulseDistance, latestPulseFalloff, latestPulseForce,
   });
   return {
     registration, read, reset,

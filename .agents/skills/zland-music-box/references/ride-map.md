@@ -364,7 +364,7 @@ E4
 MIDI 64
 ```
 
-Future final representation adds:
+The canonical representation includes:
 
 ```text
 scale degree 3
@@ -416,22 +416,13 @@ If tonal center is unavailable:
 
 ---
 
-## Transitional current representation
+## Canonical degree representation
 
-Current implementation may still use:
-
-```text
-8 mechanical slots
-+
-modulo allocation
-```
-
-This is transitional.
-
-Do not treat modulo allocation as the final musical contract.
-
-The current label showing exact noteName / MIDI remains valid evidence even
-while slot allocation is transitional.
+AudioWorld derives scale degree from absolute melody plus the current validated
+tonal center. Carousel maps degrees 1–8 directly to the eight fixed carriers.
+Modulo allocation is absent. Chromatic, low-confidence, no-key, and unsupported
+register evidence preserves exact noteName / MIDI in a separate marker and does
+not activate a false diatonic carrier.
 
 ---
 
@@ -451,11 +442,11 @@ melody.noteProgress
 melody.intensity
 melody.confidence
 
-future:
 melody.source
 melody.scaleDegree
-melody.inKey
-melody.octaveRelation
+melody.scaleDegree.inScale
+melody.scaleDegree.octaveRelation
+melody.scaleDegree.referenceTonicMidi
 
 transport.time
 ```
@@ -520,7 +511,7 @@ Fast melody must not make the machine twitch.
 
 ## Pitch / degree interpretation
 
-Future final mapping:
+Canonical mapping:
 
 ```text
 absolute note
@@ -2684,3 +2675,22 @@ Musically Resting ≠ Physically Inactive
 Arrangement evidence remains analysis-only. It does not emit section changes,
 retune Structural Attention, activate DropTower, create RollerCoaster phrase
 evidence, or alter actor simulation and PhysicsWorld state.
+
+---
+
+# 34. Milestone 9H.1 liveness map
+
+```text
+Rhythm snapshot
+→ ParkPulse
+→ PhysicsWorld
+├── Anchored Content receiver
+└── Free Bodies receivers
+```
+
+ParkPulse is a shared physical source, not a musical actor and not a direct ride
+input. Carousel can continue neutral mechanical idle when melody is unavailable,
+but its note, degree, and carrier evidence remain empty. Its short presentation
+envelope never delays or rewrites evidence. Free Bodies keep their existing
+spectrum atmosphere and shared-force simulation; only Park Map prominence is
+reduced.

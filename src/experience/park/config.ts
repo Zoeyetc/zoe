@@ -33,8 +33,14 @@ export const PARK_SPATIAL_CATEGORIES = {
 
 export const PARK_BUMPER_CARS_BOUNDS = PARK_ACTOR_ANCHORS.bumperCars;
 export const PARK_ROLLER_COASTER_BOUNDS = PARK_ACTOR_ANCHORS.rollerCoaster;
-export const PARK_CONTENT_BOUNDS: ParkBounds = { x: 0.66, y: 0.565, width: 0.11, height: 0.07 };
-export const PARK_GATE_BOUNDS: ParkBounds = { x: 0.43, y: 0.93, width: 0.14, height: 0.045 };
+export const PARK_CONTENT_BOUNDS: ParkBounds = { x: 0.69, y: 0.595, width: 0.105, height: 0.064 };
+export const PARK_GATE_BOUNDS: ParkBounds = { x: 0.43, y: 0.92, width: 0.14, height: 0.042 };
+export const PARK_FREE_BODY_PRESENTATION = {
+  opacity: 0.34,
+  selectedOpacity: 0.46,
+  quietOpacity: 0.12,
+  maximumRadius: 8,
+} as const;
 export const PARK_DROP_TOWER_RENDERER = {
   fit: 'district-height',
   localViewBoxHeight: 450,

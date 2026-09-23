@@ -1,5 +1,6 @@
 import type { CarouselState } from './simulation';
 import { DoodleLine, DoodlePath } from '../../experience/doodle/DoodleSvg';
+import type { CSSProperties } from 'react';
 
 const TAU = Math.PI * 2;
 const CENTER_X = 280;
@@ -41,7 +42,7 @@ function riderPoses(state: CarouselState): RiderPose[] {
     .sort((a, b) => a.depth - b.depth);
 }
 
-function Rider({ pose, noteName }: { pose: RiderPose; noteName: string | null }) {
+function Rider({ pose, noteName, displayDegree }: { pose: RiderPose; noteName: string | null; displayDegree: string | null }) {
   const carrierClass = pose.active ? 'carousel-carrier carousel-carrier--active' : 'carousel-carrier';
   return <g className="carousel-rider-assembly" data-rider={pose.index}>
     <line className="carousel-pole" x1={pose.x} y1={pose.poleTopY} x2={pose.x} y2={pose.riderY + 29} />
@@ -50,7 +51,8 @@ function Rider({ pose, noteName }: { pose: RiderPose; noteName: string | null })
       <rect className="carousel-carrier-media" x="-18" y="-11" width="36" height="22" rx="4" />
       <line className="carousel-carrier-mount" x1="0" y1="18" x2="0" y2="27" />
       <rect className="carousel-carrier-base" x="-18" y="26" width="36" height="6" rx="3" />
-      <text x="0" y="5" textAnchor="middle">{pose.active && noteName ? noteName : pose.index + 1}</text>
+      <text x="0" y={pose.active && noteName ? 1 : 5} textAnchor="middle">{pose.active ? displayDegree ?? pose.index + 1 : pose.index + 1}</text>
+      {pose.active && noteName && <text className="carousel-note-label" x="0" y="12" textAnchor="middle">{noteName}</text>}
     </g>
   </g>;
 }
@@ -68,7 +70,10 @@ export function CarouselView({ state, doodle = false }: { state: CarouselState; 
       <span className={`status status--${state.mode}`}>{state.mode}</span>
     </div>
     <div className="carousel-stage" aria-label={`Mechanical carousel ${state.mode}; active MIDI note ${state.activeMidi ?? 'none'}`}>
-      <svg className="carousel-machine" viewBox="0 0 560 330" role="img" aria-labelledby="carousel-svg-title carousel-svg-description">
+      <svg className="carousel-machine" viewBox="0 0 560 330" role="img" aria-labelledby="carousel-svg-title carousel-svg-description"
+        data-presentation-active={state.presentationActive || undefined}
+        data-movement-source={state.movementSource}
+        style={{ '--carousel-presence': state.presentationEnvelope } as CSSProperties}>
         <title id="carousel-svg-title">Mechanical carousel</title>
         <desc id="carousel-svg-description">A central mast, rotating platform, eight poles, and abstract media carriers. Melody changes one carrier's vertical position.</desc>
         <ellipse className="carousel-shadow" cx={CENTER_X} cy="300" rx="205" ry="24" />
@@ -88,9 +93,16 @@ export function CarouselView({ state, doodle = false }: { state: CarouselState; 
           d="M84 250 C84 222 172 199 280 199 C388 199 476 222 476 250 C476 278 388 301 280 301 C172 301 84 278 84 250 Z"
           seed="carousel-platform" roughness={0.8} />
           : <ellipse className="carousel-platform carousel-platform--back" cx={CENTER_X} cy={PLATFORM_Y} rx="196" ry="51" />}
-        {poses.filter(pose => pose.depth < 0).map(pose => <Rider pose={pose} noteName={state.activeNoteName} key={pose.index} />)}
+        {poses.filter(pose => pose.depth < 0).map(pose => <Rider pose={pose} noteName={state.activeNoteName} displayDegree={state.displayDegree} key={pose.index} />)}
         <rect className="carousel-hub" x={CENTER_X - 25} y="218" width="50" height="64" rx="10" />
-        {poses.filter(pose => pose.depth >= 0).map(pose => <Rider pose={pose} noteName={state.activeNoteName} key={pose.index} />)}
+        {state.chromaticMarker.visible && <g className="carousel-chromatic-marker" data-chromatic-marker="true">
+          <circle cx={CENTER_X} cy="178" r="22" />
+          <text x={CENTER_X} y="174" textAnchor="middle">{state.chromaticMarker.noteName ?? '—'}</text>
+          <text className="carousel-chromatic-caption" x={CENTER_X} y="188" textAnchor="middle">
+            {state.chromaticMarker.offset === null ? 'no degree' : `chromatic +${state.chromaticMarker.offset}`}
+          </text>
+        </g>}
+        {poses.filter(pose => pose.depth >= 0).map(pose => <Rider pose={pose} noteName={state.activeNoteName} displayDegree={state.displayDegree} key={pose.index} />)}
         {doodle ? <DoodlePath className="carousel-platform carousel-platform--front"
           d="M84 250 Q280 302 476 250 L468 270 Q280 316 92 270 Z" seed="carousel-platform-front" roughness={0.8} />
           : <path className="carousel-platform carousel-platform--front" d="M84 250 A196 51 0 0 0 476 250 L468 270 A188 45 0 0 1 92 270 Z" />}
@@ -98,6 +110,7 @@ export function CarouselView({ state, doodle = false }: { state: CarouselState; 
     </div>
     <dl className="actor-readout">
       <div><dt>Note / MIDI</dt><dd>{state.activeNoteName ?? '—'}{state.activeMidi === null ? '' : ` · ${state.activeMidi}`}</dd></div>
+      <div><dt>Degree / carrier</dt><dd>{state.activeDegree === null ? '—' : `${state.displayDegree ?? state.activeDegree} · #${state.activeRider! + 1}`}</dd></div>
       <div><dt>Rider travel</dt><dd>{displayedRider === null ? '—' : `#${displayedRider.index + 1} · ${Math.round(displayedRider.position * 100)}%`}</dd></div>
       <div><dt>Base velocity</dt><dd>{state.baseAngularVelocity.toFixed(2)} rad/s</dd></div>
       <div><dt>Last event</dt><dd>{state.lastEvent ?? '—'}</dd></div>

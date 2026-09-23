@@ -26,6 +26,7 @@ import { PARK_BUMPER_CARS_BOUNDS, PARK_ROLLER_COASTER_BOUNDS } from './park/conf
 import { createAudioBufferPlaybackTransport, type AudioPlaybackTransport } from '../audio/AudioPlaybackTransport';
 import type { AudioPreparationState, PreparedRealAudio } from '../audio/AudioPreparationController';
 import type { AudioMap } from '../audio/types';
+import { createParkPulse, PARK_PULSE_SOURCE_ID } from '../physics/ParkPulse';
 
 /** Composition only: systems keep their own state and ownership. */
 export function createExperience(now: () => number, reducedMotion = false) {
@@ -49,6 +50,7 @@ export function createExperience(now: () => number, reducedMotion = false) {
   let rollerCoaster = createRollerCoasterSimulation({ reducedMotion, route: rollerCoasterTrack.map.route });
   const freeBodies = createFreeBodiesSimulation({ seed: FREE_BODIES_SEED, reducedMotion });
   const physicsWorld = createPhysicsWorld();
+  const parkPulse = createParkPulse();
   const content = createAnchoredContentParticipant({
     id: 'zland-content-card',
     bounds: { x: 0.36, y: 0.7, width: 0.28, height: 0.16 },
@@ -60,6 +62,7 @@ export function createExperience(now: () => number, reducedMotion = false) {
   });
   const unregisterBumperSource = physicsWorld.registerSource('bumper-cars');
   const unregisterRollerSource = physicsWorld.registerSource(ROLLER_WAKE_SOURCE_ID);
+  const unregisterParkPulseSource = physicsWorld.registerSource(PARK_PULSE_SOURCE_ID);
   const unregisterReceiver = physicsWorld.registerReceiver(content.registration);
   const unregisterFreeBodies = freeBodies.registrations.map(registration => physicsWorld.registerReceiver(registration));
   let frame = world.read(clock.read());
@@ -88,6 +91,8 @@ export function createExperience(now: () => number, reducedMotion = false) {
     physicsWorld.updateWake(rollerCoasterToPhysicsWake(
       rollerCoaster.read(), simulationTime, rollerCoasterTrack.map, PARK_ROLLER_COASTER_BOUNDS,
     ), dt);
+    parkPulse.accept(frame, dt);
+    physicsWorld.updatePulse(parkPulse.toPhysicsPulse(simulationTime), dt);
     freeBodies.accept(toFreeBodiesInput(frame), dt);
     content.step(dt);
     const playback = 'diagnostics' in clock ? clock.diagnostics() : null;
@@ -99,6 +104,7 @@ export function createExperience(now: () => number, reducedMotion = false) {
       rollerCoasterTrackPlan: rollerCoasterTrack.plan,
       rollerCoasterTrackMap: rollerCoasterTrack.map,
       freeBodies: freeBodies.read(),
+      parkPulse: parkPulse.read(),
       physics: physicsWorld.read(), content: content.read(), seed: bumperCars.read().seed,
       audio: {
         preparation,
@@ -133,8 +139,10 @@ export function createExperience(now: () => number, reducedMotion = false) {
     physicsWorld.updateWake(rollerCoasterToPhysicsWake(
       rollerCoaster.read(), now(), rollerCoasterTrack.map, PARK_ROLLER_COASTER_BOUNDS,
     ), 0);
+    parkPulse.accept(frame, 0);
+    physicsWorld.updatePulse(parkPulse.toPhysicsPulse(now()), 0);
     freeBodies.accept(toFreeBodiesInput(frame), 0);
-    if (time === 0) { physicsWorld.clear(); content.reset(); }
+    if (time === 0) { parkPulse.reset(); physicsWorld.clear(); content.reset(); }
   };
   const actions: ControlActions = {
     play: () => clock.play(),
@@ -156,6 +164,8 @@ export function createExperience(now: () => number, reducedMotion = false) {
     ferrisWheel.accept(toFerrisWheelInput(frame), 0);
     dropTower.accept(toDropTowerInput(frame), 0);
     rollerCoaster.accept(toRollerCoasterInput(frame), 0);
+    parkPulse.reset();
+    parkPulse.accept(frame, 0);
     freeBodies.accept(toFreeBodiesInput(frame), 0);
     physicsWorld.clear();
     content.reset();
@@ -196,7 +206,7 @@ export function createExperience(now: () => number, reducedMotion = false) {
     dispose: () => {
       stopClock();
       unregisterFreeBodies.forEach(unregister => unregister());
-      unregisterReceiver(); unregisterRollerSource(); unregisterBumperSource();
+      unregisterReceiver(); unregisterParkPulseSource(); unregisterRollerSource(); unregisterBumperSource();
     },
   };
 }

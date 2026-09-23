@@ -8,6 +8,7 @@ import {
   PARK_OVERVIEW_VIEWPORT, PARK_PIRATE_SHIP_RENDERER, focusViewport,
   PARK_ROLLER_COASTER_BOUNDS, PARK_SEMANTIC_SCALES,
   PARK_SPATIAL_CATEGORIES, PARK_TRAIN_ROUTE,
+  PARK_FREE_BODY_PRESENTATION,
   PARK_TRAIN_BOUNDS, PARK_TRAIN_STATIONS, PARK_VIEWBOX, worldToPark,
 } from '../src/experience/park/config.ts';
 import { bumperArenaPointToWorld } from '../src/physics/adapters/bumperCars.ts';
@@ -65,6 +66,15 @@ test('composition config separates actors, atmosphere, and infrastructure', () =
   assert.ok(PARK_SPATIAL_CATEGORIES.experienceInfrastructure.includes('parkTrain'));
   assert.match(parkSource, /data-spatial-role="musical-actor"/);
   assert.match(parkSource, /data-spatial-role="global-atmosphere"/);
+});
+
+test('Park presentation caps Free Bodies and keeps annotations and content inside the frame', () => {
+  assert.ok(PARK_FREE_BODY_PRESENTATION.opacity < 0.4);
+  assert.ok(PARK_FREE_BODY_PRESENTATION.selectedOpacity < 0.5);
+  assert.ok(PARK_FREE_BODY_PRESENTATION.maximumRadius <= 8);
+  assert.ok(PARK_CONTENT_BOUNDS.y + PARK_CONTENT_BOUNDS.height < 0.7);
+  assert.match(parkSource, /textAnchor="end">12 SUSPENDED CARRIERS/);
+  assert.match(parkSource, /Math\.min\(PARK_FREE_BODY_PRESENTATION\.maximumRadius/);
 });
 
 test('Park Train is static experience infrastructure without musical or physical ownership', () => {
