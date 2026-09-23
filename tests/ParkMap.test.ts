@@ -204,6 +204,7 @@ test('Park mode, workbench mode, and physics debug flag remain independently add
   assert.equal(resolveExperienceMode(''), 'park');
   assert.equal(resolveExperienceMode('?mode=workbench'), 'workbench');
   assert.equal(resolveExperienceMode('?mode=workbench&hide-physics-debug'), 'workbench');
+  assert.equal(resolveExperienceMode('?mode=signal-console'), 'signal-console');
   assert.equal(physicsDebugVisible('?mode=workbench'), true);
   assert.equal(physicsDebugVisible('?hide-physics-debug'), false);
 });

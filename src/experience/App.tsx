@@ -17,6 +17,7 @@ import { physicsDebugVisible, resolveExperienceMode } from './mode';
 import { createAttentionController, type AttentionState } from './attention';
 import { createAudioPreparationController, FIXTURE_PREPARATION_STATE, type AudioPreparationState } from '../audio/AudioPreparationController';
 import { resolveDropTowerQaAudioMap } from '../audio/DropTowerQaAudioMap';
+import { SignalPlayer } from '../signal-player/SignalPlayer';
 
 export function App() {
   const physicsStageRef = useRef<HTMLDivElement>(null);
@@ -120,12 +121,24 @@ export function App() {
     },
   };
 
+  if (mode === 'signal-console') return <SignalPlayer
+    transport={state.frame.snapshot.transport}
+    preparation={preparation}
+    actions={controlActions}
+    onChooseAudio={chooseAudio}
+    onUseFixture={useFixture}
+    observe={experience.observeSignalConsole}
+    interpretation={state.frame}
+    events={state.recentEvents}
+  />;
+
   return <main className={`experience experience--${mode}`}>
     <header className="experience-header">
       <div><h1>Z.land Music Box</h1><p>Milestone 8C · Live Annotation System</p></div>
       <nav aria-label="Experience mode">
         <a href="./" aria-current={mode === 'park' ? 'page' : undefined}>Park Map</a>
         <a href="?mode=workbench" aria-current={mode === 'workbench' ? 'page' : undefined}>Development Workbench</a>
+        <a href="?mode=signal-console">SignalConsole</a>
       </nav>
     </header>
     <ControlSurface transport={state.frame.snapshot.transport} melody={state.frame.snapshot.melody}

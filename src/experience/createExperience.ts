@@ -27,11 +27,13 @@ import { createAudioBufferPlaybackTransport, type AudioPlaybackTransport } from 
 import type { AudioPreparationState, PreparedRealAudio } from '../audio/AudioPreparationController';
 import type { AudioMap } from '../audio/types';
 import { createParkPulse, PARK_PULSE_SOURCE_ID } from '../physics/ParkPulse';
+import type { SignalConsoleObservation } from '../signal-console/types';
 
 /** Composition only: systems keep their own state and ownership. */
 export function createExperience(now: () => number, reducedMotion = false, fixtureMap: AudioMap = milestoneSevenAAudioMap) {
   let clock: AudioClock | AudioPlaybackTransport = createPreviewAudioClock(fixtureMap.duration, now);
   let activeMap: AudioMap = fixtureMap;
+  let mapRevision = 0;
   let world = createAudioWorld(activeMap);
   let preparation: AudioPreparationState = {
     sourceMode: 'fixture', filename: null, duration: activeMap.duration,
@@ -175,12 +177,18 @@ export function createExperience(now: () => number, reducedMotion = false, fixtu
   };
   return {
     read, actions,
+    observeSignalConsole: (): SignalConsoleObservation => ({
+      mapRevision,
+      transport: clock.read(),
+      audioMap: activeMap,
+    }),
     setAudioPreparationState: (next: AudioPreparationState) => { preparation = next; },
     activateRealAudio(prepared: PreparedRealAudio) {
       const nextRollerCoasterTrack = createRollerCoasterTrack(prepared.map, planRollerCoasterTrack);
       const nextRollerCoaster = createRollerCoasterSimulation({ reducedMotion, route: nextRollerCoasterTrack.map.route });
       stopClock();
       activeMap = prepared.map;
+      mapRevision += 1;
       rollerCoasterTrack = nextRollerCoasterTrack;
       rollerCoaster = nextRollerCoaster;
       world = createAudioWorld(activeMap);
@@ -196,6 +204,7 @@ export function createExperience(now: () => number, reducedMotion = false, fixtu
     activateFixture() {
       stopClock();
       activeMap = fixtureMap;
+      mapRevision += 1;
       rollerCoasterTrack = createRollerCoasterTrack(activeMap, planRollerCoasterTrack);
       rollerCoaster = createRollerCoasterSimulation({ reducedMotion, route: rollerCoasterTrack.map.route });
       world = createAudioWorld(activeMap);

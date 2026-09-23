@@ -1,0 +1,40 @@
+.signal-console {
+  --signal-structure-primary: #242321;
+  --signal-structure-secondary: #74716b;
+  --signal-guide: #dedbd3;
+  --signal-evidence-strong: #473b5b;
+  --signal-muted-text: #69665f;
+  --signal-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --signal-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--signal-structure-primary);
+  font-family: var(--signal-font-sans);
+}
+.signal-console-heading { margin-bottom: .8rem; padding-bottom: .55rem; border-bottom: 1px solid var(--signal-structure-secondary); }
+.signal-console-heading h2 { margin: .3rem 0 0; font-size: 1.5rem; }
+.signal-console-heading span { color: var(--signal-muted-text); font: 700 .66rem/1 var(--signal-font-sans); letter-spacing: .12em; text-transform: uppercase; }
+.signal-stream { font-size: .78rem; line-height: 1.45; }
+.signal-telemetry-line { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); align-items: baseline; min-height: 1.15rem; margin: .16rem 0; }
+.signal-telemetry-line > strong { font-weight: 800; }
+.signal-telemetry-line--transport { margin-bottom: .65rem; }
+.signal-phrase-layout { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.signal-phrase-group { min-width: 0; white-space: nowrap; }
+.signal-token { font-family: var(--signal-font-sans); }
+.signal-token[data-signal-role='signal'] .signal-value { color: var(--signal-evidence-strong); font-variant-numeric: proportional-nums lining-nums; font-feature-settings: 'pnum' 1, 'tnum' 0; }
+.signal-token[data-signal-role='anchor'] .signal-value { font-family: var(--signal-font-mono); font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1; }
+.signal-metric, .signal-separator { color: var(--signal-muted-text); }
+.signal-stream-section { margin: 0; padding: .65rem 0; border: 0; border-top: 1px solid var(--signal-guide); background: transparent; }
+.signal-stream-section header { margin-bottom: .35rem; }
+.signal-stream-section h3 { margin: 0; font: 800 .7rem/1 var(--signal-font-sans); letter-spacing: .13em; }
+.signal-stream-section--interpretation { margin-top: .35rem; }
+.signal-stream-section--interpretation .signal-value { color: var(--signal-structure-primary); }
+.signal-stream-section--events ol { display: grid; gap: .1rem; margin: 0; padding: 0; list-style: none; }
+.signal-stream-section--events li, .signal-capabilities { color: var(--signal-muted-text); font: 600 .66rem/1.35 var(--signal-font-mono); font-variant-numeric: tabular-nums; }
+.signal-capabilities { margin: .35rem 0 0 7.25rem; white-space: nowrap; }
+
+@media (max-width: 760px) {
+  .signal-telemetry-line { grid-template-columns: 6rem minmax(0, 1fr); }
+  .signal-capabilities { margin-left: 6rem; }
+}
