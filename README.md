@@ -303,3 +303,22 @@ changes never emit `section-change` and never switch Structural Attention.
 `Arrangement Change ≠ Section Boundary`. Structure operates at multiple temporal
 scales. `Musically Resting ≠ Physically Inactive`: a presentation role does not
 reset or disable an actor's existing physical simulation.
+
+Milestone 9I connects the existing real `AudioWorld.structure` snapshot to the
+existing DropTower state machine through `realStructureAdapter.ts`. The adapter
+derives bounded build, tension, lift intent, hold intent, and release from
+section-scale evidence. A real analyzed drop requires 1.5 seconds of sustained
+preparation, sufficient accumulated build and tension, a strong boundary and
+release score, confidence of at least `0.62`, and an expired six-second cooldown.
+
+`section-change ≠ Drop`. A section boundary is only one release cue. Arrangement
+changes are ignored, high energy alone is insufficient, and seek reconciles the
+destination without replaying historical releases. The adapter requests action;
+the actor-local `IDLE → LIFTING → HOLDING → DROPPING → REBOUND → SETTLING`
+simulation remains the sole owner of physical state and carriage motion.
+
+`AudioWorld.structure` continues to feed Structural Attention and DropTower as
+independent sibling consumers. ParkPulse remains a separate rhythm-driven
+PhysicsWorld path, and analyzed structure does not create a direct shared-world
+impact. `Musically Resting ≠ Physically Inactive`: an authorized fall, rebound,
+or settling trajectory may continue after current structure becomes neutral.

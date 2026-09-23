@@ -13,6 +13,11 @@ import {
 
 const input = (overrides: Partial<DropTowerInput> = {}): DropTowerInput => ({
   structureAvailable: true,
+  drive: {
+    source: 'authored', available: true, build: 0.65, tension: 0.6, release: 0,
+    liftIntent: 0.65, holdIntent: 0.6, dropAuthorized: false, confidence: 1,
+    preparationSeconds: 2, cooldownRemaining: 0, reason: 'authored fixture', authorizationId: null,
+  },
   section: 'build',
   sectionProgress: 0.5,
   energy: 0.6,
@@ -30,7 +35,8 @@ const advance = (simulation: ReturnType<typeof createDropTowerSimulation>, value
 };
 
 const prepareHold = (simulation: ReturnType<typeof createDropTowerSimulation>) => {
-  const hold = input({ section: 'hold', build: 1, tension: 1, energy: 0.36 });
+  const hold = input({ section: 'hold', build: 1, tension: 1, energy: 0.36,
+    drive: { ...input().drive, build: 1, tension: 1, liftIntent: 1, holdIntent: 1 } });
   simulation.accept(hold, 0.05);
   simulation.accept(hold, 0.05);
   advance(simulation, hold, 3);
@@ -85,7 +91,8 @@ test('only explicit drop releases the held carriage', () => {
   simulation.accept({ ...hold, energy: 1 }, 0.1);
   assert.equal(simulation.read().phase, 'HOLDING');
   simulation.accept({ ...hold, section: 'release', build: 0, tension: 0.1,
-    energy: 1, drop: { type: 'drop', time: 13, id: 'major-drop', strength: 1 } }, 0.05);
+    energy: 1, drop: { type: 'drop', time: 13, id: 'major-drop', strength: 1 },
+    drive: { ...hold.drive, build: 0, tension: 0.1, release: 1, dropAuthorized: true, authorizationId: 'major-drop' } }, 0.05);
   assert.equal(simulation.read().phase, 'DROPPING');
   assert.equal(simulation.read().latestDropEvent, 'major-drop');
 });
@@ -94,7 +101,8 @@ test('drop, braking, rebound, and settling remain bounded', () => {
   const simulation = createDropTowerSimulation();
   const hold = prepareHold(simulation);
   const release = { ...hold, section: 'release', build: 0, tension: 0.1, energy: 1,
-    drop: { type: 'drop' as const, time: 13, id: 'major-drop', strength: 1 } };
+    drop: { type: 'drop' as const, time: 13, id: 'major-drop', strength: 1 },
+    drive: { ...hold.drive, build: 0, tension: 0.1, release: 1, dropAuthorized: true, authorizationId: 'major-drop' } };
   simulation.accept(release, 0.05);
   let sawRebound = false;
   for (let index = 0; index < 180; index += 1) {
@@ -123,7 +131,8 @@ test('pause is state-aware for lifting, holding, and dropping', () => {
   const dropping = createDropTowerSimulation();
   prepareHold(dropping);
   dropping.accept({ ...hold, section: 'release', build: 0, tension: 0, energy: 1,
-    drop: { type: 'drop', time: 13, id: 'drop', strength: 1 } }, 0.05);
+    drop: { type: 'drop', time: 13, id: 'drop', strength: 1 },
+    drive: { ...hold.drive, build: 0, tension: 0, release: 1, dropAuthorized: true, authorizationId: 'drop' } }, 0.05);
   const before = dropping.read().position;
   dropping.accept(input({ section: 'release', build: 0, tension: 0, energy: 1,
     transportPlaying: false }), 0.1);

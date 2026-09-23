@@ -16,6 +16,7 @@ import { PARK_CONTENT_BOUNDS } from './park/config';
 import { physicsDebugVisible, resolveExperienceMode } from './mode';
 import { createAttentionController, type AttentionState } from './attention';
 import { createAudioPreparationController, FIXTURE_PREPARATION_STATE, type AudioPreparationState } from '../audio/AudioPreparationController';
+import { resolveDropTowerQaAudioMap } from '../audio/DropTowerQaAudioMap';
 
 export function App() {
   const physicsStageRef = useRef<HTMLDivElement>(null);
@@ -23,12 +24,14 @@ export function App() {
     || new URLSearchParams(window.location.search).has('reduce-motion');
   const mode = resolveExperienceMode(window.location.search);
   const showPhysicsDebug = physicsDebugVisible(window.location.search);
+  const dropTowerQaMap = resolveDropTowerQaAudioMap(new URLSearchParams(window.location.search).get('drop-tower-qa'));
   const [experience] = useState(() => createExperience(
     () => performance.now() / 1000,
     reduceMotion,
+    dropTowerQaMap ?? undefined,
   ));
   const [preparation, setPreparation] = useState<AudioPreparationState>(() => ({
-    ...FIXTURE_PREPARATION_STATE, duration: 24,
+    ...FIXTURE_PREPARATION_STATE, duration: dropTowerQaMap?.duration ?? 24,
   }));
   const [audioPreparation] = useState(() => createAudioPreparationController(next => {
     setPreparation(next);
@@ -119,7 +122,7 @@ export function App() {
 
   return <main className={`experience experience--${mode}`}>
     <header className="experience-header">
-      <div><h1>Z.land Music Box</h1><p>Milestone 9H.1 · Park Liveness &amp; Graceful Degradation</p></div>
+      <div><h1>Z.land Music Box</h1><p>Milestone 9I · Real Structure → DropTower</p></div>
       <nav aria-label="Experience mode">
         <a href="./" aria-current={mode === 'park' ? 'page' : undefined}>Park Map</a>
         <a href="?mode=workbench" aria-current={mode === 'workbench' ? 'page' : undefined}>Development Workbench</a>

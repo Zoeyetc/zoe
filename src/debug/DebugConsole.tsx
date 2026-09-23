@@ -179,14 +179,24 @@ export function DebugConsole({ state, attention }: { state: ExperienceState; att
       importance {state.frame.snapshot.structure.importance.toFixed(2)} · novelty {state.frame.snapshot.structure.novelty.toFixed(2)} · scales{' '}
       {structureAnalysis ? `${maxOrZero(structureAnalysis.noveltyScales.short).toFixed(2)} / ${maxOrZero(structureAnalysis.noveltyScales.medium).toFixed(2)} / ${maxOrZero(structureAnalysis.noveltyScales.long).toFixed(2)}` : '—'} · boundaries{' '}
       {state.frame.snapshot.structure.previousBoundaryTime?.toFixed(2) ?? '—'} ({state.frame.snapshot.structure.previousBoundaryConfidence?.toFixed(2) ?? '—'}) /{' '}
-      {state.frame.snapshot.structure.nextBoundaryTime?.toFixed(2) ?? '—'} ({state.frame.snapshot.structure.nextBoundaryConfidence?.toFixed(2) ?? '—'})
+      {state.frame.snapshot.structure.nextBoundaryTime?.toFixed(2) ?? '—'} ({state.frame.snapshot.structure.nextBoundaryConfidence?.toFixed(2) ?? '—'}) ·{' '}
+      seconds to next {state.frame.snapshot.structure.nextBoundaryTime === null ? '—'
+        : Math.max(0, state.frame.snapshot.structure.nextBoundaryTime - state.frame.snapshot.transport.time).toFixed(2)}
     </p>
-    <p className="event-log"><strong>Structure Actor Compatibility / DropTower:</strong>{' '}
-      authored input {String(state.frame.snapshot.structure.source === 'authored')} · section {state.frame.snapshot.structure.section ?? '—'} ·{' '}
-      build {state.frame.snapshot.structure.build.toFixed(2)} · tension {state.frame.snapshot.structure.tension.toFixed(2)} ·{' '}
+    <p className="event-log" data-debug-drop-tower-drive><strong>DropTower Structure Drive:</strong>{' '}
+      source {state.dropTower.drive.source} · available {String(state.dropTower.drive.available)} · section {state.frame.snapshot.structure.section ?? '—'} ·{' '}
+      build {state.dropTower.drive.build.toFixed(2)} · tension {state.dropTower.drive.tension.toFixed(2)} · release {state.dropTower.drive.release.toFixed(2)} ·{' '}
+      lift intent {state.dropTower.drive.liftIntent.toFixed(2)} · hold intent {state.dropTower.drive.holdIntent.toFixed(2)} ·{' '}
+      drop authorized {String(state.dropTower.drive.dropAuthorized)} · preparation {state.dropTower.drive.preparationSeconds.toFixed(2)}s ·{' '}
+      cooldown {state.dropTower.drive.cooldownRemaining.toFixed(2)}s · confidence {state.dropTower.drive.confidence.toFixed(2)} ·{' '}
+      reason {state.dropTower.drive.reason}
+    </p>
+    <p className="event-log" data-debug-drop-tower-physics><strong>DropTower Physical State:</strong>{' '}
       latest drop {state.dropTower.latestDropEvent ?? '—'} · phase {state.dropTower.phase} ·{' '}
       position {state.dropTower.position.toFixed(3)} · velocity {state.dropTower.velocity.toFixed(3)} ·{' '}
-      target {state.dropTower.liftTarget.toFixed(3)} · hold {String(state.dropTower.phase === 'HOLDING')} ·{' '}
+      target {state.dropTower.liftTarget.toFixed(3)} · lift speed {state.dropTower.liftSpeed.toFixed(3)} ·{' '}
+      rebound {String(state.dropTower.reboundActive)} · settling {String(state.dropTower.settlingActive)} ·{' '}
+      movement {state.dropTower.movementProvenance} · hold {String(state.dropTower.phase === 'HOLDING')} ·{' '}
       reduced {String(state.dropTower.reducedMotion)}
     </p>
     <p className="event-log" data-debug-track-plan><strong>RollerCoaster TrackPlan / TrackMap:</strong>{' '}

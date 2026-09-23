@@ -1,9 +1,10 @@
-import type { DropTowerInput } from './adapter';
+import type { DropTowerDrive, DropTowerInput } from './adapter';
+import { DROP_TOWER_STRUCTURE_CONSTANTS } from './realStructureAdapter.ts';
 
 export type DropTowerPhase = 'IDLE' | 'LIFTING' | 'HOLDING' | 'DROPPING' | 'REBOUND' | 'SETTLING';
 
 export type DropTowerState = Readonly<{
-  status: 'milestone-five-a';
+  status: 'milestone-nine-i';
   mode: 'resting' | 'active' | 'settling';
   phase: DropTowerPhase;
   phaseElapsed: number;
@@ -19,6 +20,12 @@ export type DropTowerState = Readonly<{
   tension: number;
   energy: number;
   latestDropEvent: string | null;
+  drive: DropTowerDrive;
+  liftSpeed: number;
+  holdLossElapsed: number;
+  reboundActive: boolean;
+  settlingActive: boolean;
+  movementProvenance: 'structure' | 'inertia' | 'idle';
 }>;
 
 export type DropTowerOptions = Readonly<{ reducedMotion?: boolean }>;
@@ -30,6 +37,12 @@ const MAX_COMPRESSION = 1.08;
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 const clamp01 = (value: number) => clamp(value, 0, 1);
+const neutralDrive: DropTowerDrive = {
+  source: 'none', available: false, build: 0, tension: 0, release: 0,
+  liftIntent: 0, holdIntent: 0, dropAuthorized: false, confidence: 0,
+  preparationSeconds: 0, cooldownRemaining: 0,
+  reason: 'structure unavailable', authorizationId: null,
+};
 
 /** Legacy-derived actor-local lift, hold, gravity drop, braking, rebound, and settle state machine. */
 export function createDropTowerSimulation(options: DropTowerOptions = {}) {
@@ -39,16 +52,35 @@ export function createDropTowerSimulation(options: DropTowerOptions = {}) {
 
   const reset = () => {
     state = {
-      status: 'milestone-five-a', mode: 'resting', phase: 'IDLE', phaseElapsed: 0,
+      status: 'milestone-nine-i', mode: 'resting', phase: 'IDLE', phaseElapsed: 0,
       reducedMotion, position: 1, velocity: 0, liftTarget: 1, dropStrength: 0,
       structureAvailable: false, section: null, sectionProgress: 0,
       build: 0, tension: 0, energy: 0, latestDropEvent: null,
+      drive: neutralDrive, liftSpeed: 0, holdLossElapsed: 0,
+      reboundActive: false, settlingActive: false, movementProvenance: 'idle',
     };
   };
   reset();
 
   const reconcile = (input: DropTowerInput) => {
     const build = clamp01(input.build);
+    if (input.drive.source === 'analyzed') {
+      const intent = Math.max(input.drive.liftIntent, input.drive.holdIntent);
+      const travelFraction = DROP_TOWER_STRUCTURE_CONSTANTS.partialLiftFraction
+        + (DROP_TOWER_STRUCTURE_CONSTANTS.fullLiftFraction - DROP_TOWER_STRUCTURE_CONSTANTS.partialLiftFraction) * intent;
+      const liftTarget = 1 - (1 - topPosition) * clamp01(travelFraction);
+      if (input.drive.holdIntent >= DROP_TOWER_STRUCTURE_CONSTANTS.holdThreshold) {
+        state = { ...state, phase: 'HOLDING', phaseElapsed: 0,
+          position: liftTarget, velocity: 0, liftTarget, holdLossElapsed: 0 };
+      } else if (input.drive.liftIntent >= DROP_TOWER_STRUCTURE_CONSTANTS.liftThreshold) {
+        state = { ...state, phase: 'LIFTING', phaseElapsed: 0,
+          position: liftTarget, velocity: 0, liftTarget, holdLossElapsed: 0 };
+      } else {
+        state = { ...state, phase: 'IDLE', phaseElapsed: 0,
+          position: 1, velocity: 0, liftTarget: 1, holdLossElapsed: 0 };
+      }
+      return;
+    }
     if (input.section === 'rest' || input.section === 'station' || input.section === null) {
       state = { ...state, phase: 'IDLE', phaseElapsed: 0, position: 1, velocity: 0, liftTarget: 1 };
       return;
@@ -75,19 +107,16 @@ export function createDropTowerSimulation(options: DropTowerOptions = {}) {
     reset,
     accept(input: DropTowerInput, dt: number) {
       if (input.restart) reset();
-      if (!input.structureAvailable) {
-        reset();
-        return;
-      }
 
       state = {
         ...state,
-        structureAvailable: true,
+        structureAvailable: input.structureAvailable,
         section: input.section,
         sectionProgress: clamp01(input.sectionProgress),
         build: clamp01(input.build),
         tension: clamp01(input.tension),
         energy: clamp01(input.energy),
+        drive: input.drive,
       };
       if (input.seek) {
         reconcile(input);
@@ -101,24 +130,56 @@ export function createDropTowerSimulation(options: DropTowerOptions = {}) {
       let liftTarget = 1 - (1 - topPosition) * clamp01(input.build);
       let dropStrength = state.dropStrength;
       let latestDropEvent = state.latestDropEvent;
+      let holdLossElapsed = state.holdLossElapsed;
 
-      if (input.drop && (phase === 'HOLDING' || phase === 'LIFTING')) {
+      const analyzed = input.drive.source === 'analyzed';
+      const authored = input.drive.source === 'authored';
+      const analyzedIntent = Math.max(input.drive.liftIntent, input.drive.holdIntent);
+      const analyzedTravel = DROP_TOWER_STRUCTURE_CONSTANTS.partialLiftFraction
+        + (DROP_TOWER_STRUCTURE_CONSTANTS.fullLiftFraction - DROP_TOWER_STRUCTURE_CONSTANTS.partialLiftFraction) * analyzedIntent;
+      liftTarget = analyzed
+        ? 1 - (1 - topPosition) * clamp01(analyzedTravel)
+        : 1 - (1 - topPosition) * clamp01(input.build);
+      const boundedDt = Math.min(0.1, Math.max(0, dt));
+
+      const physicallyPrepared = authored || position <= 0.82;
+      if (input.drive.dropAuthorized && physicallyPrepared && (phase === 'HOLDING' || phase === 'LIFTING')) {
         phase = 'DROPPING';
         phaseElapsed = 0;
         velocity = Math.max(0, velocity);
-        dropStrength = clamp(input.drop.strength * (0.82 + input.energy * 0.18), 0.4, 1);
-        latestDropEvent = input.drop.id;
-      } else if (phase === 'IDLE' && input.transportPlaying && input.build > 0.04) {
+        const releaseStrength = Math.max(input.drive.release, input.drop?.strength ?? 0);
+        dropStrength = clamp(releaseStrength * (0.82 + input.energy * 0.18), 0.4, 1);
+        latestDropEvent = input.drive.authorizationId ?? input.drop?.id ?? latestDropEvent;
+        holdLossElapsed = 0;
+      } else if ((phase === 'IDLE' || phase === 'SETTLING') && input.transportPlaying
+        && (authored ? input.build > 0.04 : input.drive.liftIntent >= DROP_TOWER_STRUCTURE_CONSTANTS.liftThreshold)) {
         phase = 'LIFTING';
         phaseElapsed = 0;
-      } else if (phase === 'LIFTING'
-        && input.build > 0.9 && input.tension > 0.86) {
+        holdLossElapsed = 0;
+      } else if (phase === 'LIFTING' && (authored
+        ? input.build > 0.9 && input.tension > 0.86
+        : input.drive.holdIntent >= DROP_TOWER_STRUCTURE_CONSTANTS.holdThreshold
+          && Math.abs(position - liftTarget) < DROP_TOWER_STRUCTURE_CONSTANTS.holdCaptureDistance)) {
         phase = 'HOLDING';
         phaseElapsed = 0;
-        liftTarget = topPosition;
+        if (authored) liftTarget = topPosition;
+        holdLossElapsed = 0;
+      } else if (analyzed && phase === 'LIFTING' && input.drive.liftIntent < 0.18) {
+        phase = 'SETTLING';
+        phaseElapsed = 0;
+      } else if (!input.structureAvailable && (phase === 'LIFTING' || phase === 'HOLDING')) {
+        phase = 'SETTLING';
+        phaseElapsed = 0;
       }
 
-      const boundedDt = Math.min(0.1, Math.max(0, dt));
+      if (analyzed && phase === 'HOLDING' && input.transportPlaying) {
+        holdLossElapsed = input.drive.holdIntent < 0.28 ? holdLossElapsed + boundedDt : 0;
+        if (holdLossElapsed >= DROP_TOWER_STRUCTURE_CONSTANTS.holdAbortSeconds) {
+          phase = 'SETTLING';
+          phaseElapsed = 0;
+          holdLossElapsed = 0;
+        }
+      }
       const steps = Math.max(1, Math.ceil(boundedDt * 120));
       const h = boundedDt / steps;
       for (let step = 0; step < steps; step += 1) {
@@ -138,12 +199,12 @@ export function createDropTowerSimulation(options: DropTowerOptions = {}) {
             break;
           }
           case 'HOLDING': {
-            liftTarget = topPosition;
-            const acceleration = (topPosition - position) * 28 - velocity * 11;
+            if (authored) liftTarget = topPosition;
+            const acceleration = (liftTarget - position) * 28 - velocity * 11;
             velocity = clamp(velocity + acceleration * h, -0.38, 0.38);
             position += velocity * h;
-            if (Math.abs(position - topPosition) < 0.001 && Math.abs(velocity) < 0.005) {
-              position = topPosition;
+            if (Math.abs(position - liftTarget) < 0.001 && Math.abs(velocity) < 0.005) {
+              position = liftTarget;
               velocity = 0;
             }
             break;
@@ -191,9 +252,14 @@ export function createDropTowerSimulation(options: DropTowerOptions = {}) {
 
       const mode = phase === 'IDLE' ? 'resting'
         : phase === 'REBOUND' || phase === 'SETTLING' ? 'settling' : 'active';
+      const movementProvenance = phase === 'IDLE' ? 'idle'
+        : phase === 'LIFTING' || phase === 'HOLDING' || input.drive.dropAuthorized ? 'structure' : 'inertia';
       state = {
         ...state, mode, phase, phaseElapsed, position, velocity, liftTarget,
-        dropStrength, latestDropEvent,
+        dropStrength, latestDropEvent, holdLossElapsed,
+        liftSpeed: phase === 'LIFTING' ? Math.abs(velocity) : 0,
+        reboundActive: phase === 'REBOUND', settlingActive: phase === 'SETTLING',
+        movementProvenance,
       };
     },
   };

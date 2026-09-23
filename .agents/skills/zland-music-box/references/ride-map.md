@@ -2694,3 +2694,41 @@ but its note, degree, and carrier evidence remain empty. Its short presentation
 envelope never delays or rewrites evidence. Free Bodies keep their existing
 spectrum atmosphere and shared-force simulation; only Park Map prominence is
 reduced.
+
+---
+
+# 35. Milestone 9I DropTower interpretation map
+
+DropTower now accepts authored and analyzed structure through one explicit drive
+contract. Authored fixtures keep their exact authored cues. Analyzed structure
+uses bounded build, tension, and release heuristics before it may request a
+physical state transition from the same existing simulation.
+
+```text
+current AudioWorld.structure snapshot
++ forward section-change cue at the current boundary
+→ DropTower real-structure adapter
+→ build / tension / release / lift intent / hold intent / drop authorization
+→ existing actor-local state machine
+```
+
+`section-change ≠ Drop`. Arrangement changes do not lift, hold, or drop the
+tower. High energy alone does not lift it. Drop authorization requires sustained
+preparation and combined strong release evidence, then starts a six-second
+cooldown. A hold may return through SETTLING when release evidence disappears.
+Seek reconciles only the destination snapshot and never replays historical
+drops.
+
+The two structure consumers remain independent:
+
+```text
+AudioWorld.structure
+├─→ Structural Attention
+└─→ DropTower
+```
+
+Neither controls the other. ParkPulse remains on the separate
+`rhythm → PhysicsWorld → receiver` path. DropTower structure evidence does not
+emit a shared-world force. `Musically Resting ≠ Physically Inactive`; inertia,
+fall, rebound, and settling may continue after current musical intent becomes
+neutral.

@@ -38,6 +38,7 @@ export function DropTowerView({ state, districtFit = false, doodle = false }: {
       <div><dt>Build / tension</dt><dd>{state.build.toFixed(2)} / {state.tension.toFixed(2)}</dd></div>
       <div><dt>Position / velocity</dt><dd>{state.position.toFixed(3)} / {state.velocity.toFixed(3)}</dd></div>
       <div><dt>Lift target / drop</dt><dd>{state.liftTarget.toFixed(3)} / {state.latestDropEvent ?? '—'}</dd></div>
+      <div><dt>Drive / source</dt><dd>{state.drive.source} / {state.movementProvenance}</dd></div>
     </dl>
   </section>;
 }

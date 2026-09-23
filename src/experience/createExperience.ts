@@ -14,8 +14,8 @@ import { toPirateShipInput } from '../rides/pirate-ship/adapter';
 import { createPirateShipSimulation } from '../rides/pirate-ship/simulation';
 import { toFerrisWheelInput } from '../rides/ferris-wheel/adapter';
 import { createFerrisWheelSimulation } from '../rides/ferris-wheel/simulation';
-import { toDropTowerInput } from '../rides/drop-tower/adapter';
 import { createDropTowerSimulation } from '../rides/drop-tower/simulation';
+import { createDropTowerStructureInterpreter } from '../rides/drop-tower/realStructureAdapter';
 import { toRollerCoasterInput } from '../rides/roller-coaster/adapter';
 import { createRollerCoasterSimulation } from '../rides/roller-coaster/simulation';
 import { planRollerCoasterTrack } from '../rides/roller-coaster/trackPlan';
@@ -29,9 +29,9 @@ import type { AudioMap } from '../audio/types';
 import { createParkPulse, PARK_PULSE_SOURCE_ID } from '../physics/ParkPulse';
 
 /** Composition only: systems keep their own state and ownership. */
-export function createExperience(now: () => number, reducedMotion = false) {
-  let clock: AudioClock | AudioPlaybackTransport = createPreviewAudioClock(milestoneSevenAAudioMap.duration, now);
-  let activeMap: AudioMap = milestoneSevenAAudioMap;
+export function createExperience(now: () => number, reducedMotion = false, fixtureMap: AudioMap = milestoneSevenAAudioMap) {
+  let clock: AudioClock | AudioPlaybackTransport = createPreviewAudioClock(fixtureMap.duration, now);
+  let activeMap: AudioMap = fixtureMap;
   let world = createAudioWorld(activeMap);
   let preparation: AudioPreparationState = {
     sourceMode: 'fixture', filename: null, duration: activeMap.duration,
@@ -46,6 +46,7 @@ export function createExperience(now: () => number, reducedMotion = false) {
   const pirateShip = createPirateShipSimulation({ reducedMotion });
   const ferrisWheel = createFerrisWheelSimulation({ reducedMotion });
   const dropTower = createDropTowerSimulation({ reducedMotion });
+  const dropTowerStructure = createDropTowerStructureInterpreter();
   let rollerCoasterTrack = createRollerCoasterTrack(activeMap, planRollerCoasterTrack);
   let rollerCoaster = createRollerCoasterSimulation({ reducedMotion, route: rollerCoasterTrack.map.route });
   const freeBodies = createFreeBodiesSimulation({ seed: FREE_BODIES_SEED, reducedMotion });
@@ -86,7 +87,7 @@ export function createExperience(now: () => number, reducedMotion = false) {
     }
     pirateShip.accept(toPirateShipInput(frame), dt);
     ferrisWheel.accept(toFerrisWheelInput(frame), dt);
-    dropTower.accept(toDropTowerInput(frame), dt);
+    dropTower.accept(dropTowerStructure.accept(frame, dt), dt);
     rollerCoaster.accept(toRollerCoasterInput(frame), dt);
     physicsWorld.updateWake(rollerCoasterToPhysicsWake(
       rollerCoaster.read(), simulationTime, rollerCoasterTrack.map, PARK_ROLLER_COASTER_BOUNDS,
@@ -134,7 +135,7 @@ export function createExperience(now: () => number, reducedMotion = false) {
     bumperCars.accept(toBumperCarsInput(frame), 0);
     pirateShip.accept(toPirateShipInput(frame), 0);
     ferrisWheel.accept(toFerrisWheelInput(frame), 0);
-    dropTower.accept(toDropTowerInput(frame), 0);
+    dropTower.accept(dropTowerStructure.accept(frame, 0), 0);
     rollerCoaster.accept(toRollerCoasterInput(frame), 0);
     physicsWorld.updateWake(rollerCoasterToPhysicsWake(
       rollerCoaster.read(), now(), rollerCoasterTrack.map, PARK_ROLLER_COASTER_BOUNDS,
@@ -162,7 +163,9 @@ export function createExperience(now: () => number, reducedMotion = false) {
     bumperCars.accept(toBumperCarsInput(frame), 0);
     pirateShip.accept(toPirateShipInput(frame), 0);
     ferrisWheel.accept(toFerrisWheelInput(frame), 0);
-    dropTower.accept(toDropTowerInput(frame), 0);
+    dropTowerStructure.reset();
+    dropTower.reset();
+    dropTower.accept(dropTowerStructure.accept(frame, 0), 0);
     rollerCoaster.accept(toRollerCoasterInput(frame), 0);
     parkPulse.reset();
     parkPulse.accept(frame, 0);
@@ -192,7 +195,7 @@ export function createExperience(now: () => number, reducedMotion = false) {
     },
     activateFixture() {
       stopClock();
-      activeMap = milestoneSevenAAudioMap;
+      activeMap = fixtureMap;
       rollerCoasterTrack = createRollerCoasterTrack(activeMap, planRollerCoasterTrack);
       rollerCoaster = createRollerCoasterSimulation({ reducedMotion, route: rollerCoasterTrack.map.route });
       world = createAudioWorld(activeMap);

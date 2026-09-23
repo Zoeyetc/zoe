@@ -155,7 +155,7 @@ test('AudioWorld resolves current analyzed section and crosses section-change on
   assert.equal(seek.snapshot.structure.label, 'B');
 });
 
-test('real analyzed structure is observable but cannot activate DropTower or RollerCoaster', () => {
+test('real analyzed structure remains isolated from authored-only base adapters', () => {
   const structureAnalysis = analyzeFixture(['A', 'B']);
   const map: AudioMap = { ...milestoneOneAudioMap, id: 'structure-actor-isolation', duration: 24,
     capabilities: { ...milestoneOneAudioMap.capabilities, structure: true },

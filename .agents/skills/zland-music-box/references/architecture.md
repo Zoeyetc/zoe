@@ -2729,3 +2729,36 @@ musically resting while neutral mechanical idle may continue. Missing harmony,
 tonal center, percussion, structure, or phrase evidence never fabricates those
 domains. Free Bodies retain canonical physics and use a lower renderer-only
 visual ceiling in the Park overview.
+
+---
+
+## 65. Milestone 9I real structure to DropTower
+
+Real analyzed structure reaches DropTower through an actor-owned interpretation
+layer:
+
+```text
+AudioWorld.structure
+→ DropTower structural interpretation
+→ DropTowerDrive
+→ actor-local IDLE / LIFTING / HOLDING / DROPPING / REBOUND / SETTLING
+```
+
+`section-change ≠ Drop`. A drop requires at least 1.5 seconds of sustained
+preparation, sufficient accumulated build and tension, a strong boundary,
+release score, confidence, and an expired six-second cooldown. The interpretation
+may request lift, hold, or release, but only the existing simulation changes
+physical state. Structure evidence never writes carriage position and never
+creates a PhysicsWorld impact directly.
+
+```text
+AudioWorld.structure
+├─→ StructuralAttentionPolicy
+└─→ DropTower interpretation
+```
+
+These are sibling consumers. Attention does not control DropTower, and
+DropTower does not change attention. ParkPulse remains a separate rhythm-driven
+PhysicsWorld source. `Musically Resting ≠ Physically Inactive`: a tower without
+current structural intent may still finish an already authorized fall, rebound,
+or settling motion.
