@@ -72,6 +72,17 @@ test('source position and direction derive from actual RollerCoaster route pose'
   assert.ok(Math.abs(Math.hypot(source.forward.x, source.forward.y) - 1) < 1e-9);
 });
 
+test('custom composition bounds relocate route and wake through the same adapter', () => {
+  const bounds = { x: 0.2, y: 0.58, width: 0.36, height: 0.34 };
+  const simulation = createRollerCoasterSimulation();
+  const state = simulation.read();
+  const wake = rollerCoasterToPhysicsWake(state, 1, bounds);
+  assert.deepEqual(wake.position, rollerCoasterRoutePointToWorld(state.riderPosition, bounds));
+  assert.deepEqual(wake.forward, rollerCoasterRouteForwardToWorld(state.riderForward, bounds));
+  assert.ok(wake.position.x >= bounds.x && wake.position.x <= bounds.x + bounds.width);
+  assert.ok(wake.position.y >= bounds.y && wake.position.y <= bounds.y + bounds.height);
+});
+
 test('wake strength derives from physical speed and not musical energy alone', () => {
   const simulation = createRollerCoasterSimulation();
   const stationary = simulation.read();

@@ -16,24 +16,37 @@ const bounds = {
   minY: Math.min(...routeSamples.map(projectedY)),
   maxY: Math.max(...routeSamples.map(projectedY)),
 };
-const WORLD_RECT = { x: 0.08, y: 0.12, width: 0.84, height: 0.76 } as const;
+export type RollerCoasterWorldBounds = Readonly<{ x: number; y: number; width: number; height: number }>;
+export const DEFAULT_ROLLER_COASTER_WORLD_BOUNDS: RollerCoasterWorldBounds = {
+  x: 0.08, y: 0.12, width: 0.84, height: 0.76,
+};
 
-export function rollerCoasterRoutePointToWorld(point: { x: number; y: number; z: number }): WorldPoint {
+export function rollerCoasterRoutePointToWorld(
+  point: { x: number; y: number; z: number },
+  worldBounds: RollerCoasterWorldBounds = DEFAULT_ROLLER_COASTER_WORLD_BOUNDS,
+): WorldPoint {
   return {
-    x: WORLD_RECT.x + clamp01((point.x - bounds.minX) / Math.max(1, bounds.maxX - bounds.minX)) * WORLD_RECT.width,
-    y: WORLD_RECT.y + clamp01((projectedY(point) - bounds.minY) / Math.max(1, bounds.maxY - bounds.minY)) * WORLD_RECT.height,
+    x: worldBounds.x + clamp01((point.x - bounds.minX) / Math.max(1, bounds.maxX - bounds.minX)) * worldBounds.width,
+    y: worldBounds.y + clamp01((projectedY(point) - bounds.minY) / Math.max(1, bounds.maxY - bounds.minY)) * worldBounds.height,
   };
 }
 
-export function rollerCoasterRouteForwardToWorld(forward: { x: number; y: number; z: number }): WorldPoint {
-  const x = forward.x * WORLD_RECT.width / Math.max(1, bounds.maxX - bounds.minX);
-  const y = (forward.y - forward.z * 0.18) * WORLD_RECT.height / Math.max(1, bounds.maxY - bounds.minY);
+export function rollerCoasterRouteForwardToWorld(
+  forward: { x: number; y: number; z: number },
+  worldBounds: RollerCoasterWorldBounds = DEFAULT_ROLLER_COASTER_WORLD_BOUNDS,
+): WorldPoint {
+  const x = forward.x * worldBounds.width / Math.max(1, bounds.maxX - bounds.minX);
+  const y = (forward.y - forward.z * 0.18) * worldBounds.height / Math.max(1, bounds.maxY - bounds.minY);
   const length = Math.hypot(x, y);
   return length > 1e-9 ? { x: x / length, y: y / length } : { x: 1, y: 0 };
 }
 
 /** Explicit canonical-route XYZ → PhysicsWorld normalized-2D conversion. */
-export function rollerCoasterToPhysicsWake(state: RollerCoasterState, timestamp: number): PhysicsWake {
+export function rollerCoasterToPhysicsWake(
+  state: RollerCoasterState,
+  timestamp: number,
+  worldBounds: RollerCoasterWorldBounds = DEFAULT_ROLLER_COASTER_WORLD_BOUNDS,
+): PhysicsWake {
   const speedProgress = clamp01(
     (state.velocity - ROLLER_WAKE_SPEED_THRESHOLD) / (ROLLER_MAX_VELOCITY - ROLLER_WAKE_SPEED_THRESHOLD),
   );
@@ -42,8 +55,8 @@ export function rollerCoasterToPhysicsWake(state: RollerCoasterState, timestamp:
   return {
     sourceId: ROLLER_WAKE_SOURCE_ID,
     sourceType: 'wake',
-    position: rollerCoasterRoutePointToWorld(state.riderPosition),
-    forward: rollerCoasterRouteForwardToWorld(state.riderForward),
+    position: rollerCoasterRoutePointToWorld(state.riderPosition, worldBounds),
+    forward: rollerCoasterRouteForwardToWorld(state.riderForward, worldBounds),
     speed: state.velocity,
     acceleration: state.acceleration,
     strength,

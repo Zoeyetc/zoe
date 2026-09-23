@@ -4,7 +4,10 @@ const PIVOT_X = 280;
 const PIVOT_Y = 46;
 const ARM_LENGTH = 176;
 
-export function PirateShipView({ state }: { state: PirateShipState }) {
+export function PirateShipView({ state, districtFit = false }: {
+  state: PirateShipState;
+  districtFit?: boolean;
+}) {
   const degrees = state.angle * 180 / Math.PI;
   return <section aria-labelledby="pirate-ship-heading">
     <div className="section-heading">
@@ -12,7 +15,9 @@ export function PirateShipView({ state }: { state: PirateShipState }) {
       <span className={`status status--${state.mode}`}>{state.mode}</span>
     </div>
     <div className="pirate-stage">
-      <svg className="pirate-machine" viewBox="0 0 560 300" role="img"
+      <svg className="pirate-machine" viewBox="0 0 560 300"
+        preserveAspectRatio={districtFit ? 'none' : 'xMidYMid meet'}
+        data-district-fit={districtFit || undefined} role="img"
         aria-label={`Pendulum actor at ${degrees.toFixed(1)} degrees; ${state.mode}`}>
         <path className="pirate-support" d={`M90 282 L${PIVOT_X} ${PIVOT_Y} L470 282 M70 282 H490`} />
         <circle className="pirate-pivot" cx={PIVOT_X} cy={PIVOT_Y} r="9" />

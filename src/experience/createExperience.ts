@@ -20,6 +20,7 @@ import { toRollerCoasterInput } from '../rides/roller-coaster/adapter';
 import { createRollerCoasterSimulation } from '../rides/roller-coaster/simulation';
 import { toFreeBodiesInput } from '../free-bodies/adapter';
 import { createFreeBodiesSimulation, FREE_BODIES_SEED } from '../free-bodies/simulation';
+import { PARK_BUMPER_CARS_BOUNDS, PARK_ROLLER_COASTER_BOUNDS } from './park/config';
 
 /** Composition only: systems keep their own state and ownership. */
 export function createExperience(now: () => number, reducedMotion = false) {
@@ -63,13 +64,19 @@ export function createExperience(now: () => number, reducedMotion = false) {
     carousel.accept(toCarouselInput(frame), dt);
     bumperCars.accept(toBumperCarsInput(frame), dt);
     for (const collision of bumperCars.drainCollisions()) {
-      physicsWorld.publishImpact(bumperCollisionToWorldImpact(collision, bumperCars.read().arena));
+      physicsWorld.publishImpact(bumperCollisionToWorldImpact(
+        collision,
+        bumperCars.read().arena,
+        PARK_BUMPER_CARS_BOUNDS,
+      ));
     }
     pirateShip.accept(toPirateShipInput(frame), dt);
     ferrisWheel.accept(toFerrisWheelInput(frame), dt);
     dropTower.accept(toDropTowerInput(frame), dt);
     rollerCoaster.accept(toRollerCoasterInput(frame), dt);
-    physicsWorld.updateWake(rollerCoasterToPhysicsWake(rollerCoaster.read(), simulationTime), dt);
+    physicsWorld.updateWake(rollerCoasterToPhysicsWake(
+      rollerCoaster.read(), simulationTime, PARK_ROLLER_COASTER_BOUNDS,
+    ), dt);
     freeBodies.accept(toFreeBodiesInput(frame), dt);
     content.step(dt);
     return {
@@ -93,7 +100,9 @@ export function createExperience(now: () => number, reducedMotion = false) {
     ferrisWheel.accept(toFerrisWheelInput(frame), 0);
     dropTower.accept(toDropTowerInput(frame), 0);
     rollerCoaster.accept(toRollerCoasterInput(frame), 0);
-    physicsWorld.updateWake(rollerCoasterToPhysicsWake(rollerCoaster.read(), now()), 0);
+    physicsWorld.updateWake(rollerCoasterToPhysicsWake(
+      rollerCoaster.read(), now(), PARK_ROLLER_COASTER_BOUNDS,
+    ), 0);
     freeBodies.accept(toFreeBodiesInput(frame), 0);
     if (time === 0) { physicsWorld.clear(); content.reset(); }
   };

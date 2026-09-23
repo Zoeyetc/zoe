@@ -4,7 +4,10 @@ const TOP_Y = 54;
 const REST_Y = 382;
 const CARRIAGE_WIDTH = 220;
 
-export function DropTowerView({ state }: { state: DropTowerState }) {
+export function DropTowerView({ state, districtFit = false }: {
+  state: DropTowerState;
+  districtFit?: boolean;
+}) {
   const carriageY = TOP_Y + (REST_Y - TOP_Y) * state.position;
   return <section data-actor="drop-tower" aria-labelledby="drop-tower-heading">
     <div className="section-heading">
@@ -12,7 +15,9 @@ export function DropTowerView({ state }: { state: DropTowerState }) {
       <span className={`status status--${state.mode}`}>{state.phase.toLowerCase()}</span>
     </div>
     <div className="drop-tower-stage">
-      <svg className="drop-tower-machine" viewBox="0 0 560 450" role="img"
+      <svg className="drop-tower-machine" viewBox="0 0 560 450"
+        preserveAspectRatio={districtFit ? 'none' : 'xMidYMid meet'}
+        data-district-fit={districtFit || undefined} role="img"
         aria-label={`Drop tower ${state.phase.toLowerCase()}; carriage position ${state.position.toFixed(2)}`}>
         <line className="drop-tower-guide" x1="280" y1="36" x2="280" y2="420" />
         <line className="drop-tower-bound" x1="250" y1={TOP_Y} x2="310" y2={TOP_Y} />

@@ -4,7 +4,7 @@ import { milestoneTwoBAudioMap } from '../src/audio/AudioMap.ts';
 import { createAudioWorld } from '../src/audio/AudioWorld.ts';
 import { createAnchoredReceiver } from '../src/physics/AnchoredReceiver.ts';
 import { createPhysicsWorld } from '../src/physics/PhysicsWorld.ts';
-import { bumperCollisionToWorldImpact } from '../src/physics/adapters/bumperCars.ts';
+import { bumperArenaPointToWorld, bumperCollisionToWorldImpact } from '../src/physics/adapters/bumperCars.ts';
 import type { PhysicsImpact } from '../src/physics/types.ts';
 import type { BumperCarsInput } from '../src/rides/bumper-cars/adapter.ts';
 import { toBumperCarsInput } from '../src/rides/bumper-cars/adapter.ts';
@@ -83,7 +83,24 @@ test('world-space impact position derives from collision geometry', () => {
   };
   const converted = bumperCollisionToWorldImpact(collision, { width: 560, height: 280 });
   assert.deepEqual(converted.position, { x: 0.5, y: 0.25 });
-  assert.equal(converted.direction, collision.normal);
+  assert.deepEqual(converted.direction, collision.normal);
+});
+
+test('bounded BumperCars transform keeps rendered and impact positions in the same district', () => {
+  const bounds = { x: 0.69, y: 0.65, width: 0.26, height: 0.23 };
+  const arena = { width: 560, height: 280 };
+  const point = { x: 420, y: 70 };
+  const collision: BumperCollision = {
+    id: 'bounded', bodyA: 0, bodyB: 1, point,
+    normal: { x: 0, y: 1 }, relativeSpeed: 40, impulse: 30, time: 2,
+  };
+  const rendered = bumperArenaPointToWorld(point, arena, bounds);
+  const impact = bumperCollisionToWorldImpact(collision, arena, bounds);
+  assert.deepEqual(impact.position, rendered);
+  assert.ok(impact.position.x >= bounds.x && impact.position.x <= bounds.x + bounds.width);
+  assert.ok(impact.position.y >= bounds.y && impact.position.y <= bounds.y + bounds.height);
+  assert.equal(impact.radius, 0.42);
+  assert.ok(Math.abs(Math.hypot(impact.direction.x, impact.direction.y) - 1) < 1e-9);
 });
 
 test('world impact strength increases with physical collision impulse', () => {

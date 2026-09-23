@@ -1,8 +1,18 @@
 import type { ExperienceState } from '../experience/createExperience';
+import type { AttentionState } from '../experience/attention';
+import { PARK_FOCUS_BOUNDS, PARK_OVERVIEW_VIEWPORT, focusViewport } from '../experience/park/config';
 
-export function DebugConsole({ state }: { state: ExperienceState }) {
+export function DebugConsole({ state, attention }: { state: ExperienceState; attention?: AttentionState }) {
+  const focusBounds = attention?.focusActorId ? PARK_FOCUS_BOUNDS[attention.focusActorId] : null;
+  const viewport = focusBounds ? focusViewport(focusBounds) : PARK_OVERVIEW_VIEWPORT;
   return <section aria-labelledby="debug-heading">
     <h2 id="debug-heading">DebugConsole</h2>
+    {attention && <p className="event-log" data-debug-attention><strong>Experience Attention:</strong>{' '}
+      mode {attention.mode} · manual focus {attention.focusActorId ?? '—'} · automatic primary {attention.primaryActorId ?? '—'} ·{' '}
+      transition {attention.transition} · roles {Object.entries(attention.roles).map(([id, role]) => `${id}:${role}`).join(', ')} ·{' '}
+      focus bounds {focusBounds ? `${focusBounds.x}, ${focusBounds.y}, ${focusBounds.width}, ${focusBounds.height}` : 'overview'} ·{' '}
+      viewport scale {viewport.scale.toFixed(3)} translate {viewport.x.toFixed(3)}, {viewport.y.toFixed(3)}
+    </p>}
     <p>AudioWorld: timeline crossings active · BumperCars seed: {state.bumperCars.seed}</p>
     <p className="event-log"><strong>Spectrum / Free Bodies:</strong>{' '}
       available {String(state.frame.snapshot.spectrum.available)} · brightness {state.frame.snapshot.spectrum.brightness.toFixed(2)} ·{' '}
