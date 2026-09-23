@@ -45,7 +45,8 @@ test('Park-only doodle treatment leaves precise evidence membership intact', () 
 });
 
 test('annotations remain sparse and debug overlays are outside the doodle utility', () => {
-  assert.equal((parkSource.match(/park-annotation-line/g) ?? []).length, 4);
+  assert.match(parkSource, /<LiveAnnotationSystem/);
+  assert.doesNotMatch(parkSource, /park-annotation-line/);
   assert.doesNotMatch(geometrySource, /PhysicsDebug|confidence|AudioMap/);
   assert.match(parkSource, /<PhysicsDebugOverlay/);
 });

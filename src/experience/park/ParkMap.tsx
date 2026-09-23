@@ -10,7 +10,8 @@ import { AnchoredContentView } from '../../physics/AnchoredContentView';
 import type { WorldBounds } from '../../physics/AnchoredContentParticipant';
 import { bumperArenaPointToWorld } from '../../physics/adapters/bumperCars';
 import { ParkTrain } from './ParkTrain';
-import { DoodleCircle, DoodlePath, DoodlePolyline } from '../doodle/DoodleSvg';
+import { DoodleCircle, DoodlePath } from '../doodle/DoodleSvg';
+import { LiveAnnotationSystem } from '../annotations/LiveAnnotationSystem';
 import type { AttentionActorId, AttentionRole, AttentionState } from '../attention';
 import {
   PARK_ACTOR_ANCHORS, PARK_BUMPER_CARS_BOUNDS, PARK_CONTENT_BOUNDS,
@@ -214,20 +215,6 @@ export function ParkMap({
           focused={attention.focusActorId === 'rollerCoaster'} />
         <ParkBumperCars state={state.bumperCars} role={attention.roles.bumperCars}
           focused={attention.focusActorId === 'bumperCars'} />
-        <g className="park-annotations" aria-hidden="true">
-          <DoodlePolyline className="park-annotation-line" seed="annotation-carousel" roughness={1.2}
-            points={[{ x: 250, y: 91 }, { x: 279, y: 75 }, { x: 322, y: 78 }]} />
-          <text x="326" y="81">ROTATION / NOTE LIFT</text>
-          <DoodlePolyline className="park-annotation-line" seed="annotation-ferris" roughness={1.2}
-            points={[{ x: 827, y: 78 }, { x: 855, y: 61 }, { x: 900, y: 64 }]} />
-          <text x="970" y="67" textAnchor="end">12 SUSPENDED CARRIERS</text>
-          <DoodlePolyline className="park-annotation-line" seed="annotation-drop" roughness={1.35}
-            points={[{ x: 116, y: 98 }, { x: 86, y: 82 }, { x: 48, y: 88 }]} />
-          <text x="34" y="80">LIFT / HOLD / RELEASE</text>
-          <DoodlePolyline className="park-annotation-line" seed="annotation-coaster" roughness={1.45}
-            points={[{ x: 316, y: 522 }, { x: 349, y: 540 }, { x: 405, y: 537 }]} />
-          <text x="410" y="540">PHRASE ROUTE</text>
-        </g>
       </svg>
 
       {(['carousel', 'ferrisWheel', 'pirateShip', 'dropTower'] as const).map(actor => <div key={actor}
@@ -245,6 +232,8 @@ export function ParkMap({
         {actor === 'dropTower' && <DropTowerView state={state.dropTower}
           districtFit={PARK_DROP_TOWER_RENDERER.fit === 'district-height'} doodle />}
       </div>)}
+
+      <LiveAnnotationSystem state={state} attention={attention} />
 
       <div className="park-gate" style={boundsStyle(PARK_GATE_BOUNDS)} data-park-landmark="gate"
         data-spatial-role="experience-infrastructure">

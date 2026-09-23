@@ -322,3 +322,18 @@ independent sibling consumers. ParkPulse remains a separate rhythm-driven
 PhysicsWorld path, and analyzed structure does not create a direct shared-world
 impact. `Musically Resting ≠ Physically Inactive`: an authorized fall, rebound,
 or settling trajectory may continue after current structure becomes neutral.
+
+Milestone 8C adds a presentation-only live annotation layer to the integrated
+Park. Six reusable actor annotations project existing public Musical Evidence,
+actor state, and selected PhysicsWorld diagnostics into compact architectural
+callouts with canonical anchors and deterministic leader-line placement.
+Overview shows at most a few values per actor; manual Focus expands only the
+selected actor. Ambient and Resting attention roles reduce density without
+changing the underlying evidence.
+
+Annotations follow the existing 10 Hz UI instrumentation refresh and do not add
+a musical clock. They never write AudioWorld, actor simulations, PhysicsWorld,
+Attention, TrackMap, or controls. `Annotation observes system truth; annotation
+never owns system truth.` Default Park annotation remains distinct from the full
+DebugConsole. Facilities may remain mechanically still while live evidence gives
+the Park continuous informational activity.

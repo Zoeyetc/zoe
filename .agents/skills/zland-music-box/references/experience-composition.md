@@ -1507,3 +1507,31 @@ one song
 → real shared physical consequences
 → a spatial score that can be watched and explored
 ```
+
+---
+
+## 59. Milestone 8C annotation composition
+
+Live annotations are a presentation-only sibling of actor rendering:
+
+```text
+AudioWorld / actor state / selected PhysicsWorld diagnostics
+→ pure annotation projection
+→ canonical actor anchor
+→ deterministic Park layout
+→ leader line + compact fields
+```
+
+Annotation observes system truth. Annotation never owns system truth. It cannot
+write AudioWorld, actor simulation, PhysicsWorld, AttentionState, TrackMap, or
+ControlSurface state.
+
+Overview keeps one small annotation per major musical actor. Primary and
+Secondary roles show the normal compact field set; Ambient and Resting roles use
+less detail without rewriting exact evidence. Manual Focus expands only the
+selected actor while using the same canonical anchor and Focus viewport
+transform. DebugConsole remains the complete developer surface.
+
+Facilities do not need continuous physical motion to appear alive. At a bounded
+presentation update rate, changing evidence and measured physical values provide
+informational activity without inventing actor motion.

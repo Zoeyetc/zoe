@@ -984,3 +984,29 @@ expressive motion
 The world should be restrained when nothing is happening.
 
 The music should make the world become legible through behavior.
+
+---
+
+## 41. Milestone 8C live annotation language
+
+Facilities do not need to move continuously to appear alive. Live data may
+provide continuous informational motion while actor simulation remains
+physically restrained.
+
+The Park annotation layer uses precise leader lines, small uppercase labels,
+tabular technical values, and the existing single evidence accent. Default
+Overview annotations contain at most a few selected fields. Manual Focus expands
+only the selected actor into a concise engineering inspection. Unavailable
+evidence is shown as `—`, `LISTENING`, or another compact neutral state; it is
+never replaced with a fabricated claim.
+
+```text
+Musical Evidence text → cleanest
+Leader line → precise / lightly constructed
+Actor mechanics → lightly doodled
+District boundary → loosest
+```
+
+Default Park annotation is not DebugConsole. It must remain sparse, use no raw
+arrays or explanatory prose, and must not become a HUD, dashboard, or floating
+card system.

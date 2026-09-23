@@ -73,7 +73,7 @@ test('Park presentation caps Free Bodies and keeps annotations and content insid
   assert.ok(PARK_FREE_BODY_PRESENTATION.selectedOpacity < 0.5);
   assert.ok(PARK_FREE_BODY_PRESENTATION.maximumRadius <= 8);
   assert.ok(PARK_CONTENT_BOUNDS.y + PARK_CONTENT_BOUNDS.height < 0.7);
-  assert.match(parkSource, /textAnchor="end">12 SUSPENDED CARRIERS/);
+  assert.match(parkSource, /<LiveAnnotationSystem state=\{state\} attention=\{attention\}/);
   assert.match(parkSource, /Math\.min\(PARK_FREE_BODY_PRESENTATION\.maximumRadius/);
 });
 

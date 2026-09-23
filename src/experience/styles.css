@@ -23,6 +23,7 @@
   --stroke-infrastructure: .65px;
   --stroke-guide: .5px;
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-family: var(--font-sans);
   color: var(--z-structure-primary);
   background: var(--z-background);
@@ -238,10 +239,25 @@ pre { overflow: auto; font-size: .8rem; }
 .park-node-label { position: absolute; z-index: 4; top: .15rem; left: .3rem; color: var(--z-muted-text); font-size: .59rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; transform: rotate(-.7deg); transform-origin: left center; }
 .park-node--ferrisWheel .park-node-label, .park-node--dropTower .park-node-label { transform: rotate(.65deg); }
 .park-node--ferrisWheel .park-node-label { padding: .08rem .22rem; background: color-mix(in srgb, var(--z-surface) 88%, transparent); }
-.park-annotations { pointer-events: none; opacity: .58; }
-.park-annotation-line { fill: none; stroke: var(--z-structure-secondary); stroke-width: .8; stroke-linecap: round; stroke-linejoin: round; }
-.park-annotations text { fill: var(--z-muted-text); font: 600 7px/1 var(--font-sans); letter-spacing: .45px; }
-.park-map[data-attention-mode='focus'] .park-annotations { opacity: .74; }
+.live-annotation-system { position: absolute; z-index: 6; inset: 0; pointer-events: none; }
+.live-annotation-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.live-annotation-leader polyline, .live-annotation-leader line { fill: none; stroke: var(--z-structure-secondary); stroke-width: .8; stroke-linecap: square; stroke-linejoin: miter; vector-effect: non-scaling-stroke; }
+.live-annotation-leader circle { fill: var(--z-surface); stroke: var(--z-evidence); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.live-annotation { position: absolute; box-sizing: border-box; padding: .23rem .28rem .22rem .34rem; border: 0; border-top: 1px solid var(--z-structure-secondary); border-left: 1px solid var(--z-structure-secondary); background: color-mix(in srgb, var(--z-surface) 84%, transparent); color: var(--z-structure-primary); transform: translateZ(0); }
+.live-annotation-heading { display: flex; align-items: baseline; justify-content: space-between; gap: .25rem; margin-bottom: .16rem; color: var(--z-muted-text); font: 750 .43rem/1 var(--font-sans); letter-spacing: .11em; text-transform: uppercase; }
+.live-annotation-heading i { overflow: hidden; max-width: 48%; font-style: normal; font-weight: 600; opacity: .72; text-overflow: ellipsis; white-space: nowrap; }
+.live-annotation dl { display: grid; gap: .08rem; margin: 0; }
+.live-annotation dl > div { display: grid; grid-template-columns: minmax(2.85rem, .9fr) minmax(0, 1.35fr); align-items: baseline; gap: .18rem; min-width: 0; }
+.live-annotation dt { overflow: hidden; color: var(--z-muted-text); font: 700 .42rem/1.18 var(--font-sans); letter-spacing: .08em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.live-annotation dd { overflow: hidden; margin: 0; color: var(--z-structure-primary); font: 700 .48rem/1.18 var(--font-mono); font-variant-numeric: tabular-nums lining-nums; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.live-annotation [data-emphasis='evidence'] dd { color: var(--z-evidence-strong); }
+.live-annotation [data-emphasis='physical'] dd { color: var(--z-structure-primary); }
+.live-annotation [data-emphasis='muted'] dd, .live-annotation[data-annotation-state='unavailable'] { color: var(--z-muted-text); }
+.live-annotation[data-attention-role='ambient'] { opacity: .78; }
+.live-annotation[data-attention-role='resting'] { opacity: .68; }
+.live-annotation[data-annotation-detail='focus'] { padding: .3rem .38rem .32rem .42rem; border-top-color: var(--z-evidence); border-left-color: var(--z-evidence); }
+.live-annotation[data-annotation-detail='focus'] dt { font-size: .44rem; }
+.live-annotation[data-annotation-detail='focus'] dd { font-size: .51rem; }
 .park-node > section { width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; }
 .park-node > section > .section-heading, .park-node > section > .eyebrow,
 .park-node > section > h2, .park-node > section > p, .park-node > section > .actor-readout { display: none; }
@@ -270,8 +286,9 @@ pre { overflow: auto; font-size: .8rem; }
   .park-map { min-height: 360px; }
   .park-node-label, .park-map-label { display: none; }
   .park-map .content-participant-response span, .park-map .content-participant-response .eyebrow { display: none; }
+  .live-annotation { font-size: .85em; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .park-viewport, .park-node, .park-map-base [data-park-actor] { transition-duration: 1ms; }
+  .park-viewport, .park-node, .park-map-base [data-park-actor], .live-annotation { transition-duration: 1ms; }
 }
 @media (max-width: 620px) { .actor-readout { grid-template-columns: 1fr 1fr; } }

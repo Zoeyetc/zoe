@@ -122,7 +122,7 @@ export function App() {
 
   return <main className={`experience experience--${mode}`}>
     <header className="experience-header">
-      <div><h1>Z.land Music Box</h1><p>Milestone 9I · Real Structure → DropTower</p></div>
+      <div><h1>Z.land Music Box</h1><p>Milestone 8C · Live Annotation System</p></div>
       <nav aria-label="Experience mode">
         <a href="./" aria-current={mode === 'park' ? 'page' : undefined}>Park Map</a>
         <a href="?mode=workbench" aria-current={mode === 'workbench' ? 'page' : undefined}>Development Workbench</a>
