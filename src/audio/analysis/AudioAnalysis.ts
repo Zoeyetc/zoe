@@ -1,6 +1,6 @@
 import type { AudioMap, AudioAnalysisMetadata, SpectrumRegion, AudioAmplitudeRegion, RhythmSection } from '../types';
 import { analyzeRhythm } from './RhythmAnalysis.ts';
-import { analyzeMelody } from './MelodyAnalysis.ts';
+import { analyzeMelodyWithEvidence } from './MelodyAnalysis.ts';
 import { analyzeHarmony } from './HarmonyAnalysis.ts';
 import { analyzeTonalCenter } from './TonalCenterAnalysis.ts';
 import { analyzeStructure } from './StructureAnalysis.ts';
@@ -242,7 +242,8 @@ function finalize(frames: RawFrame[], mono: Float32Array, pcm: PcmAudio, source:
     ? [{ id: 'real-rhythm', start: 0, end: duration, bpm: rhythmAnalysis.bpm,
       beatsPerBar: null, groove: rhythmAnalysis.groove, swing: rhythmAnalysis.swing }]
     : null;
-  const melodyAnalysis = analyzeMelody({ mono, sampleRate: pcm.sampleRate });
+  const melodyResult = analyzeMelodyWithEvidence({ mono, sampleRate: pcm.sampleRate });
+  const melodyAnalysis = melodyResult.analysis;
   const melody = melodyAnalysis.available ? melodyAnalysis.notes : null;
   const harmonyAnalysis = analyzeHarmony({ mono, sampleRate: pcm.sampleRate });
   const harmony = harmonyAnalysis.available ? harmonyAnalysis.segments : null;
@@ -270,7 +271,8 @@ function finalize(frames: RawFrame[], mono: Float32Array, pcm: PcmAudio, source:
       percussion: percussionAnalysis.available,
       harmony: harmonyAnalysis.available, tonalCenter: tonalCenterAnalysis.available,
       structure: structureAnalysis.available, spectrum: true },
-    melody, melodyAnalysis, percussion: percussionAnalysis.available ? percussionAnalysis.events : null,
+    melody, melodyAnalysis, melodyEvidence: melodyResult.evidence,
+    percussion: percussionAnalysis.available ? percussionAnalysis.events : null,
     percussionAnalysis, rhythm, rhythmAnalysis,
     harmony, harmonyAnalysis, tonalCenterAnalysis, structureAnalysis, structure: null, drops: null,
     spectrum, amplitude,

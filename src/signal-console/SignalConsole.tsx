@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AudioEvent, AudioFrame } from '../audio/types';
 import { selectSignalInterpretationFields, selectSignalTelemetry, signalPhraseGroups,
-  signalPresentationKey, type SignalField } from './signalTelemetry';
+  signalPresentationKey, type MelodyInspectTelemetry, type SignalField,
+  type HearingDomain } from './signalTelemetry';
 import type { SignalConsoleObservation } from './types';
 import './signalConsole.css';
 
@@ -10,6 +11,8 @@ type SignalConsoleProps = Readonly<{
   interpretation: AudioFrame;
   events: readonly AudioEvent[];
 }>;
+
+type MelodyEvidenceVisualState = 'accepted' | 'active' | 'candidate' | 'rejected' | 'empty';
 
 function displayField(item: SignalField) {
   if (item.label === 'PITCH HZ') return <><span className="signal-value">{item.value}</span> Hz</>;
@@ -22,21 +25,77 @@ function PhraseGroups({ fields }: { fields: readonly SignalField[] }) {
     <span className="signal-phrase-group" data-signal-group={groupIndex}
       data-signal-width={group.some(item => item.width === 'wide') ? 'wide' : 'standard'}
       key={group.map(item => item.label).join('-')}>
-      {group.map((item, index) => <span className="signal-token" data-signal-role={item.role} key={item.label}>
-        {displayField(item)}{index < group.length - 1 ? <span className="signal-separator"> · </span> : null}
-      </span>)}
+      {group.map((item, index) =>
+        <span className="signal-token" data-signal-role={item.role}
+          data-signal-metric={item.label.toLowerCase().replaceAll(' ', '-')}
+          key={item.label}>
+          {displayField(item)}{index < group.length - 1 ? <span className="signal-separator"> · </span> : null}
+        </span>)}
     </span>)}</span>;
 }
 
-function TelemetryLine({ label, fields, layer }: {
+function TelemetryLine({ label, fields, layer, evidenceState }: {
   label: string;
   fields: readonly SignalField[];
   layer: 'analysis' | 'interpretation';
+  evidenceState?: MelodyEvidenceVisualState;
 }) {
-  return <div className="signal-telemetry-line" data-signal-domain={label.toLowerCase()} data-signal-layer={layer}>
+  return <div className="signal-telemetry-line" data-signal-domain={label.toLowerCase()} data-signal-layer={layer}
+    data-melody-evidence-state={evidenceState}>
     <strong>{label.charAt(0) + label.slice(1).toLowerCase()}:</strong>
     <PhraseGroups fields={fields} />
   </div>;
+}
+
+function HearingSummary({ domains }: { domains: readonly HearingDomain[] }) {
+  return <section className="signal-hearing" data-signal-layer="hearing">
+    <header><h3>HEARING</h3></header>
+    <div className="signal-hearing-lines">{domains.map(domain =>
+      <div className="signal-hearing-line" data-hearing-domain={domain.id.toLowerCase()} key={domain.id}>
+        <strong>{domain.id.charAt(0) + domain.id.slice(1).toLowerCase()}</strong>
+        <span className="signal-hearing-status" data-hearing-status={domain.status}>{domain.status}</span>
+      </div>)}</div>
+  </section>;
+}
+
+function MelodyInspect({ inspect, acceptedNote, acceptedConfidence }: {
+  inspect: MelodyInspectTelemetry;
+  acceptedNote: string;
+  acceptedConfidence: string;
+}) {
+  const accepted: readonly SignalField[] = [
+    { label: 'NOTE', value: acceptedNote, role: 'anchor' },
+    { label: 'CONFIDENCE', value: acceptedConfidence, role: 'signal' },
+  ];
+  const rejectedTotal = Number(inspect.rejectedSummary.find(item => item.label === 'TOTAL')?.value ?? 0);
+  const pathActive = inspect.path.some(item => item.value !== '—');
+  const decisionResult = inspect.decision.find(item => item.label === 'RESULT')?.value;
+  const trackDecision = inspect.track.find(item => item.label === 'DECISION')?.value;
+  return <details className="signal-inspect" data-signal-domain="melody-inspect">
+    <summary>MELODY / INSPECT</summary>
+    <div className="signal-inspect-stream">
+      <TelemetryLine label="Frame" fields={inspect.frame} layer="analysis" />
+      <TelemetryLine label="Generation" fields={inspect.generation} layer="analysis" />
+      <TelemetryLine label="Rejected pre-filter" fields={inspect.rejectedSummary} layer="analysis"
+        evidenceState={rejectedTotal > 0 ? 'rejected' : 'empty'} />
+      {inspect.rejectedCandidates.map(candidate => <TelemetryLine label={candidate.id} fields={candidate.fields}
+        layer="analysis" evidenceState={candidate.fields.some(item => item.value !== '—') ? 'rejected' : 'empty'}
+        key={candidate.id} />)}
+      {inspect.candidates.map(candidate => <TelemetryLine label={candidate.id} fields={candidate.fields}
+        layer="analysis" evidenceState={candidate.fields.some(item => item.value !== '—') ? 'candidate' : 'empty'}
+        key={candidate.id} />)}
+      <TelemetryLine label="Path" fields={inspect.path} layer="analysis"
+        evidenceState={pathActive ? 'active' : 'empty'} />
+      <TelemetryLine label="Decision" fields={inspect.decision} layer="analysis"
+        evidenceState={decisionResult === 'ACCEPTED' ? 'active'
+          : decisionResult === 'REJECTED' ? 'rejected' : 'empty'} />
+      <TelemetryLine label="Track" fields={inspect.track} layer="analysis"
+        evidenceState={trackDecision === 'ACCEPTED' ? 'active'
+          : trackDecision === 'REJECTED' ? 'rejected' : 'empty'} />
+      <TelemetryLine label="Accepted" fields={accepted} layer="interpretation"
+        evidenceState={acceptedNote !== '—' ? 'accepted' : 'empty'} />
+    </div>
+  </details>;
 }
 
 function eventText(event: AudioEvent) {
@@ -78,7 +137,7 @@ export function SignalConsole({ observe, interpretation, events }: SignalConsole
     data-signal-pitch-index={telemetry.indexes.pitch}
     data-signal-update-count={updateCountRef.current} data-signal-render-count={renderCountRef.current}>
     <header className="signal-console-heading">
-      <div><span>ISOLATED ANALYSIS EXTRACTION · v0.1</span><h2 id="signal-console-heading">SignalConsole</h2></div>
+      <h2 id="signal-console-heading">SignalConsole</h2>
     </header>
     <div className="signal-stream">
       <div className="signal-telemetry-line signal-telemetry-line--transport" data-signal-layer="transport">
@@ -94,11 +153,15 @@ export function SignalConsole({ observe, interpretation, events }: SignalConsole
             {telemetry.ended ? 'ENDED' : telemetry.transport.playing ? 'PLAYING' : 'PAUSED'}</span></span>
         </span></span>
       </div>
+      <HearingSummary domains={telemetry.hearing} />
       <section className="signal-stream-section" data-signal-layer="analysis">
         <header><h3>ANALYSIS</h3></header>
         {telemetry.domains.map(domain => <TelemetryLine label={domain.id} fields={domain.fields}
           layer={domain.layer} key={domain.id} />)}
       </section>
+      <MelodyInspect inspect={telemetry.melodyInspect}
+        acceptedNote={telemetry.ended ? '—' : snapshot.melody.noteName ?? '—'}
+        acceptedConfidence={telemetry.ended ? '—' : snapshot.melody.confidence.toFixed(3)} />
       <section className="signal-stream-section signal-stream-section--interpretation" data-signal-domain="interpretation"
         data-signal-layer="interpretation">
         <header><h3>INTERPRETATION</h3></header>

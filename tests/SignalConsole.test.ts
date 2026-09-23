@@ -5,6 +5,7 @@ import type { AudioMap } from '../src/audio/types.ts';
 import { lookupSnapshot } from '../src/audio/AudioWorld.ts';
 import { selectSignalInterpretationFields, selectSignalTelemetry, signalPhraseGroups } from '../src/signal-console/signalTelemetry.ts';
 import type { SignalConsoleObservation } from '../src/signal-console/types.ts';
+import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
 
 function map(id = 'signal-map', rms: readonly [number, number] = [.284, .291]): AudioMap {
   return {
@@ -134,7 +135,7 @@ test('exact end resolves every retained domain to its own last valid frame', () 
   const ended = selectSignalTelemetry(observation(audioMap, audioMap.duration, 0, false));
   assert.equal(ended.ended, true);
   assert.deepEqual(ended.indexes, {
-    amplitude: 1, spectrum: 1, pitch: 1, chroma: 1, tonal: 1, structure: 1,
+    amplitude: 1, spectrum: 1, pitch: 1, chroma: 1, tonal: 1, structure: 1, melodyEvidence: -1,
   });
   assert.equal(field(ended, 'LEVEL', 'RMS'), '0.276');
   assert.equal(field(ended, 'TRANSIENT', 'ONSET'), '0.800');
@@ -170,7 +171,7 @@ test('restart resolves actual time-zero retained analysis instead of clearing fi
   const interpretation = interpretationField(audioMap, 0, restarted.ended);
   assert.equal(restarted.ended, false);
   assert.deepEqual(restarted.indexes, {
-    amplitude: 0, spectrum: 0, pitch: 0, chroma: 0, tonal: 0, structure: 0,
+    amplitude: 0, spectrum: 0, pitch: 0, chroma: 0, tonal: 0, structure: 0, melodyEvidence: -1,
   });
   assert.equal(field(restarted, 'LEVEL', 'RMS'), '0.284');
   assert.equal(field(restarted, 'SPECTRUM', 'LOW'), '0.100');
@@ -213,7 +214,77 @@ test('typographic signal roles preserve stable phrase-group assignment across va
   assert.deepEqual(groups(before, 'STRUCTURE').map(group => group.map(item => item.split(':')[0])),
     [['ENERGY', 'ONSET DENSITY', 'NOVELTY'], ['SHORT', 'MEDIUM', 'LONG']]);
   assert.equal(before.domains.find(item => item.id === 'RHYTHM')?.fields.find(item => item.label === 'BPM')?.role, 'anchor');
+  assert.equal(before.domains.find(item => item.id === 'TONAL')?.fields.find(item => item.label === 'KEY CANDIDATE')?.role, 'signal');
   assert.equal(before.domains.find(item => item.id === 'TONAL')?.fields.find(item => item.label === 'CHROMA')?.width, 'wide');
+});
+
+test('HEARING states are deterministic summaries of accepted capability and retained evidence', () => {
+  const accepted = selectSignalTelemetry(observation(map(), 0));
+  assert.deepEqual(accepted.hearing.map(item => `${item.id}:${item.status}`), [
+    'RHYTHM:STABLE', 'MELODY:STABLE', 'HARMONY:STABLE', 'KEY:STABLE', 'STRUCTURE:STABLE',
+  ]);
+  const searchingMap = map();
+  const rejected = selectSignalTelemetry(observation({ ...searchingMap, capabilities: {
+    ...searchingMap.capabilities, harmony: false, tonalCenter: false, structure: false,
+  } }, 0));
+  assert.equal(rejected.hearing.find(item => item.id === 'STRUCTURE')?.status, 'SEARCHING');
+  assert.equal(rejected.hearing.find(item => item.id === 'HARMONY')?.status, 'UNAVAILABLE');
+  assert.equal(rejected.hearing.find(item => item.id === 'KEY')?.status, 'UNCERTAIN');
+});
+
+test('Melody Inspect retains rejected evidence and five stable candidate lines without accepting a note', () => {
+  const sampleRate = 48_000;
+  let state = 0x12345678;
+  const noise = Float32Array.from({ length: sampleRate }, () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return ((state / 0xffffffff) * 2 - 1) * 0.45;
+  });
+  const rejectedMap = analyzePcmAudio({ sampleRate, channels: [noise] }, {
+    id: 'rejected-melody', filename: 'noise.wav', mimeType: 'audio/wav',
+  });
+  const telemetry = selectSignalTelemetry(observation(rejectedMap, 0.3));
+  assert.equal(rejectedMap.capabilities.melody, false);
+  assert.equal(rejectedMap.melody, null);
+  assert.equal(telemetry.hearing.find(item => item.id === 'MELODY')?.status, 'UNCERTAIN');
+  assert.equal(telemetry.melodyInspect.candidates.length, 5);
+  assert.notEqual(telemetry.melodyInspect.generation.find(item => item.label === 'OUTCOME')?.value, '—');
+  assert.notEqual(telemetry.melodyInspect.generation.find(item => item.label === 'SEARCH')?.value, '—');
+  assert.match(telemetry.melodyInspect.decision.find(item => item.label === 'RESULT')?.value ?? '', /REJECTED/);
+  assert.notEqual(telemetry.melodyInspect.decision.find(item => item.label === 'REASON')?.value, '—');
+
+  const silentMap = analyzePcmAudio({ sampleRate, channels: [new Float32Array(sampleRate)] }, {
+    id: 'silent-melody', filename: 'silence.wav', mimeType: 'audio/wav',
+  });
+  const silent = selectSignalTelemetry(observation(silentMap, 0.3));
+  assert.equal(silent.melodyInspect.candidates.length, telemetry.melodyInspect.candidates.length);
+  assert.equal(silent.hearing.find(item => item.id === 'MELODY')?.status, 'UNAVAILABLE');
+  assert.equal(silent.melodyInspect.generation.find(item => item.label === 'ATTEMPTED')?.value, 'NO');
+  assert.equal(silent.melodyInspect.generation.find(item => item.label === 'OUTCOME')?.value,
+    'NOT_ATTEMPTED_RMS_GATE');
+  assert.equal(silent.melodyInspect.generation.find(item => item.label === 'RMS GATE')?.value, '0.0025');
+});
+
+test('Melody Inspect renders explicit below/above provenance separately from usable Candidate 1–5', () => {
+  const sampleRate = 48_000;
+  const tone = (frequency: number) => Float32Array.from({ length: sampleRate }, (_, index) =>
+    0.8 * Math.sin(2 * Math.PI * frequency * index / sampleRate));
+  const belowMap = analyzePcmAudio({ sampleRate, channels: [tone(75)] }, {
+    id: 'below-range', filename: 'below.wav', mimeType: 'audio/wav',
+  });
+  const aboveMap = analyzePcmAudio({ sampleRate, channels: [tone(1400)] }, {
+    id: 'above-range', filename: 'above.wav', mimeType: 'audio/wav',
+  });
+  const below = selectSignalTelemetry(observation(belowMap, .4, 8, false));
+  const above = selectSignalTelemetry(observation(aboveMap, .4, 9, false));
+  assert.equal(below.melodyInspect.rejectedSummary.find(item => item.label === 'TOTAL')?.value, '1');
+  assert.equal(below.melodyInspect.generation.find(item => item.label === 'OUTCOME')?.value,
+    'RAW_CANDIDATES_ALL_RANGE_REJECTED');
+  assert.match(below.melodyInspect.rejectedCandidates[0].fields[0].value, /BELOW_PITCH_RANGE/);
+  assert.equal(below.melodyInspect.candidates[0].fields[0].value, '—');
+  assert.match(above.melodyInspect.rejectedCandidates[0].fields[0].value, /ABOVE_PITCH_RANGE/);
+  assert.notEqual(above.melodyInspect.candidates[0].fields[0].value, '—');
+  assert.equal(below.indexes.melodyEvidence, above.indexes.melodyEvidence);
+  assert.notEqual(below.signature, above.signature);
 });
 
 test('SignalConsole acceptance uses continuous proportional phrases inside fixed group boundaries', () => {
@@ -229,6 +300,54 @@ test('SignalConsole acceptance uses continuous proportional phrases inside fixed
   assert.doesNotMatch(styles, /\.signal-token\[data-signal-role='signal'\][^}]*transition/);
   assert.doesNotMatch(component + styles, /signal-console-grid|signal-field-row|signal-field-group/);
   assert.doesNotMatch(component, /RETAINED PRE-GATE EVIDENCE|ACCEPTED MUSICAL TRUTH|EVENT-DRIVEN|Retained analysis frames/);
+  assert.match(component, /<details className="signal-inspect"/);
+  assert.doesNotMatch(component, /<details[^>]*open/);
+  assert.match(component, /MELODY \/ INSPECT/);
+  assert.match(component, /<HearingSummary/);
+  assert.match(component, /label="Rejected pre-filter"/);
+  assert.match(component, /label="Generation"/);
+  assert.match(component, /inspect\.rejectedCandidates\.map/);
+  assert.match(readFileSync(new URL('../src/signal-console/signalTelemetry.ts', import.meta.url), 'utf8'),
+    /candidate\.reason/);
+});
+
+test('validated numeric baseline keeps proportional signals and stable anchors', () => {
+  const component = readFileSync(new URL('../src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  assert.doesNotMatch(component, /NumericMode|Development numeric mode|signal-number-mode/);
+  assert.match(styles, /data-signal-role='signal'[^}]*proportional-nums/);
+  assert.match(styles, /data-signal-role='anchor'[^}]*tabular-nums/);
+  assert.match(styles, /data-signal-metric='state'[^}]*inline-size: 7ch/);
+  assert.match(styles, /data-signal-metric='tonal-center'[^}]*inline-size: 12ch/);
+  assert.match(styles, /data-signal-metric='section'[^}]*inline-size: 8ch/);
+  assert.match(styles, /data-signal-metric='bpm'[^}]*inline-size: 8ch/);
+  assert.doesNotMatch(styles, /transition\s*:|animation\s*:|@keyframes/);
+});
+
+test('visual theme tokens do not alter typographic geometry or numeric mode', () => {
+  const styles = readFileSync(new URL('../src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  assert.match(styles, /--signal-evidence-strong: var\(--signal-theme-console-signal, #473b5b\)/);
+  assert.match(styles, /--signal-anchor: var\(--signal-theme-console-anchor, #242321\)/);
+  assert.match(styles, /--signal-interpretation: var\(--signal-theme-console-interpretation, #473b5b\)/);
+  assert.match(styles, /data-signal-role='signal'[^}]*proportional-nums/);
+  assert.doesNotMatch(styles, /data-signal-visual-mode/);
+});
+
+test('Melody evidence hierarchy derives visual weight from existing evidence without layout motion', () => {
+  const component = readFileSync(new URL('../src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  for (const state of ['accepted', 'active', 'candidate', 'rejected', 'empty']) {
+    assert.match(styles, new RegExp(`data-melody-evidence-state='${state}'`));
+  }
+  assert.match(component, /acceptedNote !== '—' \? 'accepted' : 'empty'/);
+  assert.match(component, /candidate\.fields\.some\(item => item\.value !== '—'\) \? 'rejected' : 'empty'/);
+  assert.match(component, /candidate\.fields\.some\(item => item\.value !== '—'\) \? 'candidate' : 'empty'/);
+  assert.match(styles, /--signal-inspect-accepted: var\(--signal-structure-primary\)/);
+  assert.match(styles, /data-melody-evidence-state='accepted'[^}]*font-weight: 800/s);
+  assert.match(styles, /data-melody-evidence-state='empty'[^}]*font-weight: 400/s);
+  assert.match(styles, /\.signal-telemetry-line \{[^}]*min-height: 1\.15rem/);
+  assert.doesNotMatch(styles, /transition\s*:|animation\s*:|@keyframes/);
+  assert.doesNotMatch(styles, /data-melody-evidence-state[^}]*display:\s*none/);
 });
 
 test('SignalConsole uses one presentation loop and contains no ride or PhysicsWorld dependency', () => {
@@ -246,6 +365,7 @@ test('experience exposes only a typed read-only observation seam for SignalConso
   const types = readFileSync(new URL('../src/signal-console/types.ts', import.meta.url), 'utf8');
   assert.match(types, /type SignalConsoleObservation = Readonly<\{/);
   assert.match(source, /observeSignalConsole: \(\): SignalConsoleObservation/);
-  assert.match(source, /transport: clock\.read\(\)/);
+  assert.match(source, /const transport = clock\.read\(\)/);
+  assert.match(source, /melodyEvidence: selectMelodyEvidenceForTransport\(activeMap\.melodyEvidence, transport\)/);
   assert.match(source, /audioMap: activeMap/);
 });

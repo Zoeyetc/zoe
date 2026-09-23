@@ -3,6 +3,8 @@ import type {
   StructureAnalysisFrame, TonalCenterFrame, TransportState,
 } from '../audio/types';
 import type { SignalConsoleObservation } from './types';
+import { melodyEvidenceIndexAt, selectMelodyEvidenceForTransport } from '../audio/melody-evidence/selectMelodyEvidence.ts';
+import type { MelodyEvidenceCandidate, MelodyEvidenceObservation } from '../audio/melody-evidence/types';
 
 export type SignalField = Readonly<{
   label: string;
@@ -11,14 +13,29 @@ export type SignalField = Readonly<{
   width?: 'wide';
 }>;
 export type SignalDomain = Readonly<{ id: string; layer: 'analysis'; fields: readonly SignalField[] }>;
+export type HearingStatus = 'STABLE' | 'UNCERTAIN' | 'SEARCHING' | 'UNAVAILABLE';
+export type HearingDomain = Readonly<{ id: 'RHYTHM' | 'MELODY' | 'HARMONY' | 'KEY' | 'STRUCTURE'; status: HearingStatus }>;
+export type MelodyInspectTelemetry = Readonly<{
+  available: boolean;
+  frame: readonly SignalField[];
+  generation: readonly SignalField[];
+  rejectedSummary: readonly SignalField[];
+  rejectedCandidates: readonly Readonly<{ id: string; fields: readonly SignalField[] }>[];
+  candidates: readonly Readonly<{ id: string; fields: readonly SignalField[] }>[];
+  path: readonly SignalField[];
+  decision: readonly SignalField[];
+  track: readonly SignalField[];
+}>;
 export type SignalTelemetry = Readonly<{
   signature: string;
   mapRevision: number;
   mapId: string;
   ended: boolean;
   transport: TransportState;
-  indexes: Readonly<Record<'amplitude' | 'spectrum' | 'pitch' | 'chroma' | 'tonal' | 'structure', number>>;
+  indexes: Readonly<Record<'amplitude' | 'spectrum' | 'pitch' | 'chroma' | 'tonal' | 'structure' | 'melodyEvidence', number>>;
   domains: readonly SignalDomain[];
+  hearing: readonly HearingDomain[];
+  melodyInspect: MelodyInspectTelemetry;
 }>;
 
 const END_ABSOLUTE_TOLERANCE_SECONDS = 1e-6;
@@ -102,6 +119,7 @@ function retainedIndexes(map: AudioMap, time: number, ended: boolean) {
     chroma: retainedIndex(map.harmonyAnalysis?.frames, item => item.time, time, ended, harmonyFinalStart),
     tonal: retainedIndex(map.tonalCenterAnalysis?.frames, item => item.time, time, ended),
     structure: retainedIndex(map.structureAnalysis?.frames, item => item.start, time, ended),
+    melodyEvidence: map.melodyEvidence ? melodyEvidenceIndexAt(map.melodyEvidence, time, ended) : -1,
   } as const;
 }
 
@@ -110,7 +128,8 @@ export function signalPresentationKey(observation: SignalConsoleObservation) {
   const ended = isSignalTransportEnded(transport);
   const indexes = retainedIndexes(map, transport.time, ended);
   return [mapRevision, map.id, transport.duration, transport.playing ? 1 : 0, ended ? 1 : 0,
-    indexes.amplitude, indexes.spectrum, indexes.pitch, indexes.chroma, indexes.tonal, indexes.structure].join(':');
+    indexes.amplitude, indexes.spectrum, indexes.pitch, indexes.chroma, indexes.tonal, indexes.structure,
+    indexes.melodyEvidence].join(':');
 }
 
 const sourceFields = (map: AudioMap, revision: number): readonly SignalField[] => [
@@ -137,7 +156,7 @@ const tonalFields = (chroma: ChromaFrame | null, tonal: TonalCenterFrame | null)
   signal('ENERGY', number(chroma?.energy)), signal('FRAME CONF', number(chroma?.confidence)),
   signal('TOP', chroma?.topCandidate ? `${chroma.topCandidate.label} ${number(chroma.topCandidate.score)}` : '—'),
   signal('MARGIN', number(chroma?.scoreMargin)),
-  anchor('KEY CANDIDATE', tonal?.topCandidate ? `${tonal.topCandidate.label} ${number(tonal.topScore)}` : '—'),
+  signal('KEY CANDIDATE', tonal?.topCandidate ? `${tonal.topCandidate.label} ${number(tonal.topScore)}` : '—'),
   signal('KEY CONF', number(tonal?.confidence)),
 ];
 const rhythmFields = (map: AudioMap): readonly SignalField[] => {
@@ -154,6 +173,91 @@ const structureFields = (map: AudioMap, frame: StructureAnalysisFrame | null, in
     signal('MEDIUM', number(index < 0 ? null : analysis?.noveltyScales.medium[index])),
     signal('LONG', number(index < 0 ? null : analysis?.noveltyScales.long[index]))];
 };
+
+/** Exact v0.1 status mapping: accepted capability = STABLE; rejected retained
+ * hypotheses = UNCERTAIN; retained search evidence = SEARCHING; otherwise UNAVAILABLE. */
+function selectHearing(map: AudioMap): readonly HearingDomain[] {
+  const rhythmEvidence = Boolean(map.rhythmAnalysis?.tempoCandidates?.length || map.rhythmAnalysis?.beats?.length);
+  const melodyEvidence = map.melodyEvidence;
+  const harmonyEvidence = map.harmonyAnalysis?.frames.some(frame => frame.topCandidate !== null) ?? false;
+  const keyEvidence = Boolean(map.tonalCenterAnalysis?.globalTonalCenter
+    || map.tonalCenterAnalysis?.frames.some(frame => frame.topCandidate !== null));
+  const structureEvidence = Boolean(map.structureAnalysis?.frames.length);
+  return [
+    { id: 'RHYTHM', status: map.capabilities.rhythm ? 'STABLE' : rhythmEvidence ? 'SEARCHING' : 'UNAVAILABLE' },
+    { id: 'MELODY', status: map.capabilities.melody ? 'STABLE'
+      : melodyEvidence?.candidateCount ? 'UNCERTAIN' : 'UNAVAILABLE' },
+    { id: 'HARMONY', status: map.capabilities.harmony ? 'STABLE'
+      : harmonyEvidence ? 'UNCERTAIN' : 'UNAVAILABLE' },
+    { id: 'KEY', status: map.capabilities.tonalCenter ? 'STABLE'
+      : keyEvidence ? 'UNCERTAIN' : 'UNAVAILABLE' },
+    { id: 'STRUCTURE', status: map.capabilities.structure ? 'STABLE'
+      : structureEvidence ? 'SEARCHING' : 'UNAVAILABLE' },
+  ];
+}
+
+const candidateText = (candidate: MelodyEvidenceCandidate | undefined) => candidate
+  ? `${candidate.noteName} ${number(candidate.pitchHz, 2)} Hz · periodicity ${number(candidate.periodicity)}`
+    + ` · salience ${number(candidate.salience)} · score ${number(candidate.score)}`
+  : '—';
+
+const rejectedCandidateText = (candidate: MelodyEvidenceObservation['rejectedCandidates'][number] | undefined) => candidate
+  ? `${number(candidate.frequencyHz, 2)} Hz · periodicity ${number(candidate.periodicity)}`
+    + ` · salience ${number(candidate.salience)} · score ${number(candidate.score)} · ${candidate.reason}`
+  : '—';
+
+function selectMelodyInspect(map: AudioMap, evidence: MelodyEvidenceObservation | null): MelodyInspectTelemetry {
+  const timeline = map.melodyEvidence;
+  const candidates = Array.from({ length: 5 }, (_, index) => ({
+    id: `CANDIDATE ${index + 1}`,
+    fields: [signal('EVIDENCE', candidateText(evidence?.candidates[index]), 'wide')],
+  }));
+  const rejectedCandidates = Array.from({ length: timeline?.rejectedCandidateCap ?? 3 }, (_, index) => ({
+    id: `REJECTED ${index + 1}`,
+    fields: [signal('EVIDENCE', rejectedCandidateText(evidence?.rejectedCandidates[index]), 'wide')],
+  }));
+  const selected = evidence?.selectedCandidateIndex === null || evidence?.selectedCandidateIndex === undefined
+    ? '—'
+    : `${evidence.selectedCandidateIndex + 1} ${evidence.candidates[evidence.selectedCandidateIndex]?.noteName ?? '—'} ${number(evidence.selectedPitchHz, 2)} Hz`;
+  return {
+    available: Boolean(timeline && evidence),
+    frame: [anchor('TIME', number(evidence?.time)), signal('RMS', number(evidence?.rms)),
+      anchor('CANDIDATES', evidence ? String(evidence.candidates.length) : '—'),
+      anchor('CHANNELS', timeline?.channelProjection === 'arithmetic-mean' ? 'MEAN' : '—'),
+      anchor('OUT OF RANGE', evidence ? String(evidence.outOfRangeCandidateCount) : '—')],
+    generation: [anchor('ATTEMPTED', evidence ? bool(evidence.generation.attempted) : '—'),
+      anchor('OUTCOME', evidence?.generation.outcome ?? '—', 'wide'),
+      anchor('SEARCH', evidence?.generation.searchMode ?? '—'),
+      anchor('LOCAL MINIMA', evidence ? String(evidence.generation.localMinimumCount) : '—'),
+      anchor('RAW', evidence ? String(evidence.generation.rawCandidateCount) : '—'),
+      anchor('IN RANGE PRE-DEDUP', evidence
+        ? String(evidence.generation.inRangeCandidateCountBeforeDeduplication) : '—'),
+      anchor('DUPLICATES REMOVED', evidence
+        ? String(evidence.generation.duplicateCandidateRemovalCount) : '—'),
+      anchor('RMS GATE', number(timeline?.thresholds.minimumRms, 4))],
+    rejectedSummary: [anchor('TOTAL', evidence ? String(evidence.outOfRangeCandidateCount) : '—'),
+      anchor('RETAINED', evidence ? String(evidence.rejectedCandidates.length) : '—'),
+      anchor('CAP', timeline ? String(timeline.rejectedCandidateCap) : '—')],
+    rejectedCandidates,
+    candidates,
+    path: [signal('SELECTED', selected), signal('FINAL PITCH', number(evidence?.finalPitchHz, 2)),
+      signal('MIDI', number(evidence?.finalMidiFloat, 2))],
+    decision: [signal('CONFIDENCE', number(evidence?.finalConfidence)),
+      anchor('REQUIRED', number(timeline?.thresholds.voicingConfidence)),
+      anchor('RESULT', evidence ? evidence.voiced ? 'ACCEPTED' : 'REJECTED' : '—'),
+      anchor('STAGE', evidence?.stage.toUpperCase() ?? '—'), anchor('REASON', evidence?.reason ?? '—'),
+      signal('SALIENCE', number(evidence?.finalSalience))],
+    track: [signal('CONFIDENCE', number(timeline?.track.confidence)),
+      anchor('REQUIRED', number(timeline?.thresholds.trackConfidence)),
+      signal('VOICED RATIO', number(timeline?.track.voicedFrameRatio)),
+      signal('USABLE', timeline ? `${number(timeline.track.usableDuration)} s` : '—'),
+      anchor('NOTES', timeline ? String(timeline.track.noteCountBeforeTrackGate) : '—'),
+      anchor('SHORT NOTE', timeline ? String(timeline.track.rejectedShortNoteCount) : '—'),
+      anchor('DECISION', timeline ? timeline.track.available ? 'ACCEPTED' : 'REJECTED' : '—'),
+      anchor('NOTE REASONS', timeline?.track.noteReasons.join(' + ') || '—', 'wide'),
+      anchor('REASONS', timeline?.track.reasons.join(' + ') ?? '—', 'wide')],
+  };
+}
 
 export function selectSignalInterpretationFields(frame: AudioFrame, ended: boolean): readonly SignalField[] {
   const snapshot = frame.snapshot;
@@ -179,9 +283,13 @@ export function selectSignalTelemetry(observation: SignalConsoleObservation): Si
   const chroma = at(map.harmonyAnalysis?.frames, indexes.chroma);
   const tonal = at(map.tonalCenterAnalysis?.frames, indexes.tonal);
   const structure = at(map.structureAnalysis?.frames, indexes.structure);
+  const melodyEvidence = observation.melodyEvidence
+    ?? selectMelodyEvidenceForTransport(map.melodyEvidence, transport);
   const signature = signalPresentationKey(observation);
   return {
     signature, mapRevision, mapId: map.id, ended, transport, indexes,
+    hearing: selectHearing(map),
+    melodyInspect: selectMelodyInspect(map, melodyEvidence),
     domains: [
       { id: 'SOURCE', layer: 'analysis', fields: sourceFields(map, mapRevision) },
       { id: 'LEVEL', layer: 'analysis', fields: levelFields(amplitude) },

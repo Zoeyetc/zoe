@@ -1,4 +1,12 @@
 import type { MelodyAnalysis, MelodyNote, MelodyPitchFrame } from '../types';
+import { createCompactMelodyEvidenceTimeline, retainMelodyRejectedCandidate } from '../melody-evidence/compactTimeline.ts';
+import type {
+  MelodyCandidateGenerationEvidence, MelodyEvidenceBuildFrame, MelodyEvidenceTimeline,
+  MelodyFrameDecisionReason, MelodyRejectedCandidate, MelodyTrackDecisionReason,
+} from '../melody-evidence/types';
+import type {
+  MelodyDpDiagnostics, MelodyDpFrameDiagnostic, MelodyDpStateDiagnostic,
+} from '../melody-evidence/dpDiagnostics.ts';
 
 export const MELODY_ANALYSIS = {
   version: 1 as const,
@@ -34,6 +42,9 @@ type AnalyzedFrame = {
   time: number;
   rms: number;
   candidates: Candidate[];
+  generation: MelodyCandidateGenerationEvidence;
+  outOfRangeCandidateCount: number;
+  rejectedCandidates: readonly Omit<MelodyRejectedCandidate, 'rank'>[];
 };
 
 type PathState = {
@@ -41,6 +52,21 @@ type PathState = {
   score: number;
   previous: number;
 };
+
+type TransitionTerms = Readonly<{
+  pitchDistance: number | null;
+  pitchDistanceContribution: number;
+  octaveContribution: number;
+  total: number;
+}>;
+
+type MutableDpStateDiagnostic = Omit<MelodyDpStateDiagnostic,
+  'bestContinuationObjective' | 'objectiveThroughState'> & {
+    bestContinuationObjective: number;
+    objectiveThroughState: number;
+};
+
+export type MelodyLocalObjectiveVariant = 'BASELINE' | 'NO_CLIFF';
 
 const clamp01 = (value: number) => Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
 const hzToMidi = (frequency: number) => 69 + 12 * Math.log2(frequency / 440);
@@ -132,6 +158,13 @@ function candidateFrames(signal: Float32Array): AnalyzedFrame[] {
     for (let index = centerStart; index < centerStart + 512; index += 1) sumSquares += frame[index] * frame[index];
     const rms = Math.sqrt(sumSquares / 512);
     const candidates: Candidate[] = [];
+    let rejectedCandidates: readonly Omit<MelodyRejectedCandidate, 'rank'>[] = [];
+    let outOfRangeCandidateCount = 0;
+    let localMinimumCount = 0;
+    let rawCandidateCount = 0;
+    let inRangeCandidateCountBeforeDeduplication = 0;
+    let duplicateCandidateRemovalCount = 0;
+    let searchMode: MelodyCandidateGenerationEvidence['searchMode'] = 'NOT_RUN';
     if (rms >= MELODY_ANALYSIS.minimumRms) {
       const difference = new Float64Array(maximumLag + 1);
       const cumulative = new Float64Array(maximumLag + 1);
@@ -154,6 +187,7 @@ function candidateFrames(signal: Float32Array): AnalyzedFrame[] {
         if (cumulative[lag] <= cumulative[lag - 1] && cumulative[lag] < cumulative[lag + 1]
           && cumulative[lag] < 0.48) minima.push(lag);
       }
+      localMinimumCount = minima.length;
       if (!minima.length) {
         let best = minimumLag;
         for (let lag = minimumLag + 1; lag <= maximumLag; lag += 1) {
@@ -161,77 +195,233 @@ function candidateFrames(signal: Float32Array): AnalyzedFrame[] {
         }
         minima.push(best);
       }
+      searchMode = localMinimumCount > 0 ? 'LOCAL_MINIMA' : 'GLOBAL_MINIMUM_FALLBACK';
       for (const lag of minima) {
+        rawCandidateCount += 1;
         const left = cumulative[lag - 1] ?? cumulative[lag];
         const center = cumulative[lag];
         const right = cumulative[lag + 1] ?? cumulative[lag];
         const denominator = left - 2 * center + right;
         const interpolatedLag = denominator === 0 ? lag : lag + 0.5 * (left - right) / denominator;
         const pitchHz = sampleRate / interpolatedLag;
-        if (!(pitchHz >= MELODY_ANALYSIS.minimumHz && pitchHz <= MELODY_ANALYSIS.maximumHz)) continue;
         const periodicity = clamp01(1 - center);
         const salience = harmonicSalience(frame, pitchHz, rms);
         const energySupport = clamp01((rms - MELODY_ANALYSIS.minimumRms) / 0.035);
         const score = clamp01(periodicity * 0.50 + salience * 0.40 + energySupport * 0.10);
+        if (!(pitchHz >= MELODY_ANALYSIS.minimumHz && pitchHz <= MELODY_ANALYSIS.maximumHz)) {
+          outOfRangeCandidateCount += 1;
+          rejectedCandidates = retainMelodyRejectedCandidate(rejectedCandidates, {
+            frequencyHz: pitchHz,
+            periodicity,
+            salience,
+            score,
+            reason: pitchHz < MELODY_ANALYSIS.minimumHz ? 'BELOW_PITCH_RANGE' : 'ABOVE_PITCH_RANGE',
+          });
+          continue;
+        }
         candidates.push({ pitchHz, midiFloat: hzToMidi(pitchHz), periodicity, salience, score });
+        inRangeCandidateCountBeforeDeduplication += 1;
       }
       candidates.sort((a, b) => b.score - a.score || a.pitchHz - b.pitchHz);
       // Remove near-duplicates while preserving octave-related alternatives for the path stage.
       for (let index = candidates.length - 1; index >= 0; index -= 1) {
         if (candidates.slice(0, index).some(other => Math.abs(other.midiFloat - candidates[index].midiFloat) < 0.22)) {
           candidates.splice(index, 1);
+          duplicateCandidateRemovalCount += 1;
         }
       }
       candidates.splice(MELODY_ANALYSIS.maximumCandidates);
     }
+    const generation: MelodyCandidateGenerationEvidence = {
+      attempted: rms >= MELODY_ANALYSIS.minimumRms,
+      outcome: !(rms >= MELODY_ANALYSIS.minimumRms)
+        ? 'NOT_ATTEMPTED_RMS_GATE'
+        : rawCandidateCount === 0
+          ? 'ATTEMPTED_NO_RAW_CANDIDATE'
+          : inRangeCandidateCountBeforeDeduplication === 0
+            ? 'RAW_CANDIDATES_ALL_RANGE_REJECTED'
+            : 'USABLE_CANDIDATES_SURVIVED',
+      searchMode,
+      localMinimumCount,
+      rawCandidateCount,
+      inRangeCandidateCountBeforeDeduplication,
+      duplicateCandidateRemovalCount,
+    };
     frames.push({
       time: Math.min(signal.length / sampleRate, (start + MELODY_ANALYSIS.frameSize / 2) / sampleRate),
       rms,
       candidates,
+      generation,
+      outOfRangeCandidateCount,
+      rejectedCandidates,
     });
     if (start + MELODY_ANALYSIS.frameSize >= signal.length && start > 0) break;
   }
   return frames;
 }
 
-function transitionScore(previous: Candidate | null, current: Candidate | null) {
-  if (!previous && !current) return 0.05;
-  if (!previous || !current) return -0.13;
+function transitionTerms(previous: Candidate | null, current: Candidate | null): TransitionTerms {
+  if (!previous && !current) return {
+    pitchDistance: null, pitchDistanceContribution: 0, octaveContribution: 0, total: 0.05,
+  };
+  if (!previous || !current) return {
+    pitchDistance: null, pitchDistanceContribution: 0, octaveContribution: 0, total: -0.13,
+  };
   const distance = Math.abs(previous.midiFloat - current.midiFloat);
   const octavePenalty = Math.abs(distance - 12) < 1.1 ? 0.20 : 0;
-  return -Math.min(0.42, distance * 0.035) - octavePenalty;
+  const pitchDistanceContribution = -Math.min(0.42, distance * 0.035);
+  const octaveContribution = -octavePenalty;
+  return {
+    pitchDistance: distance,
+    pitchDistanceContribution,
+    octaveContribution,
+    total: pitchDistanceContribution - octavePenalty,
+  };
 }
 
-function choosePath(frames: readonly AnalyzedFrame[]) {
+const transitionScore = (previous: Candidate | null, current: Candidate | null) =>
+  transitionTerms(previous, current).total;
+
+function choosePath(frames: readonly AnalyzedFrame[], collectDiagnostics: boolean,
+  localObjectiveVariant: MelodyLocalObjectiveVariant) {
   const layers: PathState[][] = [];
+  const diagnosticLayers: MutableDpStateDiagnostic[][] | null = collectDiagnostics ? [] : null;
   for (let frameIndex = 0; frameIndex < frames.length; frameIndex += 1) {
     const frame = frames[frameIndex];
     const states = [null, ...frame.candidates];
-    const layer: PathState[] = states.map(candidate => {
+    const diagnosticLayer: MutableDpStateDiagnostic[] = [];
+    const layer: PathState[] = states.map((candidate, stateIndex) => {
       const emission = candidate
-        ? candidate.score - (candidate.score < MELODY_ANALYSIS.voicingThreshold ? 0.22 : 0)
+        ? candidate.score - (localObjectiveVariant === 'BASELINE'
+          && candidate.score < MELODY_ANALYSIS.voicingThreshold ? 0.22 : 0)
         : frame.rms < MELODY_ANALYSIS.minimumRms ? 0.58 : 0.18;
-      if (frameIndex === 0) return { candidate, score: emission, previous: -1 };
+      if (frameIndex === 0) {
+        diagnosticLayer.push({
+          stateIndex,
+          candidateIndex: stateIndex === 0 ? null : stateIndex - 1,
+          pitchHz: candidate?.pitchHz ?? null,
+          midiFloat: candidate?.midiFloat ?? null,
+          candidateScore: candidate?.score ?? null,
+          localContribution: emission,
+          predecessorStateIndex: null,
+          predecessorCandidateIndex: null,
+          predecessorCumulativeObjective: null,
+          pitchDistance: null,
+          pitchDistanceContribution: 0,
+          octaveContribution: 0,
+          transitionContribution: 0,
+          cumulativeObjective: emission,
+          predecessorBestTieCount: 0,
+          bestContinuationObjective: 0,
+          objectiveThroughState: emission,
+        });
+        return { candidate, score: emission, previous: -1 };
+      }
       let bestScore = -Infinity;
       let previous = 0;
+      let bestTransition: TransitionTerms | null = null;
+      let predecessorBestTieCount = 0;
       for (let previousIndex = 0; previousIndex < layers[frameIndex - 1].length; previousIndex += 1) {
         const previousState = layers[frameIndex - 1][previousIndex];
-        const score = previousState.score + transitionScore(previousState.candidate, candidate) + emission;
-        if (score > bestScore) { bestScore = score; previous = previousIndex; }
+        const transition = transitionTerms(previousState.candidate, candidate);
+        const score = previousState.score + transition.total + emission;
+        if (score > bestScore) {
+          bestScore = score;
+          previous = previousIndex;
+          bestTransition = transition;
+          predecessorBestTieCount = 1;
+        } else if (score === bestScore) predecessorBestTieCount += 1;
       }
+      const predecessor = layers[frameIndex - 1][previous];
+      diagnosticLayer.push({
+        stateIndex,
+        candidateIndex: stateIndex === 0 ? null : stateIndex - 1,
+        pitchHz: candidate?.pitchHz ?? null,
+        midiFloat: candidate?.midiFloat ?? null,
+        candidateScore: candidate?.score ?? null,
+        localContribution: emission,
+        predecessorStateIndex: previous,
+        predecessorCandidateIndex: previous === 0 ? null : previous - 1,
+        predecessorCumulativeObjective: predecessor.score,
+        pitchDistance: bestTransition!.pitchDistance,
+        pitchDistanceContribution: bestTransition!.pitchDistanceContribution,
+        octaveContribution: bestTransition!.octaveContribution,
+        transitionContribution: bestTransition!.total,
+        cumulativeObjective: bestScore,
+        predecessorBestTieCount,
+        bestContinuationObjective: 0,
+        objectiveThroughState: bestScore,
+      });
       return { candidate, score: bestScore, previous };
     });
     layers.push(layer);
+    if (diagnosticLayers) diagnosticLayers.push(diagnosticLayer);
   }
   const path: (Candidate | null)[] = Array(frames.length).fill(null);
-  if (!layers.length) return path;
+  if (!layers.length) return { path, diagnostics: collectDiagnostics ? Object.freeze({
+    localObjectiveVariant,
+    optimizationDirection: 'MAXIMIZE' as const,
+    tieBreak: 'FIRST_STATE_ON_EXACT_EQUALITY' as const,
+    frames: Object.freeze([]),
+    selectedTerminalStateIndex: 0,
+    selectedTotalObjective: 0,
+    terminalBestTieCount: 0,
+  }) : null };
   let stateIndex = layers.at(-1)!.reduce((best, state, index, layer) => state.score > layer[best].score ? index : best, 0);
+  const selectedTerminalStateIndex = stateIndex;
+  const selectedTotalObjective = layers.at(-1)![stateIndex].score;
+  const terminalBestTieCount = layers.at(-1)!.filter(state => state.score === selectedTotalObjective).length;
+  const selectedPathStateIndexes = Array<number>(frames.length).fill(0);
   for (let frameIndex = layers.length - 1; frameIndex >= 0; frameIndex -= 1) {
     const state = layers[frameIndex][stateIndex];
     path[frameIndex] = state.candidate;
+    selectedPathStateIndexes[frameIndex] = stateIndex;
     stateIndex = state.previous;
   }
-  return path;
+  if (!diagnosticLayers) return { path, diagnostics: null };
+
+  for (let frameIndex = layers.length - 2; frameIndex >= 0; frameIndex -= 1) {
+    for (let currentIndex = 0; currentIndex < layers[frameIndex].length; currentIndex += 1) {
+      let bestContinuationObjective = -Infinity;
+      for (let nextIndex = 0; nextIndex < layers[frameIndex + 1].length; nextIndex += 1) {
+        const nextDiagnostic = diagnosticLayers[frameIndex + 1][nextIndex];
+        const continuation = transitionScore(layers[frameIndex][currentIndex].candidate,
+          layers[frameIndex + 1][nextIndex].candidate)
+          + nextDiagnostic.localContribution + nextDiagnostic.bestContinuationObjective;
+        if (continuation > bestContinuationObjective) bestContinuationObjective = continuation;
+      }
+      diagnosticLayers[frameIndex][currentIndex].bestContinuationObjective = bestContinuationObjective;
+      diagnosticLayers[frameIndex][currentIndex].objectiveThroughState =
+        diagnosticLayers[frameIndex][currentIndex].cumulativeObjective + bestContinuationObjective;
+    }
+  }
+  const diagnosticFrames: readonly MelodyDpFrameDiagnostic[] = Object.freeze(diagnosticLayers.map(
+    (states, frameIndex) => {
+      const candidateStates = states.slice(1);
+      const localBestCandidate = candidateStates.reduce<MutableDpStateDiagnostic | null>(
+        (best, state) => !best || state.localContribution > best.localContribution ? state : best, null);
+      const prefixBestStateIndex = states.reduce((best, state, index) =>
+        state.cumulativeObjective > states[best].cumulativeObjective ? index : best, 0);
+      return Object.freeze({
+        frameIndex,
+        time: frames[frameIndex].time,
+        rms: frames[frameIndex].rms,
+        states: Object.freeze(states.map(state => Object.freeze({ ...state }))),
+        localBestCandidateStateIndex: localBestCandidate?.stateIndex ?? null,
+        prefixBestStateIndex,
+        selectedPathStateIndex: selectedPathStateIndexes[frameIndex],
+      });
+    }));
+  const diagnostics: MelodyDpDiagnostics = Object.freeze({
+    localObjectiveVariant,
+    optimizationDirection: 'MAXIMIZE',
+    tieBreak: 'FIRST_STATE_ON_EXACT_EQUALITY',
+    frames: diagnosticFrames,
+    selectedTerminalStateIndex,
+    selectedTotalObjective,
+    terminalBestTieCount,
+  });
+  return { path, diagnostics };
 }
 
 function contourFromPath(frames: readonly AnalyzedFrame[], path: readonly (Candidate | null)[]) {
@@ -253,7 +443,11 @@ function contourFromPath(frames: readonly AnalyzedFrame[], path: readonly (Candi
       octaveCorrectionCount += 1;
     }
   }
-  const contour: MelodyPitchFrame[] = mutable.map((candidate, index) => {
+  const decisions: Readonly<{
+    candidate: Candidate | null;
+    confidence: number;
+    reason: MelodyFrameDecisionReason;
+  }>[] = mutable.map((candidate, index) => {
     const previous = mutable[index - 1];
     const continuity = candidate && previous
       ? clamp01(1 - Math.abs(candidate.midiFloat - previous.midiFloat) / 6)
@@ -264,6 +458,18 @@ function contourFromPath(frames: readonly AnalyzedFrame[], path: readonly (Candi
     const voiced = candidate !== null && confidence >= MELODY_ANALYSIS.voicingThreshold
       && frames[index].rms >= MELODY_ANALYSIS.minimumRms;
     if (candidate && !voiced) rejectedLowConfidenceFrameCount += 1;
+    const reason: MelodyFrameDecisionReason = frames[index].rms < MELODY_ANALYSIS.minimumRms
+      ? 'LOW_RMS'
+      : frames[index].candidates.length === 0
+        ? 'NO_USABLE_CANDIDATE'
+        : candidate === null
+          ? 'PATH_SELECTED_NULL'
+          : !voiced ? 'LOW_CONFIDENCE' : 'VOICED';
+    return { candidate, confidence, reason };
+  });
+  const contour: MelodyPitchFrame[] = decisions.map(({ candidate, confidence }, index) => {
+    const voiced = candidate !== null && confidence >= MELODY_ANALYSIS.voicingThreshold
+      && frames[index].rms >= MELODY_ANALYSIS.minimumRms;
     return {
       time: frames[index].time,
       voiced,
@@ -273,7 +479,7 @@ function contourFromPath(frames: readonly AnalyzedFrame[], path: readonly (Candi
       salience: voiced ? candidate.salience : 0,
     };
   });
-  return { contour, octaveCorrectionCount, rejectedLowConfidenceFrameCount };
+  return { contour, decisions, octaveCorrectionCount, rejectedLowConfidenceFrameCount };
 }
 
 function mergeBriefGaps(contour: MelodyPitchFrame[]) {
@@ -373,10 +579,42 @@ function metadata(): MelodyAnalysis['metadata'] {
 
 /** Deterministic local predominant-melody foundation. No actor or runtime clock state enters analysis. */
 export function analyzeMelody(input: MelodyAnalysisInput): MelodyAnalysis {
+  return runMelodyAnalysis(input, false, false, 'BASELINE').analysis;
+}
+
+export type MelodyAnalysisWithEvidence = Readonly<{
+  analysis: MelodyAnalysis;
+  evidence: MelodyEvidenceTimeline;
+}>;
+
+export function analyzeMelodyWithEvidence(input: MelodyAnalysisInput): MelodyAnalysisWithEvidence {
+  const result = runMelodyAnalysis(input, true, false, 'BASELINE');
+  return { analysis: result.analysis, evidence: result.evidence! };
+}
+
+export type MelodyAnalysisWithDpDiagnostics = MelodyAnalysisWithEvidence & Readonly<{
+  dpDiagnostics: MelodyDpDiagnostics;
+}>;
+
+/** Explicit diagnostic path. Normal analysis and retained evidence do not allocate DP decomposition storage. */
+export function analyzeMelodyWithDpDiagnostics(input: MelodyAnalysisInput): MelodyAnalysisWithDpDiagnostics {
+  const result = runMelodyAnalysis(input, true, true, 'BASELINE');
+  return { analysis: result.analysis, evidence: result.evidence!, dpDiagnostics: result.dpDiagnostics! };
+}
+
+/** Explicit A/B experiment. The production entry points never select this local objective. */
+export function analyzeMelodyWithNoCliffExperiment(input: MelodyAnalysisInput): MelodyAnalysisWithDpDiagnostics {
+  const result = runMelodyAnalysis(input, true, true, 'NO_CLIFF');
+  return { analysis: result.analysis, evidence: result.evidence!, dpDiagnostics: result.dpDiagnostics! };
+}
+
+function runMelodyAnalysis(input: MelodyAnalysisInput, collectEvidence: boolean,
+  collectDpDiagnostics: boolean, localObjectiveVariant: MelodyLocalObjectiveVariant) {
   const signal = resampleForAnalysis(input.mono, input.sampleRate);
   const duration = input.mono.length / input.sampleRate;
   const frames = candidateFrames(signal);
-  const path = choosePath(frames);
+  const pathResult = choosePath(frames, collectDpDiagnostics, localObjectiveVariant);
+  const path = pathResult.path;
   const contourResult = contourFromPath(frames, path);
   const contour = [...contourResult.contour];
   const segmented = segmentNotes(contour, frames, duration);
@@ -404,7 +642,7 @@ export function analyzeMelody(input: MelodyAnalysisInput): MelodyAnalysis {
     && voicedFrameRatio >= 0.12
     && segmented.notes.length > 0;
   const reliableMidi = voicedFrames.flatMap(frame => frame.midiFloat === null ? [] : [frame.midiFloat]);
-  return {
+  const analysis: MelodyAnalysis = {
     version: 1,
     available,
     confidence,
@@ -423,4 +661,56 @@ export function analyzeMelody(input: MelodyAnalysisInput): MelodyAnalysis {
     rejectedShortNoteCount: segmented.rejectedShortNoteCount,
     metadata: metadata(),
   };
+  if (!collectEvidence) return { analysis, evidence: null, dpDiagnostics: pathResult.diagnostics };
+
+  const evidenceFrames: MelodyEvidenceBuildFrame[] = frames.map((frame, index) => {
+    const selected = path[index];
+    const selectedCandidateIndex = selected === null ? null : frame.candidates.indexOf(selected);
+    const decision = contourResult.decisions[index];
+    const finalContour = contour[index];
+    const mergedGap = finalContour.voiced && decision.reason !== 'VOICED';
+    return {
+      time: frame.time,
+      rms: frame.rms,
+      candidates: frame.candidates,
+      generation: frame.generation,
+      outOfRangeCandidateCount: frame.outOfRangeCandidateCount,
+      rejectedCandidates: frame.rejectedCandidates,
+      selectedCandidateIndex: selectedCandidateIndex === -1 ? null : selectedCandidateIndex,
+      finalPitchHz: mergedGap ? finalContour.pitchHz : decision.candidate?.pitchHz ?? null,
+      finalConfidence: mergedGap ? finalContour.confidence : decision.confidence,
+      finalSalience: mergedGap ? finalContour.salience : decision.candidate?.salience ?? 0,
+      voiced: finalContour.voiced,
+      reason: mergedGap ? 'MERGED_GAP' : decision.reason,
+    };
+  });
+  const trackReasons: MelodyTrackDecisionReason[] = [];
+  if (available) trackReasons.push('ACCEPTED');
+  else {
+    if (confidence < MELODY_ANALYSIS.availabilityThreshold) trackReasons.push('TRACK_LOW_CONFIDENCE');
+    if (usableDuration < MELODY_ANALYSIS.minimumUsableDuration) trackReasons.push('TRACK_LOW_USABLE_DURATION');
+    if (voicedFrameRatio < 0.12) trackReasons.push('TRACK_LOW_VOICED_RATIO');
+    if (segmented.notes.length === 0) trackReasons.push('TRACK_NO_NOTES');
+  }
+  const evidence = createCompactMelodyEvidenceTimeline(evidenceFrames, {
+    minimumRms: MELODY_ANALYSIS.minimumRms,
+    minimumHz: MELODY_ANALYSIS.minimumHz,
+    maximumHz: MELODY_ANALYSIS.maximumHz,
+    voicingConfidence: MELODY_ANALYSIS.voicingThreshold,
+    trackConfidence: MELODY_ANALYSIS.availabilityThreshold,
+    minimumUsableDuration: MELODY_ANALYSIS.minimumUsableDuration,
+    minimumVoicedFrameRatio: 0.12,
+    minimumNoteDuration: MELODY_ANALYSIS.minimumNoteDuration,
+  }, {
+    available,
+    confidence,
+    voicedFrameRatio,
+    usableDuration,
+    noteCountBeforeTrackGate: segmented.notes.length,
+    acceptedNoteCount: analysis.notes.length,
+    rejectedShortNoteCount: segmented.rejectedShortNoteCount,
+    noteReasons: segmented.rejectedShortNoteCount > 0 ? ['SHORT_NOTE'] : [],
+    reasons: trackReasons,
+  });
+  return { analysis, evidence, dpDiagnostics: pathResult.diagnostics };
 }

@@ -1,9 +1,14 @@
 .signal-console {
-  --signal-structure-primary: #242321;
-  --signal-structure-secondary: #74716b;
-  --signal-guide: #dedbd3;
-  --signal-evidence-strong: #473b5b;
-  --signal-muted-text: #69665f;
+  --signal-structure-primary: var(--signal-theme-console-primary, #242321);
+  --signal-structure-secondary: var(--signal-theme-console-secondary, #74716b);
+  --signal-guide: var(--signal-theme-console-guide, #dedbd3);
+  --signal-anchor: var(--signal-theme-console-anchor, #242321);
+  --signal-label: var(--signal-theme-console-label, #242321);
+  --signal-evidence-strong: var(--signal-theme-console-signal, #473b5b);
+  --signal-interpretation: var(--signal-theme-console-interpretation, #473b5b);
+  --signal-event: var(--signal-theme-console-event, #69665f);
+  --signal-muted-text: var(--signal-theme-console-muted, #69665f);
+  --signal-separator: var(--signal-theme-console-separator, #69665f);
   --signal-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --signal-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   padding: 0;
@@ -13,28 +18,103 @@
   font-family: var(--signal-font-sans);
 }
 .signal-console-heading { margin-bottom: .8rem; padding-bottom: .55rem; border-bottom: 1px solid var(--signal-structure-secondary); }
-.signal-console-heading h2 { margin: .3rem 0 0; font-size: 1.5rem; }
-.signal-console-heading span { color: var(--signal-muted-text); font: 700 .66rem/1 var(--signal-font-sans); letter-spacing: .12em; text-transform: uppercase; }
+.signal-console-heading h2 { margin: 0; font-size: 1.5rem; }
 .signal-stream { font-size: .78rem; line-height: 1.45; }
 .signal-telemetry-line { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); align-items: baseline; min-height: 1.15rem; margin: .16rem 0; }
 .signal-telemetry-line > strong { font-weight: 800; }
 .signal-telemetry-line--transport { margin-bottom: .65rem; }
+.signal-hearing { margin: 0; padding: .65rem 0; border-top: 1px solid var(--signal-guide); }
+.signal-hearing header { margin-bottom: .35rem; }
+.signal-hearing h3, .signal-inspect summary { margin: 0; color: var(--signal-label); font: 800 .7rem/1 var(--signal-font-sans); letter-spacing: .13em; }
+.signal-hearing-lines { display: grid; gap: .1rem; }
+.signal-hearing-line { display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); align-items: baseline; min-height: 1.15rem; }
+.signal-hearing-line strong { color: var(--signal-muted-text); }
+.signal-hearing-status { display: inline-block; inline-size: 11ch; color: var(--signal-anchor); font: 700 .7rem/1.35 var(--signal-font-mono); }
 .signal-phrase-layout { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
 .signal-phrase-group { min-width: 0; white-space: nowrap; }
 .signal-token { font-family: var(--signal-font-sans); }
 .signal-token[data-signal-role='signal'] .signal-value { color: var(--signal-evidence-strong); font-variant-numeric: proportional-nums lining-nums; font-feature-settings: 'pnum' 1, 'tnum' 0; }
-.signal-token[data-signal-role='anchor'] .signal-value { font-family: var(--signal-font-mono); font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1; }
-.signal-metric, .signal-separator { color: var(--signal-muted-text); }
+.signal-token[data-signal-role='anchor'] .signal-value { color: var(--signal-anchor); font-family: var(--signal-font-mono); font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1; }
+.signal-telemetry-line--transport .signal-token[data-signal-role='anchor'] .signal-value { display: inline-block; }
+.signal-telemetry-line--transport .signal-token[data-signal-metric='time'] .signal-value,
+.signal-telemetry-line--transport .signal-token[data-signal-metric='duration'] .signal-value { inline-size: 8ch; }
+.signal-telemetry-line--transport .signal-token[data-signal-metric='state'] .signal-value { inline-size: 7ch; }
+.signal-token[data-signal-role='anchor'][data-signal-metric='tonal-center'] .signal-value { display: inline-block; inline-size: 12ch; }
+.signal-token[data-signal-role='anchor'][data-signal-metric='section'] .signal-value { display: inline-block; inline-size: 8ch; }
+.signal-token[data-signal-role='anchor'][data-signal-metric='bpm'] .signal-value { display: inline-block; inline-size: 8ch; }
+.signal-telemetry-line > strong, .signal-stream-section h3 { color: var(--signal-label); }
+.signal-metric { color: var(--signal-muted-text); }
+.signal-separator { color: var(--signal-separator); }
 .signal-stream-section { margin: 0; padding: .65rem 0; border: 0; border-top: 1px solid var(--signal-guide); background: transparent; }
 .signal-stream-section header { margin-bottom: .35rem; }
 .signal-stream-section h3 { margin: 0; font: 800 .7rem/1 var(--signal-font-sans); letter-spacing: .13em; }
 .signal-stream-section--interpretation { margin-top: .35rem; }
-.signal-stream-section--interpretation .signal-value { color: var(--signal-structure-primary); }
+.signal-inspect {
+  --signal-inspect-accepted: var(--signal-structure-primary);
+  --signal-inspect-active: color-mix(in srgb, var(--signal-structure-primary) 76%, var(--signal-evidence-strong));
+  --signal-inspect-candidate: var(--signal-evidence-strong);
+  --signal-inspect-rejected: color-mix(in srgb, var(--signal-muted-text) 72%, transparent);
+  --signal-inspect-empty: color-mix(in srgb, var(--signal-muted-text) 30%, transparent);
+  padding: .65rem 0;
+  border-top: 1px solid var(--signal-guide);
+}
+.signal-inspect summary { width: max-content; cursor: pointer; list-style-position: outside; }
+.signal-inspect-stream { margin-top: .5rem; }
+.signal-inspect .signal-telemetry-line[data-signal-domain^='candidate'] .signal-phrase-group { inline-size: 100%; }
+.signal-inspect .signal-token[data-signal-metric='note'] .signal-value,
+.signal-inspect .signal-token[data-signal-metric='result'] .signal-value,
+.signal-inspect .signal-token[data-signal-metric='stage'] .signal-value { display: inline-block; inline-size: 10ch; }
+.signal-inspect .signal-token[data-signal-metric='reason'] .signal-value { display: inline-block; inline-size: 24ch; }
+.signal-inspect [data-melody-evidence-state='accepted'] {
+  --signal-label: var(--signal-inspect-accepted);
+  --signal-anchor: var(--signal-inspect-accepted);
+  --signal-evidence-strong: var(--signal-inspect-accepted);
+  --signal-muted-text: var(--signal-inspect-accepted);
+  --signal-separator: var(--signal-inspect-active);
+  font-weight: 800;
+}
+.signal-inspect [data-melody-evidence-state='accepted'] > strong { font-weight: 900; }
+.signal-inspect [data-melody-evidence-state='active'] {
+  --signal-label: var(--signal-inspect-active);
+  --signal-anchor: var(--signal-inspect-active);
+  --signal-evidence-strong: var(--signal-inspect-active);
+  --signal-muted-text: var(--signal-inspect-active);
+  --signal-separator: var(--signal-inspect-candidate);
+  font-weight: 700;
+}
+.signal-inspect [data-melody-evidence-state='candidate'] {
+  --signal-label: var(--signal-inspect-candidate);
+  --signal-anchor: var(--signal-inspect-candidate);
+  --signal-evidence-strong: var(--signal-inspect-candidate);
+  --signal-muted-text: var(--signal-inspect-candidate);
+  --signal-separator: var(--signal-inspect-rejected);
+  font-weight: 600;
+}
+.signal-inspect [data-melody-evidence-state='rejected'] {
+  --signal-label: var(--signal-inspect-rejected);
+  --signal-anchor: var(--signal-inspect-rejected);
+  --signal-evidence-strong: var(--signal-inspect-rejected);
+  --signal-muted-text: var(--signal-inspect-rejected);
+  --signal-separator: var(--signal-inspect-empty);
+  font-weight: 450;
+}
+.signal-inspect [data-melody-evidence-state='empty'] {
+  --signal-label: var(--signal-inspect-empty);
+  --signal-anchor: var(--signal-inspect-empty);
+  --signal-evidence-strong: var(--signal-inspect-empty);
+  --signal-muted-text: var(--signal-inspect-empty);
+  --signal-separator: var(--signal-inspect-empty);
+  font-weight: 400;
+}
+.signal-stream-section--interpretation .signal-token[data-signal-role='signal'] .signal-value { color: var(--signal-interpretation); }
 .signal-stream-section--events ol { display: grid; gap: .1rem; margin: 0; padding: 0; list-style: none; }
-.signal-stream-section--events li, .signal-capabilities { color: var(--signal-muted-text); font: 600 .66rem/1.35 var(--signal-font-mono); font-variant-numeric: tabular-nums; }
+.signal-stream-section--events li { color: var(--signal-event); }
+.signal-stream-section--events li, .signal-capabilities { font: 600 .66rem/1.35 var(--signal-font-mono); font-variant-numeric: tabular-nums; }
+.signal-capabilities { color: var(--signal-muted-text); }
 .signal-capabilities { margin: .35rem 0 0 7.25rem; white-space: nowrap; }
 
 @media (max-width: 760px) {
   .signal-telemetry-line { grid-template-columns: 6rem minmax(0, 1fr); }
   .signal-capabilities { margin-left: 6rem; }
+  .signal-hearing-line { grid-template-columns: 6rem minmax(0, 1fr); }
 }

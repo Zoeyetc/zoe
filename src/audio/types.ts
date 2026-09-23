@@ -1,3 +1,5 @@
+import type { MelodyEvidenceTimeline } from './melody-evidence/types';
+
 export type TransportState = Readonly<{
   time: number; // seconds
   duration: number; // seconds
@@ -445,6 +447,7 @@ export type AudioMap = Readonly<{
   capabilities: MusicalCapabilities;
   melody: readonly MelodyNote[] | null; // null = unavailable; [] = available silence
   melodyAnalysis?: MelodyAnalysis | null;
+  melodyEvidence?: MelodyEvidenceTimeline | null;
   percussion: readonly PercussionHit[] | null; // null = unavailable; [] = available silence
   percussionAnalysis?: PercussionAnalysis | null;
   rhythm: readonly RhythmSection[] | null;

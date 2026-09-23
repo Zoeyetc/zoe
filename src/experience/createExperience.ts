@@ -28,6 +28,7 @@ import type { AudioPreparationState, PreparedRealAudio } from '../audio/AudioPre
 import type { AudioMap } from '../audio/types';
 import { createParkPulse, PARK_PULSE_SOURCE_ID } from '../physics/ParkPulse';
 import type { SignalConsoleObservation } from '../signal-console/types';
+import { selectMelodyEvidenceForTransport } from '../audio/melody-evidence/selectMelodyEvidence.ts';
 
 /** Composition only: systems keep their own state and ownership. */
 export function createExperience(now: () => number, reducedMotion = false, fixtureMap: AudioMap = milestoneSevenAAudioMap) {
@@ -177,11 +178,15 @@ export function createExperience(now: () => number, reducedMotion = false, fixtu
   };
   return {
     read, actions,
-    observeSignalConsole: (): SignalConsoleObservation => ({
-      mapRevision,
-      transport: clock.read(),
-      audioMap: activeMap,
-    }),
+    observeSignalConsole: (): SignalConsoleObservation => {
+      const transport = clock.read();
+      return {
+        mapRevision,
+        transport,
+        audioMap: activeMap,
+        melodyEvidence: selectMelodyEvidenceForTransport(activeMap.melodyEvidence, transport),
+      };
+    },
     setAudioPreparationState: (next: AudioPreparationState) => { preparation = next; },
     activateRealAudio(prepared: PreparedRealAudio) {
       const nextRollerCoasterTrack = createRollerCoasterTrack(prepared.map, planRollerCoasterTrack);
