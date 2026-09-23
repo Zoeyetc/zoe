@@ -5,7 +5,7 @@ import type { Route, SegmentKind, Vec3 } from './types';
 
 export type RollerCoasterMode = 'station' | 'driven' | 'gravity' | 'braking' | 'completed';
 export type RollerCoasterState = Readonly<{
-  status: 'milestone-six-a';
+  status: 'milestone-nine-f';
   mode: RollerCoasterMode;
   currentSegment: SegmentKind | 'Connector';
   routeDistance: number;
@@ -46,7 +46,7 @@ export function createRollerCoasterSimulation(options: RollerCoasterOptions = {}
   const reset = () => {
     const pose = sampleRoute(route, 0);
     state = {
-      status: 'milestone-six-a', mode: 'station', currentSegment: 'Station',
+      status: 'milestone-nine-f', mode: 'station', currentSegment: 'Station',
       routeDistance: 0, routeLength: route.length, routeProgress: 0,
       velocity: 0, acceleration: 0, driveTarget: 0, braking: false,
       riderPosition: pose.position, riderForward: pose.forward, riderUp: pose.up,

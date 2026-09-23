@@ -166,7 +166,7 @@ test('Park Map synchronizes the authored content anchor with its physical partic
 });
 
 test('RollerCoaster infrastructure is derived from canonical route samples', () => {
-  assert.match(parkSource, /rollerCoasterRoute\.pieces/);
+  assert.match(parkSource, /trackMap\.route\.pieces/);
   assert.match(parkSource, /park-track-bed/);
   assert.match(parkSource, /park-track-rail/);
   assert.match(parkSource, /park-track-tie/);

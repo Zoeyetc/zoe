@@ -76,6 +76,14 @@ export function lookupSnapshot(map: AudioMap, transport: TransportState): AudioS
   const nextStructureBoundary = analyzedStructure?.boundaries.find(boundary => boundary.time > transport.time) ?? null;
   const currentStructureFrameIndex = analyzedStructure?.frames.findIndex(frame => frame.start <= transport.time
     && (transport.time < frame.end || (transport.time === map.duration && frame.end === map.duration))) ?? -1;
+  const percussionAvailable = map.capabilities.percussion && map.percussion !== null;
+  const recentPercussion = percussionAvailable
+    ? (map.percussion ?? []).filter(hit => hit.time <= transport.time && transport.time - hit.time <= 0.35)
+    : [];
+  const percussionActivity = recentPercussion.reduce((sum, hit) => {
+    const decay = Math.max(0, 1 - (transport.time - hit.time) / 0.35);
+    return Math.min(1, sum + hit.strength * decay);
+  }, 0);
   return {
     mapId: map.id,
     transport,
@@ -94,7 +102,9 @@ export function lookupSnapshot(map: AudioMap, transport: TransportState): AudioS
       confidence: activeNote?.confidence ?? (activeNote ? 1 : 0),
     },
     percussion: {
-      available: map.capabilities.rhythm && map.percussion !== null,
+      available: percussionAvailable,
+      activity: percussionActivity,
+      confidence: map.percussionAnalysis?.confidence ?? (percussionAvailable ? 1 : 0),
     },
     rhythm: {
       available: map.capabilities.rhythm && map.rhythm !== null,
@@ -179,10 +189,11 @@ function createTimeline(map: AudioMap): TimelineEvent[] {
       { type: 'note-on' as const, time: note.start, note },
       { type: 'note-off' as const, time: note.end, note },
     ]);
-  const percussion: TimelineEvent[] = !map.capabilities.rhythm || map.percussion === null
+  const percussion: TimelineEvent[] = !map.capabilities.percussion || map.percussion === null
     ? []
     : map.percussion.map(hit => ({
       type: hit.type, time: hit.time, id: hit.id, strength: hit.strength,
+      confidence: hit.confidence ?? 1, hit,
     }));
   const beats: TimelineEvent[] = !map.capabilities.rhythm || !map.rhythmAnalysis?.available
     ? []

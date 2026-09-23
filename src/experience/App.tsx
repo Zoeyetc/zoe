@@ -50,7 +50,7 @@ export function App() {
       snapshot: next.frame.snapshot,
       dropTowerPhase: next.dropTower.phase,
       rollerCoasterReleaseActive: next.rollerCoaster.releaseActive,
-      percussionStrength: next.bumperCars.eventStrength,
+      percussionStrength: next.frame.snapshot.percussion.activity,
       seek: directResolve,
       seekToken: latestSeek?.type === 'seek' ? `${latestSeek.from}:${latestSeek.to}` : null,
     }, next.frame.snapshot.transport.time));
@@ -90,7 +90,7 @@ export function App() {
     <CarouselView state={state.carousel} />
     <FerrisWheelView state={state.ferrisWheel} />
     <DropTowerView state={state.dropTower} />
-    <RollerCoasterView state={state.rollerCoaster} />
+    <RollerCoasterView state={state.rollerCoaster} trackMap={state.rollerCoasterTrackMap} />
     <FreeBodiesView state={state.freeBodies} />
     <div className="physics-demo">
       <BumperCarsView state={state.bumperCars} stageRef={physicsStageRef}
@@ -119,14 +119,16 @@ export function App() {
 
   return <main className={`experience experience--${mode}`}>
     <header className="experience-header">
-      <div><h1>Z.land Music Box</h1><p>Milestone 9E.2 · Repetitive / Electronic Robustness</p></div>
+      <div><h1>Z.land Music Box</h1><p>Milestone 9G · Real Percussion / Six BumperCars</p></div>
       <nav aria-label="Experience mode">
         <a href="./" aria-current={mode === 'park' ? 'page' : undefined}>Park Map</a>
         <a href="?mode=workbench" aria-current={mode === 'workbench' ? 'page' : undefined}>Development Workbench</a>
       </nav>
     </header>
     <ControlSurface transport={state.frame.snapshot.transport} melody={state.frame.snapshot.melody}
-      rhythm={state.frame.snapshot.rhythm} harmony={state.frame.snapshot.harmony} actions={controlActions}
+      rhythm={state.frame.snapshot.rhythm} percussion={state.frame.snapshot.percussion}
+      percussionEventCount={state.audio.percussionAnalysis?.acceptedEventCount ?? state.audio.percussion?.length ?? null}
+      harmony={state.frame.snapshot.harmony} actions={controlActions}
       tonalCenter={state.frame.snapshot.tonalCenter}
       structure={state.frame.snapshot.structure}
       structureSegmentCount={state.audio.structureAnalysis?.segments.length ?? null}

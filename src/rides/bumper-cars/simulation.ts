@@ -5,6 +5,11 @@ export type BumperArena = Readonly<{ width: number; height: number }>;
 export type BumperBodyState = Readonly<{
   id: number; x: number; y: number; width: number; height: number;
   vx: number; vy: number; angle: number; angularVelocity: number;
+  role: PercussionKind;
+  musicalImpulseEnvelope: number;
+  lastPercussionEvent: string | null;
+  lastImpulseStrength: number;
+  collisionCount: number;
 }>;
 export type BumperCollision = Readonly<{
   id: string;
@@ -17,7 +22,7 @@ export type BumperCollision = Readonly<{
   time: number;
 }>;
 export type BumperCarsState = Readonly<{
-  status: 'milestone-two-a';
+  status: 'milestone-nine-g';
   mode: 'resting' | 'active' | 'settling';
   reducedMotion: boolean;
   seed: number;
@@ -44,7 +49,7 @@ type PercussionEvent = Extract<BumperCarsInput['events'][number], { type: Percus
 export const DEFAULT_BUMPER_ARENA: BumperArena = { width: 560, height: 280 };
 export const BUMPER_MAX_SPEED = 160;
 export const BUMPER_SHARED_IMPACT_THRESHOLD = 8;
-const MAX_ANGULAR_SPEED = 2.2;
+export const BUMPER_MAX_ANGULAR_SPEED = 2.2;
 const RESTITUTION = 0.58;
 const LINEAR_DAMPING = 0.72;
 const ANGULAR_DAMPING = 1.8;
@@ -64,12 +69,16 @@ function hashUnit(seed: number, value: string) {
 }
 
 export function createInitialBumperBodies(): BumperBodyState[] {
+  const roles: readonly PercussionKind[] = [
+    'kick', 'snare', 'closed-hat', 'open-hat', 'tom', 'other-percussion',
+  ];
   return [
     [78, 70, -0.08], [222, 74, 0.05], [360, 68, -0.03],
     [482, 84, 0.08], [160, 205, 0.04], [398, 202, -0.06],
   ].map(([x, y, angle], id) => ({
     id, x, y, width: 54, height: 34, vx: 0, vy: 0, angle,
-    angularVelocity: 0,
+    angularVelocity: 0, role: roles[id], musicalImpulseEnvelope: 0,
+    lastPercussionEvent: null, lastImpulseStrength: 0, collisionCount: 0,
   }));
 }
 
@@ -100,6 +109,7 @@ function collide(a: MutableBody, b: MutableBody, time: number, activeContacts: S
   const ox = (a.width + b.width) / 2 - Math.abs(dx);
   const oy = (a.height + b.height) / 2 - Math.abs(dy);
   if (ox <= 0 || oy <= 0) return 0;
+  a.collisionCount += 1; b.collisionCount += 1;
   const contactId = a.id < b.id ? `${a.id}:${b.id}` : `${b.id}:${a.id}`;
   contacts.add(contactId);
   const horizontal = ox < oy;
@@ -140,34 +150,51 @@ function limitBody(body: MutableBody) {
     body.vx *= BUMPER_MAX_SPEED / speed;
     body.vy *= BUMPER_MAX_SPEED / speed;
   }
-  body.angularVelocity = clamp(body.angularVelocity, -MAX_ANGULAR_SPEED, MAX_ANGULAR_SPEED);
+  body.angularVelocity = clamp(body.angularVelocity, -BUMPER_MAX_ANGULAR_SPEED, BUMPER_MAX_ANGULAR_SPEED);
 }
 
 function applyPercussion(bodies: MutableBody[], event: PercussionEvent, seed: number, reducedMotion: boolean) {
-  const bodyIndex = Math.floor(hashUnit(seed, `${event.id}:body`) * bodies.length) % bodies.length;
+  const bodyIndex = bodies.findIndex(body => body.role === event.type);
+  if (bodyIndex < 0) return null;
   const body = bodies[bodyIndex];
   const strength = clamp01(event.strength);
+  const confidenceInfluence = 0.55 + clamp01(event.confidence ?? 1) * 0.45;
+  const effectiveStrength = strength * confidenceInfluence;
   const scale = reducedMotion ? 0.18 : 1;
-  const randomAngle = hashUnit(seed, `${event.id}:angle`) * Math.PI * 2;
   const centerAngle = Math.atan2(140 - body.y, 280 - body.x);
-  let angle = randomAngle;
+  const rolePhase = bodyIndex / 6 * Math.PI * 2;
+  const jitter = (hashUnit(seed, `${event.id}:angle`) - 0.5) * 0.75;
+  let angle = body.angle * 0.45 + centerAngle * 0.4 + rolePhase * 0.15 + jitter;
   let magnitude = 0;
   let angularImpulse = 0;
   if (event.type === 'kick') {
-    angle = centerAngle + (hashUnit(seed, `${event.id}:jitter`) - 0.5) * 0.7;
-    magnitude = 82 + strength * 58;
+    angle = centerAngle + jitter;
+    magnitude = 78 + effectiveStrength * 56;
     angularImpulse = (hashUnit(seed, `${event.id}:spin`) - 0.5) * 0.32;
   } else if (event.type === 'snare') {
     angle = centerAngle + (hashUnit(seed, `${event.id}:side`) < 0.5 ? -1 : 1) * Math.PI / 2;
-    magnitude = 50 + strength * 38;
-    angularImpulse = (hashUnit(seed, `${event.id}:spin`) < 0.5 ? -1 : 1) * (0.72 + strength * 0.5);
+    magnitude = 48 + effectiveStrength * 36;
+    angularImpulse = (hashUnit(seed, `${event.id}:spin`) < 0.5 ? -1 : 1) * (0.7 + effectiveStrength * 0.45);
+  } else if (event.type === 'closed-hat') {
+    magnitude = 14 + effectiveStrength * 19;
+    angularImpulse = (hashUnit(seed, `${event.id}:spin`) - 0.5) * 0.38;
+  } else if (event.type === 'open-hat') {
+    magnitude = 20 + effectiveStrength * 24;
+    angularImpulse = (hashUnit(seed, `${event.id}:spin`) - 0.5) * 0.42;
+  } else if (event.type === 'tom') {
+    angle = centerAngle * 0.72 + angle * 0.28;
+    magnitude = 50 + effectiveStrength * 34;
+    angularImpulse = (hashUnit(seed, `${event.id}:spin`) - 0.5) * 0.3;
   } else {
-    magnitude = 12 + strength * 18;
-    angularImpulse = (hashUnit(seed, `${event.id}:spin`) - 0.5) * 0.34;
+    magnitude = 30 + effectiveStrength * 26;
+    angularImpulse = (hashUnit(seed, `${event.id}:spin`) - 0.5) * 0.48;
   }
   body.vx += Math.cos(angle) * magnitude * scale;
   body.vy += Math.sin(angle) * magnitude * scale;
   body.angularVelocity += angularImpulse * (reducedMotion ? 0.12 : 1);
+  body.musicalImpulseEnvelope = Math.min(1, body.musicalImpulseEnvelope + effectiveStrength);
+  body.lastPercussionEvent = event.id;
+  body.lastImpulseStrength = effectiveStrength;
   limitBody(body);
   return bodyIndex;
 }
@@ -203,7 +230,7 @@ export function createBumperCarsSimulation(options: BumperCarsOptions = {}) {
     impactSequence.value = 0; mode = 'resting';
   };
   const read = (): BumperCarsState => ({
-    status: 'milestone-two-a', mode, reducedMotion, seed, arena,
+    status: 'milestone-nine-g', mode, reducedMotion, seed, arena,
     bodies: bodies.map(body => ({ ...body })), latestPercussion,
     eventStrength, selectedBody, kineticActivity: activity(bodies), collisionCount,
     sharedCollisionCount, latestCollision,
@@ -221,7 +248,8 @@ export function createBumperCarsSimulation(options: BumperCarsOptions = {}) {
       if (input.events.some(event => event.type === 'seek' && event.to === 0)) reset();
       const percussion = input.percussionAvailable && input.transportPlaying
         ? input.events.filter((event): event is PercussionEvent =>
-          event.type === 'kick' || event.type === 'snare' || event.type === 'hat')
+          event.type === 'kick' || event.type === 'snare' || event.type === 'closed-hat'
+          || event.type === 'open-hat' || event.type === 'tom' || event.type === 'other-percussion')
         : [];
       for (const event of percussion) {
         latestPercussion = event.type;
@@ -249,6 +277,7 @@ export function createBumperCarsSimulation(options: BumperCarsOptions = {}) {
           body.vx *= Math.exp(-LINEAR_DAMPING * h * (reducedMotion ? 2.5 : 1));
           body.vy *= Math.exp(-LINEAR_DAMPING * h * (reducedMotion ? 2.5 : 1));
           body.angularVelocity *= Math.exp(-ANGULAR_DAMPING * h * (reducedMotion ? 3 : 1));
+          body.musicalImpulseEnvelope *= Math.exp(-5.5 * h);
           body.angle += body.angularVelocity * h;
           limitBody(body);
           if (bodySpeed(body) < 0.04) { body.vx = 0; body.vy = 0; }

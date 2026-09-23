@@ -38,9 +38,9 @@ test('percussion events use timeline crossings and expose domain availability', 
   assert.equal(world.read(transport(0)).snapshot.percussion.available, true);
   const events = world.read(transport(3.4)).events;
   assert.deepEqual(
-    events.filter(event => event.type === 'kick' || event.type === 'snare' || event.type === 'hat')
+    events.filter(event => event.type === 'kick' || event.type === 'snare' || event.type === 'closed-hat')
       .map(event => event.type),
-    ['kick', 'snare', 'hat'],
+    ['kick', 'snare', 'closed-hat'],
   );
   assert.deepEqual(world.read(transport(3.4)).events, []);
 });
@@ -52,7 +52,36 @@ test('seek across percussion skips history and resumes future events', () => {
     { type: 'seek', from: 0, to: 7.5 },
   ]);
   const resumed = world.read(transport(7.7)).events;
-  assert.deepEqual(resumed.filter(event => event.type === 'hat').map(event => event.id), ['hat-return']);
+  assert.deepEqual(resumed.filter(event => event.type === 'closed-hat').map(event => event.id), ['hat-return']);
+});
+
+test('all six percussion roles use one timeline and multiple crossings deliver once', () => {
+  const hits = [
+    { id: 'k', time: 0.2, type: 'kick' as const, strength: 0.8 },
+    { id: 's', time: 0.3, type: 'snare' as const, strength: 0.7 },
+    { id: 'ch', time: 0.4, type: 'closed-hat' as const, strength: 0.5 },
+    { id: 'oh', time: 0.5, type: 'open-hat' as const, strength: 0.6 },
+    { id: 't', time: 0.6, type: 'tom' as const, strength: 0.75 },
+    { id: 'o', time: 0.7, type: 'other-percussion' as const, strength: 0.55 },
+  ];
+  const map = { ...milestoneOneAudioMap, id: 'six-role-timeline',
+    capabilities: { ...milestoneOneAudioMap.capabilities, percussion: true }, percussion: hits };
+  const world = createAudioWorld(map);
+  world.read(transport(0));
+  const frame = world.read(transport(0.8));
+  assert.deepEqual(frame.events.map(event => event.type), hits.map(hit => hit.type));
+  assert.deepEqual(world.read(transport(0.8)).events, []);
+  assert.equal(frame.snapshot.percussion.available, true);
+  assert.ok(frame.snapshot.percussion.activity >= 0 && frame.snapshot.percussion.activity <= 1);
+});
+
+test('pause does not advance percussion cursor and restart permits beginning events again', () => {
+  const world = createAudioWorld(milestoneTwoAudioMap);
+  world.read(transport(0));
+  assert.deepEqual(world.read(transport(0, false)).events, []);
+  assert.equal(world.read(transport(1)).events.filter(event => event.type === 'kick').length, 1);
+  world.synchronize(1, transport(0, false));
+  assert.equal(world.read(transport(1)).events.filter(event => event.type === 'kick').length, 1);
 });
 
 test('rhythm snapshot separates steady BPM from authored groove and swing', () => {

@@ -4,7 +4,6 @@ import { CarouselView } from '../../rides/carousel/CarouselView';
 import { FerrisWheelView } from '../../rides/ferris-wheel/FerrisWheelView';
 import { PirateShipView } from '../../rides/pirate-ship/PirateShipView';
 import { DropTowerView } from '../../rides/drop-tower/DropTowerView';
-import { rollerCoasterRoute } from '../../rides/roller-coaster/route';
 import { rollerCoasterRouteForwardToWorld, rollerCoasterRoutePointToWorld } from '../../physics/adapters/rollerCoaster';
 import { PhysicsDebugOverlay } from '../../physics/PhysicsDebugOverlay';
 import { AnchoredContentView } from '../../physics/AnchoredContentView';
@@ -32,15 +31,15 @@ type ParkMapProps = Readonly<{
   onOverview(): void;
 }>;
 
-function ParkRollerCoaster({ state, role, focused }: {
-  state: ExperienceState['rollerCoaster']; role: AttentionRole; focused: boolean;
+function ParkRollerCoaster({ state, trackMap, role, focused }: {
+  state: ExperienceState['rollerCoaster']; trackMap: ExperienceState['rollerCoasterTrackMap']; role: AttentionRole; focused: boolean;
 }) {
-  const pieces = rollerCoasterRoute.pieces.map(piece => {
+  const pieces = trackMap.route.pieces.map(piece => {
     const sampleCount = Math.max(3, Math.ceil(piece.geometry.length / 16));
     const samples = Array.from({ length: sampleCount }, (_, index) => worldToPark(
       rollerCoasterRoutePointToWorld(
         piece.geometry.samplePosition(piece.geometry.length * index / (sampleCount - 1)),
-        PARK_ROLLER_COASTER_BOUNDS,
+        trackMap, PARK_ROLLER_COASTER_BOUNDS,
       ),
     ));
     return {
@@ -50,9 +49,9 @@ function ParkRollerCoaster({ state, role, focused }: {
       samples,
     };
   });
-  const riderWorld = rollerCoasterRoutePointToWorld(state.riderPosition, PARK_ROLLER_COASTER_BOUNDS);
+  const riderWorld = rollerCoasterRoutePointToWorld(state.riderPosition, trackMap, PARK_ROLLER_COASTER_BOUNDS);
   const rider = worldToPark(riderWorld);
-  const forwardWorld = rollerCoasterRouteForwardToWorld(state.riderForward, PARK_ROLLER_COASTER_BOUNDS);
+  const forwardWorld = rollerCoasterRouteForwardToWorld(state.riderForward, trackMap, PARK_ROLLER_COASTER_BOUNDS);
   const ahead = worldToPark({
     x: riderWorld.x + forwardWorld.x * 0.03,
     y: riderWorld.y + forwardWorld.y * 0.03,
@@ -203,7 +202,7 @@ export function ParkMap({
         </g>
         {PARK_PATHS.map((d, index) => <DoodlePath key={index} className="park-path" d={d}
           seed={`park-path-${index}`} roughness={1.25} />)}
-        <ParkRollerCoaster state={state.rollerCoaster} role={attention.roles.rollerCoaster}
+        <ParkRollerCoaster state={state.rollerCoaster} trackMap={state.rollerCoasterTrackMap} role={attention.roles.rollerCoaster}
           focused={attention.focusActorId === 'rollerCoaster'} />
         <ParkBumperCars state={state.bumperCars} role={attention.roles.bumperCars}
           focused={attention.focusActorId === 'bumperCars'} />

@@ -7,11 +7,15 @@ function physics(kind: SegmentKind) {
   switch (kind) {
     case 'Station': return { gravityScale: 0, drag: 5, driveForce: 85, brakeForce: 150 };
     case 'Lift': return { gravityScale: 35, drag: 2.8, driveForce: 72, brakeForce: 110 };
+    case 'Crest': return { gravityScale: 80, drag: 2.6, driveForce: 58, brakeForce: 115 };
     case 'Drop': return { gravityScale: 250, drag: 2.1, driveForce: 42, brakeForce: 120 };
+    case 'Run': return { gravityScale: 95, drag: 2.7, driveForce: 64, brakeForce: 120 };
     case 'Loop': return { gravityScale: 210, drag: 2.4, driveForce: 46, brakeForce: 120 };
     case 'Runout': return { gravityScale: 130, drag: 3.8, driveForce: 58, brakeForce: 130 };
   }
 }
+
+export const rollerCoasterSegmentPhysics = physics;
 
 /** Extracted open-route composition. Every authored segment begins and exits on a +X tangent. */
 export function composeRollerCoasterRoute(): Route {

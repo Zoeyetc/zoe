@@ -1256,14 +1256,14 @@ transient impulses
 collision energy
 ```
 
-Final target representation:
+Milestone 9G representation:
 
 ```text
 6 cars
 → 6 percussion roles
 ```
 
-Initial role set may include:
+Locked initial role set:
 
 ```text
 Kick
@@ -1274,10 +1274,10 @@ Tom / Low Percussion
 Other Percussive
 ```
 
-Percussion classification should derive from:
+The deterministic baseline derives from:
 
 ```text
-HPSS percussive component
+shared-STFT positive spectral difference
 ↓
 onset detection
 ↓
@@ -1301,6 +1301,16 @@ Frequency band alone is insufficient.
 Actual collision outcomes belong to simulation.
 
 Do not author collision outcomes directly from percussion events.
+
+```text
+Percussion Event
+→ actor-local role-car impulse
+→ actual movement
+→ actual collision
+→ PhysicsWorld impact
+```
+
+Musically Resting does not mean Physically Inactive.
 
 ---
 
@@ -1410,7 +1420,7 @@ during playback.
 
 ## 31. Song-generated RollerCoaster TrackMap
 
-Future AudioMap may include:
+Milestone 9F materializes one actor-owned runtime instance:
 
 ```text
 TrackMap {

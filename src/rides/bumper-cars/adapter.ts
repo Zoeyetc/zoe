@@ -12,6 +12,7 @@ export function toBumperCarsInput(frame: AudioFrame): BumperCarsInput {
     percussionAvailable: frame.snapshot.percussion.available,
     transportPlaying: frame.snapshot.transport.playing,
     events: frame.events.filter(event => event.type === 'kick' || event.type === 'snare'
-      || event.type === 'hat' || event.type === 'seek'),
+      || event.type === 'closed-hat' || event.type === 'open-hat' || event.type === 'tom'
+      || event.type === 'other-percussion' || event.type === 'seek'),
   };
 }

@@ -4,6 +4,7 @@ import { analyzeMelody } from './MelodyAnalysis.ts';
 import { analyzeHarmony } from './HarmonyAnalysis.ts';
 import { analyzeTonalCenter } from './TonalCenterAnalysis.ts';
 import { analyzeStructure } from './StructureAnalysis.ts';
+import { analyzePercussion } from './PercussionAnalysis.ts';
 
 export const REAL_AUDIO_ANALYSIS = {
   version: 1 as const,
@@ -34,6 +35,14 @@ type RawFrame = {
   fullBandOnset: number;
   lowBandOnset: number;
   highBandOnset: number;
+  sub: number;
+  lowMid: number;
+  percussionMid: number;
+  percussionHigh: number;
+  air: number;
+  centroid: number;
+  spread: number;
+  flatness: number;
 };
 
 const EPSILON = 1e-12;
@@ -117,7 +126,9 @@ function* frameGenerator(mono: Float32Array, sampleRate: number): Generator<RawF
     let lowEnergy = 0; let lowCount = 0;
     let midEnergy = 0; let midCount = 0;
     let highEnergy = 0; let highCount = 0;
-    let magnitudeSum = 0; let weightedFrequency = 0; let positiveFlux = 0;
+    let magnitudeSum = 0; let weightedFrequency = 0; let weightedSquaredDistance = 0; let positiveFlux = 0;
+    let logMagnitudeSum = 0; let spectralBinCount = 0;
+    let sub = 0; let lowMid = 0; let percussionMid = 0; let percussionHigh = 0; let air = 0;
     let lowOnsetFlux = 0; let lowMagnitude = 0;
     let highOnsetFlux = 0; let highMagnitude = 0;
     for (let bin = 1; bin < magnitude.length; bin += 1) {
@@ -126,6 +137,13 @@ function* frameGenerator(mono: Float32Array, sampleRate: number): Generator<RawF
       magnitude[bin] = value;
       magnitudeSum += value;
       weightedFrequency += frequency * value;
+      logMagnitudeSum += Math.log(Math.max(EPSILON, value)); spectralBinCount += 1;
+      const energy = value * value;
+      if (frequency >= 20 && frequency < 160) sub += energy;
+      else if (frequency < 600) lowMid += energy;
+      else if (frequency < 2500) percussionMid += energy;
+      else if (frequency < 8000) percussionHigh += energy;
+      else air += energy;
       const positiveDifference = Math.max(0, value - previousMagnitude[bin]);
       positiveFlux += positiveDifference;
       if (frequency >= 20 && frequency < Math.min(180, sampleRate / 2)) {
@@ -138,6 +156,12 @@ function* frameGenerator(mono: Float32Array, sampleRate: number): Generator<RawF
       else if (frequency >= 250 && frequency < Math.min(4000, sampleRate / 2)) { midEnergy += value * value; midCount += 1; }
       else if (frequency >= 4000 && frequency <= sampleRate / 2) { highEnergy += value * value; highCount += 1; }
     }
+    const centroidHz = magnitudeSum > EPSILON ? weightedFrequency / magnitudeSum : 0;
+    for (let bin = 1; bin < magnitude.length; bin += 1) {
+      const frequency = bin * sampleRate / fftSize;
+      weightedSquaredDistance += (frequency - centroidHz) ** 2 * magnitude[bin];
+    }
+    const arithmeticMagnitude = magnitudeSum / Math.max(1, spectralBinCount);
     yield {
       time: start / sampleRate,
       rms: Math.sqrt(sumSquares / frameSize), peak,
@@ -149,6 +173,12 @@ function* frameGenerator(mono: Float32Array, sampleRate: number): Generator<RawF
       fullBandOnset: magnitudeSum > EPSILON ? positiveFlux / magnitudeSum : 0,
       lowBandOnset: lowMagnitude > EPSILON ? lowOnsetFlux / lowMagnitude : 0,
       highBandOnset: highMagnitude > EPSILON ? highOnsetFlux / highMagnitude : 0,
+      sub, lowMid, percussionMid, percussionHigh, air,
+      centroid: bounded(centroidHz / (sampleRate / 2)),
+      spread: magnitudeSum > EPSILON
+        ? bounded(Math.sqrt(weightedSquaredDistance / magnitudeSum) / (sampleRate / 2)) : 0,
+      flatness: arithmeticMagnitude > EPSILON
+        ? bounded(Math.exp(logMagnitudeSum / Math.max(1, spectralBinCount)) / arithmeticMagnitude) : 0,
     };
     previousMagnitude = magnitude;
   }
@@ -202,6 +232,12 @@ function finalize(frames: RawFrame[], mono: Float32Array, pcm: PcmAudio, source:
     duration,
     REAL_AUDIO_ANALYSIS.hopSize / pcm.sampleRate,
   );
+  const percussionAnalysis = analyzePercussion(normalized.map(frame => ({
+    time: frame.time, rms: frame.rms, onsetStrength: frame.onsetStrength,
+    sub: frame.sub, lowMid: frame.lowMid, mid: frame.percussionMid,
+    high: frame.percussionHigh, air: frame.air, centroid: frame.centroid,
+    spread: frame.spread, flatness: frame.flatness,
+  })), duration, pcm.sampleRate, REAL_AUDIO_ANALYSIS.hopSize / pcm.sampleRate);
   const rhythm: RhythmSection[] | null = rhythmAnalysis.available && rhythmAnalysis.bpm !== null
     ? [{ id: 'real-rhythm', start: 0, end: duration, bpm: rhythmAnalysis.bpm,
       beatsPerBar: null, groove: rhythmAnalysis.groove, swing: rhythmAnalysis.swing }]
@@ -231,9 +267,11 @@ function finalize(frames: RawFrame[], mono: Float32Array, pcm: PcmAudio, source:
   return {
     version: 1, id: `real-audio-${source.id}`, duration,
     capabilities: { melody: melodyAnalysis.available, rhythm: rhythmAnalysis.available,
+      percussion: percussionAnalysis.available,
       harmony: harmonyAnalysis.available, tonalCenter: tonalCenterAnalysis.available,
       structure: structureAnalysis.available, spectrum: true },
-    melody, melodyAnalysis, percussion: null, rhythm, rhythmAnalysis,
+    melody, melodyAnalysis, percussion: percussionAnalysis.available ? percussionAnalysis.events : null,
+    percussionAnalysis, rhythm, rhythmAnalysis,
     harmony, harmonyAnalysis, tonalCenterAnalysis, structureAnalysis, structure: null, drops: null,
     spectrum, amplitude,
     source: { kind: 'real-audio', filename: source.filename, mimeType: source.mimeType }, analysis: metadata,

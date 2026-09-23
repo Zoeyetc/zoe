@@ -11,7 +11,7 @@ type BumperCarsViewProps = Readonly<{
 export function BumperCarsView({ state, debugOverlay, stageContent, stageRef }: BumperCarsViewProps) {
   return <section aria-labelledby="bumper-cars-heading">
     <div className="section-heading">
-      <div><p className="eyebrow">Percussion actor · local collision pass</p><h2 id="bumper-cars-heading">BumperCars</h2></div>
+      <div><p className="eyebrow">Percussion actor · six persistent roles</p><h2 id="bumper-cars-heading">BumperCars</h2></div>
       <span className={`status status--${state.mode}`}>{state.mode}</span>
     </div>
     <div className="bumper-stage" ref={stageRef}>
@@ -23,7 +23,7 @@ export function BumperCarsView({ state, debugOverlay, stageContent, stageRef }: 
           transform={`translate(${body.x} ${body.y}) rotate(${body.angle * 180 / Math.PI})`}>
           <rect x={-body.width / 2} y={-body.height / 2} width={body.width} height={body.height} rx="12" />
           <circle cx="0" cy="0" r="4" />
-          <text x="0" y="4" textAnchor="middle">{body.id + 1}</text>
+          <text x="0" y="4" textAnchor="middle">{body.role.replace('-percussion', '').replace('-hat', ' hat')}</text>
         </g>)}
         {debugOverlay}
       </svg>

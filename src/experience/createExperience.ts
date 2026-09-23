@@ -18,6 +18,8 @@ import { toDropTowerInput } from '../rides/drop-tower/adapter';
 import { createDropTowerSimulation } from '../rides/drop-tower/simulation';
 import { toRollerCoasterInput } from '../rides/roller-coaster/adapter';
 import { createRollerCoasterSimulation } from '../rides/roller-coaster/simulation';
+import { planRollerCoasterTrack } from '../rides/roller-coaster/trackPlan';
+import { createRollerCoasterTrack } from '../rides/roller-coaster/trackMap';
 import { toFreeBodiesInput } from '../free-bodies/adapter';
 import { createFreeBodiesSimulation, FREE_BODIES_SEED } from '../free-bodies/simulation';
 import { PARK_BUMPER_CARS_BOUNDS, PARK_ROLLER_COASTER_BOUNDS } from './park/config';
@@ -43,7 +45,8 @@ export function createExperience(now: () => number, reducedMotion = false) {
   const pirateShip = createPirateShipSimulation({ reducedMotion });
   const ferrisWheel = createFerrisWheelSimulation({ reducedMotion });
   const dropTower = createDropTowerSimulation({ reducedMotion });
-  const rollerCoaster = createRollerCoasterSimulation({ reducedMotion });
+  let rollerCoasterTrack = createRollerCoasterTrack(activeMap, planRollerCoasterTrack);
+  let rollerCoaster = createRollerCoasterSimulation({ reducedMotion, route: rollerCoasterTrack.map.route });
   const freeBodies = createFreeBodiesSimulation({ seed: FREE_BODIES_SEED, reducedMotion });
   const physicsWorld = createPhysicsWorld();
   const content = createAnchoredContentParticipant({
@@ -83,7 +86,7 @@ export function createExperience(now: () => number, reducedMotion = false) {
     dropTower.accept(toDropTowerInput(frame), dt);
     rollerCoaster.accept(toRollerCoasterInput(frame), dt);
     physicsWorld.updateWake(rollerCoasterToPhysicsWake(
-      rollerCoaster.read(), simulationTime, PARK_ROLLER_COASTER_BOUNDS,
+      rollerCoaster.read(), simulationTime, rollerCoasterTrack.map, PARK_ROLLER_COASTER_BOUNDS,
     ), dt);
     freeBodies.accept(toFreeBodiesInput(frame), dt);
     content.step(dt);
@@ -93,6 +96,8 @@ export function createExperience(now: () => number, reducedMotion = false) {
       ferrisWheel: ferrisWheel.read(),
       dropTower: dropTower.read(),
       rollerCoaster: rollerCoaster.read(),
+      rollerCoasterTrackPlan: rollerCoasterTrack.plan,
+      rollerCoasterTrackMap: rollerCoasterTrack.map,
       freeBodies: freeBodies.read(),
       physics: physicsWorld.read(), content: content.read(), seed: bumperCars.read().seed,
       audio: {
@@ -104,6 +109,8 @@ export function createExperience(now: () => number, reducedMotion = false) {
         source: activeMap.source ?? { kind: 'fixture' as const, filename: null, mimeType: null },
         analysis: activeMap.analysis ?? null,
         rhythmAnalysis: activeMap.rhythmAnalysis ?? null,
+        percussion: activeMap.percussion,
+        percussionAnalysis: activeMap.percussionAnalysis ?? null,
         melodyAnalysis: activeMap.melodyAnalysis ?? null,
         harmonyAnalysis: activeMap.harmonyAnalysis ?? null,
         tonalCenterAnalysis: activeMap.tonalCenterAnalysis ?? null,
@@ -124,7 +131,7 @@ export function createExperience(now: () => number, reducedMotion = false) {
     dropTower.accept(toDropTowerInput(frame), 0);
     rollerCoaster.accept(toRollerCoasterInput(frame), 0);
     physicsWorld.updateWake(rollerCoasterToPhysicsWake(
-      rollerCoaster.read(), now(), PARK_ROLLER_COASTER_BOUNDS,
+      rollerCoaster.read(), now(), rollerCoasterTrack.map, PARK_ROLLER_COASTER_BOUNDS,
     ), 0);
     freeBodies.accept(toFreeBodiesInput(frame), 0);
     if (time === 0) { physicsWorld.clear(); content.reset(); }
@@ -157,8 +164,12 @@ export function createExperience(now: () => number, reducedMotion = false) {
     read, actions,
     setAudioPreparationState: (next: AudioPreparationState) => { preparation = next; },
     activateRealAudio(prepared: PreparedRealAudio) {
+      const nextRollerCoasterTrack = createRollerCoasterTrack(prepared.map, planRollerCoasterTrack);
+      const nextRollerCoaster = createRollerCoasterSimulation({ reducedMotion, route: nextRollerCoasterTrack.map.route });
       stopClock();
       activeMap = prepared.map;
+      rollerCoasterTrack = nextRollerCoasterTrack;
+      rollerCoaster = nextRollerCoaster;
       world = createAudioWorld(activeMap);
       clock = createAudioBufferPlaybackTransport(prepared.context, prepared.buffer);
       const analyzedRange = activeMap.melodyAnalysis?.pitchRange;
@@ -172,6 +183,8 @@ export function createExperience(now: () => number, reducedMotion = false) {
     activateFixture() {
       stopClock();
       activeMap = milestoneSevenAAudioMap;
+      rollerCoasterTrack = createRollerCoasterTrack(activeMap, planRollerCoasterTrack);
+      rollerCoaster = createRollerCoasterSimulation({ reducedMotion, route: rollerCoasterTrack.map.route });
       world = createAudioWorld(activeMap);
       clock = createPreviewAudioClock(activeMap.duration, now);
       carousel.setPitchRange({ min: Math.min(...melodyMidi), max: Math.max(...melodyMidi) });

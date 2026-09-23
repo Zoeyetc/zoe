@@ -1126,7 +1126,7 @@ COLLISION ENERGY
 
 ## Final six-car representation
 
-Final target:
+Milestone 9G:
 
 ```text
 6 cars
@@ -1134,7 +1134,7 @@ Final target:
 6 percussion roles
 ```
 
-Initial semantic set may be:
+Locked semantic set:
 
 ```text
 1. Kick
@@ -1154,14 +1154,14 @@ roles.
 
 ## Percussion-analysis source
 
-Future classification pipeline:
+Implemented deterministic baseline:
 
 ```text
 AudioBuffer
 ↓
-HPSS
+existing shared STFT
 ↓
-percussive component
+positive spectral-difference percussive evidence
 ↓
 onset detection
 ↓
@@ -1677,7 +1677,7 @@ A track must look like a designed physical machine.
 
 ## Example mapping
 
-Possible future rules:
+Milestone 9F baseline rules:
 
 ```text
 long build

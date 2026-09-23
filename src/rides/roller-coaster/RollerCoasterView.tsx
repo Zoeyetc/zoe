@@ -1,5 +1,5 @@
 import type { RollerCoasterState } from './simulation';
-import { rollerCoasterRoute } from './route';
+import type { TrackMap } from './trackMap';
 import type { Route, Vec3 } from './types';
 
 const WIDTH = 720;
@@ -35,8 +35,8 @@ function routeDrawing(route: Route) {
   };
 }
 
-export function RollerCoasterView({ state }: { state: RollerCoasterState }) {
-  const route = rollerCoasterRoute;
+export function RollerCoasterView({ state, trackMap }: { state: RollerCoasterState; trackMap: TrackMap }) {
+  const route = trackMap.route;
   const drawing = routeDrawing(route);
   const rider = project(state.riderPosition, drawing.projection);
   const ahead = project({
@@ -48,7 +48,7 @@ export function RollerCoasterView({ state }: { state: RollerCoasterState }) {
   return <section data-actor="roller-coaster" aria-labelledby="roller-coaster-heading">
     <p className="eyebrow">Phrase actor · energy / tension / release</p>
     <h2 id="roller-coaster-heading">RollerCoaster</h2>
-    <p>{state.mode} · {state.currentSegment}</p>
+    <p>{state.mode} · {state.currentSegment} · {trackMap.id}</p>
     <div className="roller-stage">
       <svg className="roller-machine" viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         role="img" aria-label={`Open segmented roller coaster; Orb on ${state.currentSegment}; route progress ${(state.routeProgress * 100).toFixed(1)} percent`}>

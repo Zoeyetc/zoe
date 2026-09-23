@@ -1,6 +1,6 @@
 export type Vec3 = Readonly<{ x: number; y: number; z: number }>;
 export type TrackFrame = Readonly<{ position: Vec3; forward: Vec3; up: Vec3 }>;
-export type SegmentKind = 'Station' | 'Lift' | 'Drop' | 'Loop' | 'Runout';
+export type SegmentKind = 'Station' | 'Lift' | 'Crest' | 'Drop' | 'Run' | 'Loop' | 'Runout';
 export type SegmentGeometry = Readonly<{
   length: number;
   samplePosition(distance: number): Vec3;
@@ -14,6 +14,7 @@ export type SegmentPhysics = Readonly<{
   brakeForce: number;
 }>;
 export type SegmentDefinition = Readonly<{
+  featureId?: string;
   kind: SegmentKind;
   geometry: SegmentGeometry;
   entryFrame: TrackFrame;

@@ -31,14 +31,24 @@ export function DebugConsole({ state, attention }: { state: ExperienceState; att
       || (state.frame.snapshot.transport.time === state.frame.snapshot.transport.duration
         && segment.end === state.frame.snapshot.transport.duration))) ?? null;
   const structureAnalysis = state.audio.structureAnalysis;
-  const debugState = structureAnalysis ? {
+  const percussionAnalysis = state.audio.percussionAnalysis;
+  const recentPercussion = (state.audio.percussion ?? []).filter(event =>
+    event.time <= state.frame.snapshot.transport.time && state.frame.snapshot.transport.time - event.time <= 1).at(-1) ?? null;
+  const compactTrackMap = {
+    ...state.rollerCoasterTrackMap,
+    route: { length: state.rollerCoasterTrackMap.route.length, pieces: state.rollerCoasterTrackMap.route.pieces.length,
+      segments: state.rollerCoasterTrackMap.route.segments.map(segment => ({ kind: segment.kind, featureId: segment.featureId, length: segment.geometry.length })) },
+    points: `[${state.rollerCoasterTrackMap.points.length} canonical points]`,
+  };
+  const debugState = {
     ...state,
-    audio: { ...state.audio, structureAnalysis: {
+    rollerCoasterTrackMap: compactTrackMap,
+    audio: { ...state.audio, structureAnalysis: structureAnalysis ? {
       ...structureAnalysis,
       selfSimilarity: { size: structureAnalysis.selfSimilarity.size,
         values: `[Float32Array ${structureAnalysis.selfSimilarity.values.length}]` },
-    } },
-  } : state;
+    } : null },
+  };
   return <section aria-labelledby="debug-heading">
     <h2 id="debug-heading">DebugConsole</h2>
     <p className="event-log" data-debug-audio><strong>Audio Pipeline:</strong>{' '}
@@ -50,7 +60,8 @@ export function DebugConsole({ state, attention }: { state: ExperienceState; att
       onset {state.frame.snapshot.spectrum.onsetStrength.toFixed(3)} · capabilities{' '}
       melody:{String(state.frame.snapshot.capabilities.melody)} harmony:{String(state.frame.snapshot.capabilities.harmony)}{' '}
       tonalCenter:{String(state.frame.snapshot.capabilities.tonalCenter)}{' '}
-      rhythm:{String(state.frame.snapshot.capabilities.rhythm)} structure:{String(state.frame.snapshot.capabilities.structure)}{' '}
+      rhythm:{String(state.frame.snapshot.capabilities.rhythm)} percussion:{String(state.frame.snapshot.capabilities.percussion)}{' '}
+      structure:{String(state.frame.snapshot.capabilities.structure)}{' '}
       spectrum:{String(state.frame.snapshot.capabilities.spectrum)} · analysis{' '}
       {state.audio.analysis
         ? `${state.audio.analysis.sampleRate} Hz / ${state.audio.analysis.channelCount} ch / ${state.audio.analysis.frameSize} frame / ${state.audio.analysis.hopSize} hop / ${state.audio.analysis.fftSize} FFT / ${state.audio.analysis.analyzedDuration.toFixed(2)}s analyzed`
@@ -165,6 +176,17 @@ export function DebugConsole({ state, attention }: { state: ExperienceState; att
       target {state.dropTower.liftTarget.toFixed(3)} · hold {String(state.dropTower.phase === 'HOLDING')} ·{' '}
       reduced {String(state.dropTower.reducedMotion)}
     </p>
+    <p className="event-log" data-debug-track-plan><strong>RollerCoaster TrackPlan / TrackMap:</strong>{' '}
+      source {state.rollerCoasterTrackPlan.generationSource} · plan {state.rollerCoasterTrackPlan.version} / {state.rollerCoasterTrackPlan.id} ·{' '}
+      features {state.rollerCoasterTrackPlan.features.length} · major {state.rollerCoasterTrackPlan.features.filter(feature => ['lift', 'crest', 'drop', 'loop'].includes(feature.type)).length} ·{' '}
+      lift/crest/drop/loop/run {(['lift', 'crest', 'drop', 'loop', 'run'] as const).map(type => `${type}:${state.rollerCoasterTrackPlan.features.filter(feature => feature.type === type).length}`).join(' ')} ·{' '}
+      fallback {String(state.rollerCoasterTrackPlan.fallbackUsed)} · phrase proxy {state.rollerCoasterTrackPlan.phraseProxy.beatBlockSize} beats / confidence {state.rollerCoasterTrackPlan.phraseProxy.confidence.toFixed(2)} ·{' '}
+      map {state.rollerCoasterTrackMap.version} / {state.rollerCoasterTrackMap.id} · route {state.rollerCoasterTrackMap.totalLength.toFixed(1)} ·{' '}
+      points/segments {state.rollerCoasterTrackMap.points.length}/{state.rollerCoasterTrackMap.segments.length} · scale {state.rollerCoasterTrackMap.normalizationScale.toFixed(4)} ·{' '}
+      bounds {state.rollerCoasterTrackMap.bounds.minX.toFixed(1)},{state.rollerCoasterTrackMap.bounds.minY.toFixed(1)} → {state.rollerCoasterTrackMap.bounds.maxX.toFixed(1)},{state.rollerCoasterTrackMap.bounds.maxY.toFixed(1)} ·{' '}
+      valid {String(state.rollerCoasterTrackMap.valid)} · generated {state.rollerCoasterTrackMap.generationMs.toFixed(2)}ms
+      <br />{state.rollerCoasterTrackPlan.features.map(feature => `${feature.id} ${feature.type} ${feature.startTime.toFixed(1)}–${feature.endTime.toFixed(1)}s strength:${feature.strength.toFixed(2)} scale:${feature.scale.toFixed(2)} — ${feature.sourceEvidence.summary}`).join(' · ')}
+    </p>
     <p className="event-log"><strong>Phrase / RollerCoaster:</strong>{' '}
       available {String(state.frame.snapshot.structure.available)} · phrase {state.frame.snapshot.structure.phraseProgress.toFixed(2)} ·{' '}
       section {state.frame.snapshot.structure.section ?? '—'} · section progress {state.frame.snapshot.structure.sectionProgress.toFixed(2)} ·{' '}
@@ -178,10 +200,25 @@ export function DebugConsole({ state, attention }: { state: ExperienceState; att
       {state.rollerCoaster.riderPosition.x.toFixed(1)}, {state.rollerCoaster.riderPosition.y.toFixed(1)}, {state.rollerCoaster.riderPosition.z.toFixed(1)} ·{' '}
       reduced {String(state.rollerCoaster.reducedMotion)}
     </p>
+    <p className="event-log" data-debug-percussion><strong>Percussion Analysis:</strong>{' '}
+      capability {String(state.frame.snapshot.percussion.available)} · confidence {state.frame.snapshot.percussion.confidence.toFixed(2)} ·{' '}
+      activity {state.frame.snapshot.percussion.activity.toFixed(2)} · candidates {percussionAnalysis?.candidateCount ?? 'authored'} ·{' '}
+      accepted {percussionAnalysis?.acceptedEventCount ?? state.audio.percussion?.length ?? 0} · density{' '}
+      {percussionAnalysis?.eventDensity.toFixed(2) ?? '—'} · classes{' '}
+      {percussionAnalysis ? Object.entries(percussionAnalysis.classCounts).map(([role, count]) => `${role}:${count}`).join(', ') : 'authored'} ·{' '}
+      recent {recentPercussion?.type ?? '—'} @{recentPercussion?.time.toFixed(3) ?? '—'} · intensity{' '}
+      {recentPercussion?.strength.toFixed(2) ?? '—'} · confidence {recentPercussion?.confidence?.toFixed(2) ?? '—'} · scores{' '}
+      {recentPercussion?.topScore?.toFixed(2) ?? '—'}/{recentPercussion?.secondScore?.toFixed(2) ?? '—'} · margin{' '}
+      {recentPercussion?.margin?.toFixed(2) ?? '—'} · descriptors{' '}
+      {recentPercussion?.descriptors
+        ? `sub:${recentPercussion.descriptors.subRatio.toFixed(2)} low-mid:${recentPercussion.descriptors.lowMidRatio.toFixed(2)} high:${recentPercussion.descriptors.highRatio.toFixed(2)} centroid:${recentPercussion.descriptors.centroid.toFixed(2)} spread:${recentPercussion.descriptors.spread.toFixed(2)} duration:${recentPercussion.descriptors.duration.toFixed(3)} decay:${recentPercussion.descriptors.decay.toFixed(2)} onset:${recentPercussion.descriptors.onsetStrength.toFixed(2)}`
+        : '—'}
+    </p>
     <p className="event-log"><strong>BumperCars:</strong>{' '}
-      {state.bumperCars.latestPercussion ?? 'no percussion'} · strength {state.bumperCars.eventStrength.toFixed(2)} ·{' '}
+      count {state.bumperCars.bodies.length} · {state.bumperCars.latestPercussion ?? 'no percussion'} · strength {state.bumperCars.eventStrength.toFixed(2)} ·{' '}
       body {state.bumperCars.selectedBody === null ? '—' : state.bumperCars.selectedBody + 1} ·{' '}
-      activity {Math.round(state.bumperCars.kineticActivity)} · {state.bumperCars.mode}
+      activity {Math.round(state.bumperCars.kineticActivity)} · {state.bumperCars.mode} · cars{' '}
+      {state.bumperCars.bodies.map(body => `#${body.id + 1} ${body.role} pos:${body.x.toFixed(1)},${body.y.toFixed(1)} vel:${body.vx.toFixed(1)},${body.vy.toFixed(1)} speed:${Math.hypot(body.vx, body.vy).toFixed(1)} angular:${body.angularVelocity.toFixed(2)} event:${body.lastPercussionEvent ?? '—'} impulse:${body.lastImpulseStrength.toFixed(2)} collisions:${body.collisionCount}`).join(' | ')}
     </p>
     <p className="event-log"><strong>PirateShip:</strong>{' '}
       rhythm {String(state.frame.snapshot.rhythm.available)} · BPM {state.pirateShip.bpm ?? '—'} ·{' '}

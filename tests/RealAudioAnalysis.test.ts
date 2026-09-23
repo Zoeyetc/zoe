@@ -16,7 +16,7 @@ const snapshot = (map: ReturnType<typeof analyze>, time = map.duration / 2) =>
 test('real analysis advertises only the spectrum domain', () => {
   const map = analyze([sine(48_000, 0.2, 440)]);
   assert.deepEqual(map.capabilities, {
-    melody: false, rhythm: false, harmony: false, tonalCenter: false, structure: false, spectrum: true,
+    melody: false, rhythm: false, percussion: false, harmony: false, tonalCenter: false, structure: false, spectrum: true,
   });
   assert.equal(map.melody, null);
   assert.equal(map.rhythm, null);

@@ -53,6 +53,8 @@ Milestone 6A adds a separate 24-second phrase contour for RollerCoaster. The ext
 
 Milestone 6B registers RollerCoaster as a continuous PhysicsWorld wake source. An explicit spatial adapter maps current route pose and forward direction into normalized world coordinates; wake strength derives only from physical speed and bounded acceleration. The directional trailing field and BumperCars impacts both feed the same anchored content receiver state.
 
+Milestone 9F replaces the permanent fixed-route assumption with a deterministic two-stage generator. A serializable TrackPlan converts whole-song structure, smoothed macro energy, pulse context, recurrence, and an explicitly non-formal phrase proxy into evidence-backed Station, Lift, Crest, Drop, Run, Loop, and Runout features. A separate geometry generator composes and globally normalizes one TrackMap inside the existing RollerCoaster district. The map is generated once per adopted AudioMap; playback, seek, restart, focus, and attention do not regenerate it. The rider still advances by actor-local route physics, and PhysicsWorld wake still derives only from its actual pose, velocity, and acceleration. Weak inputs use a deterministic gentle fallback grammar.
+
 Milestone 7A adds eight deterministic Free Bodies / Orbs in canonical PhysicsWorld space. Authored spectrum evidence changes bounded buoyancy and seeded continuous turbulence, while the same bodies receive real RollerCoaster wake and BumperCars collision effects through PhysicsWorld. All forces compose into one actor-local trajectory with soft containment, deterministic restart, and a restrained reduced-motion mode.
 
 Milestone 8A.1 composes the existing live actors into one Park Map without
@@ -69,7 +71,7 @@ Milestone 8A.1b adds explicit irregular actor districts and increases the
 semantic map scale of Carousel and FerrisWheel. BumperCars now maps its
 unchanged local simulation arena into a bounded lower-right Park district;
 rendered cars and published PhysicsWorld impacts use the same spatial adapter.
-The canonical RollerCoaster route remains park-wide and gains renderer-only
+The current song-specific RollerCoaster TrackMap remains park-wide and gains renderer-only
 rail bed, rail, tie, direction, and segment treatments. Free Bodies retain
 their canonical positions while the overview renders smaller markers and only
 the selected body's velocity, reducing map-level diagnostic density.
@@ -153,9 +155,16 @@ AudioClock time. It does not run an independent metronome. Meter and downbeat
 analysis remain unavailable, so bar fields stay neutral. Swing is emitted only
 when at least four stable offbeat onsets support a delayed subdivision; groove
 describes measured beat-grid correction and supported swing. Confident rhythm
-wakes the existing PirateShip adapter and simulation. Generic beat events are
-excluded from the BumperCars adapter, and no kick/snare/hat classification is
-performed.
+wakes the existing PirateShip adapter and simulation. Generic beat events remain excluded from the BumperCars adapter.
+
+Milestone 9G reuses that same STFT pass to derive positive spectral-difference
+transients and normalized sub, low-mid, mid, high, and air descriptors. A
+deterministic rule-score baseline classifies Kick, Snare, Closed Hat, Open Hat /
+Cymbal, Tom / Low Percussion, or Other Percussive with explicit confidence and
+uncertainty. AudioWorld delivers accepted hits through timeline crossings to
+six persistent role cars. Each hit creates only an actor-local impulse; actual
+car motion and the existing collision solver remain the sole path to a
+PhysicsWorld impact. Musically Resting does not mean Physically Inactive.
 
 Milestone 9C adds a deterministic local predominant-melody baseline. The
 arithmetic-mean mono signal already created from the decoded buffer is box
@@ -253,8 +262,7 @@ Segment summaries are grouped into neutral recurrence families such as A, B,
 and A′. Energy, adjacent contrast, confidence, and structural importance remain
 separate bounded values. AudioWorld exposes the current segment and emits
 `section-change` only for forward timeline crossings; seek resolves directly.
-Analyzed sections do not trigger DropTower, alter RollerCoaster geometry, or
-change Attention in this milestone, and no real-audio `drop` is fabricated.
+Analyzed sections do not trigger DropTower or directly change Attention; Milestone 9F may consume the completed whole-song structure once to generate RollerCoaster geometry, and no real-audio `drop` is fabricated.
 
 Milestone 9E.2 makes the same pipeline robust to repetitive and texture-driven
 material without a genre mode. Rhythm now derives full-band, 20–180 Hz low-band,

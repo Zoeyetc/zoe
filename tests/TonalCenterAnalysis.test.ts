@@ -178,7 +178,7 @@ test('real PCM analysis derives C-major tonal evidence at two sample rates witho
 
 const mapWith = (analysis: ReturnType<typeof analyzeTonalCenter>): AudioMap => ({
   version: 1, id: 'tonal-test', duration: 24,
-  capabilities: { melody: false, rhythm: false, harmony: false, tonalCenter: analysis.available,
+  capabilities: { melody: false, rhythm: false, percussion: false, harmony: false, tonalCenter: analysis.available,
     structure: false, spectrum: false },
   melody: null, percussion: null, rhythm: null, harmony: null, tonalCenterAnalysis: analysis,
   structure: null, drops: null, spectrum: null,

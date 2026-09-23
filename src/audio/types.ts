@@ -4,7 +4,7 @@ export type TransportState = Readonly<{
   playing: boolean;
 }>;
 
-export type MusicalDomain = 'melody' | 'rhythm' | 'harmony' | 'tonalCenter' | 'structure' | 'spectrum';
+export type MusicalDomain = 'melody' | 'rhythm' | 'percussion' | 'harmony' | 'tonalCenter' | 'structure' | 'spectrum';
 export type MusicalCapabilities = Readonly<Record<MusicalDomain, boolean>>;
 
 export type MelodyNote = Readonly<{
@@ -50,13 +50,44 @@ export type MelodyAnalysis = Readonly<{
   }>;
 }>;
 
-export type PercussionKind = 'kick' | 'snare' | 'hat';
+export type PercussionKind = 'kick' | 'snare' | 'closed-hat' | 'open-hat' | 'tom' | 'other-percussion';
+
+export type PercussionDescriptors = Readonly<{
+  subRatio: number; lowMidRatio: number; midRatio: number; highRatio: number; airRatio: number;
+  centroid: number; spread: number; flatness: number; duration: number; decay: number;
+  onsetStrength: number; highPersistence: number; lowPersistence: number; rms: number;
+}>;
 
 export type PercussionHit = Readonly<{
   id: string;
   time: number;
   type: PercussionKind;
-  strength: number;
+  strength: number; // physical intensity candidate, 0..1
+  confidence?: number;
+  topScore?: number;
+  secondScore?: number;
+  margin?: number;
+  descriptors?: PercussionDescriptors;
+}>;
+
+export type PercussionAnalysis = Readonly<{
+  version: 1;
+  available: boolean;
+  confidence: number;
+  candidateCount: number;
+  acceptedEventCount: number;
+  eventDensity: number;
+  classCounts: Readonly<Record<PercussionKind, number>>;
+  events: readonly PercussionHit[];
+  metadata: Readonly<{
+    preprocessing: 'positive-spectral-difference-shared-stft';
+    frameSize: 2048; hopSize: 1024;
+    bandsHz: Readonly<{ sub: readonly [20, 160]; lowMid: readonly [160, 600]; mid: readonly [600, 2500]; high: readonly [2500, number]; air: readonly [number, number] }>;
+    descriptorNormalization: 'unit-energy-ratios-and-nyquist-normalized-moments';
+    classifier: 'deterministic-rule-scores-v1';
+    onsetThreshold: number; confidenceThreshold: number; capabilityThreshold: number;
+    refractorySeconds: Readonly<Record<PercussionKind, number>>;
+  }>;
 }>;
 
 export type RhythmSection = Readonly<{
@@ -393,6 +424,7 @@ export type AudioMap = Readonly<{
   melody: readonly MelodyNote[] | null; // null = unavailable; [] = available silence
   melodyAnalysis?: MelodyAnalysis | null;
   percussion: readonly PercussionHit[] | null; // null = unavailable; [] = available silence
+  percussionAnalysis?: PercussionAnalysis | null;
   rhythm: readonly RhythmSection[] | null;
   rhythmAnalysis?: RhythmAnalysis | null;
   harmony: readonly HarmonyRegion[] | null;
@@ -424,6 +456,8 @@ export type AudioSnapshot = Readonly<{
   }>;
   percussion: Readonly<{
     available: boolean;
+    activity: number;
+    confidence: number;
   }>;
   rhythm: Readonly<{
     available: boolean;
@@ -496,7 +530,7 @@ export type AudioSnapshot = Readonly<{
 
 export type AudioEvent =
   | Readonly<{ type: 'note-on' | 'note-off'; time: number; note: MelodyNote }>
-  | Readonly<{ type: PercussionKind; time: number; id: string; strength: number }>
+  | Readonly<{ type: PercussionKind; time: number; id: string; strength: number; confidence: number; hit: PercussionHit }>
   | Readonly<{ type: 'beat'; time: number; id: string; index: number; strength: number }>
   | Readonly<{ type: 'chord-change'; time: number; harmony: HarmonyRegion | null }>
   | Readonly<{ type: 'tonal-center-change'; time: number; tonalCenter: TonalCenterSegment }>

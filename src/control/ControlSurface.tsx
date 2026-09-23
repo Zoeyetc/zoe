@@ -2,11 +2,13 @@ import type { AudioSnapshot, TransportState } from '../audio/types';
 import type { ControlActions } from './types';
 import type { AudioPreparationState } from '../audio/AudioPreparationController';
 
-export function ControlSurface({ transport, melody, rhythm, harmony, tonalCenter, structure, structureSegmentCount,
+export function ControlSurface({ transport, melody, rhythm, percussion, percussionEventCount, harmony, tonalCenter, structure, structureSegmentCount,
   actions, preparation, onChooseAudio, onUseFixture }: {
   transport: TransportState;
   melody: AudioSnapshot['melody'];
   rhythm: AudioSnapshot['rhythm'];
+  percussion: AudioSnapshot['percussion'];
+  percussionEventCount: number | null;
   harmony: AudioSnapshot['harmony'];
   tonalCenter: AudioSnapshot['tonalCenter'];
   structure: AudioSnapshot['structure'];
@@ -37,6 +39,9 @@ export function ControlSurface({ transport, melody, rhythm, harmony, tonalCenter
       {preparation.analysisState === 'ready' && <span data-rhythm-status>Rhythm: {rhythm.available && rhythm.bpm !== null
         ? `${rhythm.bpm.toFixed(1)} BPM · confidence ${rhythm.confidence.toFixed(2)}`
         : `unavailable · confidence ${rhythm.confidence.toFixed(2)}`}</span>}
+      {preparation.analysisState === 'ready' && <span data-percussion-status>Percussion: {percussion.available
+        ? `ready · confidence ${percussion.confidence.toFixed(2)} · ${percussionEventCount ?? 0} events`
+        : `unavailable · confidence ${percussion.confidence.toFixed(2)}`}</span>}
       {preparation.analysisState === 'ready' && <span data-melody-status>Melody: {melody.available
         ? `ready · ${melody.noteName ?? 'rest'} · confidence ${melody.confidence.toFixed(2)}`
         : 'unavailable'}</span>}
