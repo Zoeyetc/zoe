@@ -5,7 +5,8 @@ import type {
   MelodyFrameDecisionReason, MelodyRejectedCandidate, MelodyTrackDecisionReason,
 } from '../melody-evidence/types';
 import type {
-  MelodyDpDiagnostics, MelodyDpFrameDiagnostic, MelodyDpStateDiagnostic,
+  MelodyCandidateScoreDiagnostic, MelodyDpDiagnostics, MelodyDpFrameDiagnostic, MelodyDpStateDiagnostic,
+  MelodyYinFrameDiagnostic,
 } from '../melody-evidence/dpDiagnostics.ts';
 
 export const MELODY_ANALYSIS = {
@@ -36,6 +37,7 @@ type Candidate = {
   periodicity: number;
   salience: number;
   score: number;
+  scoreDiagnostic: MelodyCandidateScoreDiagnostic | null;
 };
 
 type AnalyzedFrame = {
@@ -129,8 +131,18 @@ function harmonicAmplitude(frame: Float32Array, frequency: number, sampleRate: n
   return 4 * Math.hypot(real, imaginary) / frame.length;
 }
 
-function harmonicSalience(frame: Float32Array, frequency: number, rms: number) {
-  if (rms <= 1e-12) return 0;
+type HarmonicSalienceTerms = Readonly<{
+  support: number;
+  weightSum: number;
+  normalizationDenominator: number;
+  unclamped: number;
+  salience: number;
+}>;
+
+function harmonicSalienceTerms(frame: Float32Array, frequency: number, rms: number): HarmonicSalienceTerms {
+  if (rms <= 1e-12) return {
+    support: 0, weightSum: 0, normalizationDenominator: 1e-9, unclamped: 0, salience: 0,
+  };
   let support = 0;
   let weights = 0;
   for (let harmonic = 1; harmonic <= MELODY_ANALYSIS.maximumHarmonics; harmonic += 1) {
@@ -140,23 +152,127 @@ function harmonicSalience(frame: Float32Array, frequency: number, rms: number) {
     support += harmonicAmplitude(frame, harmonicFrequency, MELODY_ANALYSIS.analysisSampleRate) * weight;
     weights += weight;
   }
-  return clamp01(support / Math.max(1e-9, rms * weights * 1.35));
+  const normalizationDenominator = Math.max(1e-9, rms * weights * 1.35);
+  const unclamped = support / normalizationDenominator;
+  return { support, weightSum: weights, normalizationDenominator, unclamped, salience: clamp01(unclamped) };
 }
 
-function candidateFrames(signal: Float32Array): AnalyzedFrame[] {
+type YinLagDomain = Readonly<{
+  minimumLag: number;
+  maximumLag: number;
+  difference: Float64Array;
+  cumulative: Float64Array;
+  localMinima: readonly number[];
+  candidateLags: readonly number[];
+  searchMode: 'LOCAL_MINIMA' | 'GLOBAL_MINIMUM_FALLBACK';
+}>;
+
+function calculateYinLagDomain(frame: Float32Array): YinLagDomain {
   const sampleRate = MELODY_ANALYSIS.analysisSampleRate;
   const minimumLag = Math.max(2, Math.floor(sampleRate / MELODY_ANALYSIS.maximumHz));
-  const maximumLag = Math.min(MELODY_ANALYSIS.frameSize - 2, Math.ceil(sampleRate / MELODY_ANALYSIS.minimumHz));
+  const maximumLag = Math.min(MELODY_ANALYSIS.frameSize - 2,
+    Math.ceil(sampleRate / MELODY_ANALYSIS.minimumHz));
+  const difference = new Float64Array(maximumLag + 1);
+  const cumulative = new Float64Array(maximumLag + 1);
+  let running = 0;
+  for (let lag = 1; lag <= maximumLag; lag += 1) {
+    let sum = 0;
+    let weightSum = 0;
+    for (let index = 0; index + lag < frame.length; index += 2) {
+      const delta = frame[index] - frame[index + lag];
+      const weight = YIN_WINDOW[index] * YIN_WINDOW[index + lag];
+      sum += delta * delta * weight;
+      weightSum += weight;
+    }
+    difference[lag] = sum / Math.max(1e-9, weightSum);
+    running += difference[lag];
+    cumulative[lag] = running > 0 ? difference[lag] * lag / running : 1;
+  }
+  const localMinima: number[] = [];
+  for (let lag = minimumLag + 1; lag < maximumLag; lag += 1) {
+    if (cumulative[lag] <= cumulative[lag - 1] && cumulative[lag] < cumulative[lag + 1]
+      && cumulative[lag] < 0.48) localMinima.push(lag);
+  }
+  if (localMinima.length) return {
+    minimumLag, maximumLag, difference, cumulative,
+    localMinima, candidateLags: localMinima, searchMode: 'LOCAL_MINIMA',
+  };
+  let best = minimumLag;
+  for (let lag = minimumLag + 1; lag <= maximumLag; lag += 1) {
+    if (cumulative[lag] < cumulative[best]) best = lag;
+  }
+  return {
+    minimumLag, maximumLag, difference, cumulative,
+    localMinima, candidateLags: [best], searchMode: 'GLOBAL_MINIMUM_FALLBACK',
+  };
+}
+
+function analysisFrame(signal: Float32Array, start: number) {
+  const frame = new Float32Array(MELODY_ANALYSIS.frameSize);
+  frame.set(signal.subarray(start, Math.min(signal.length, start + frame.length)));
+  const centerStart = Math.floor((frame.length - 512) / 2);
+  let sumSquares = 0;
+  for (let index = centerStart; index < centerStart + 512; index += 1) sumSquares += frame[index] * frame[index];
+  return { frame, rms: Math.sqrt(sumSquares / 512) };
+}
+
+function scoreCandidate(integerLag: number, interpolatedLag: number, domain: YinLagDomain,
+  frame: Float32Array, rms: number, collectScoreDiagnostics: boolean): Candidate {
+  const pitchHz = MELODY_ANALYSIS.analysisSampleRate / interpolatedLag;
+  const cumulativeDifference = domain.cumulative[integerLag];
+  const midiFloat = hzToMidi(pitchHz);
+  const periodicityUnclamped = 1 - cumulativeDifference;
+  const periodicity = clamp01(periodicityUnclamped);
+  const salienceTerms = harmonicSalienceTerms(frame, pitchHz, rms);
+  const energySupportUnclamped = (rms - MELODY_ANALYSIS.minimumRms) / 0.035;
+  const energySupport = clamp01(energySupportUnclamped);
+  const periodicityContribution = periodicity * 0.50;
+  const salienceContribution = salienceTerms.salience * 0.40;
+  const energySupportContribution = energySupport * 0.10;
+  const weightedSum = periodicityContribution + salienceContribution + energySupportContribution;
+  const score = clamp01(weightedSum);
+  const scoreDiagnostic: MelodyCandidateScoreDiagnostic | null = collectScoreDiagnostics ? Object.freeze({
+    frequencyHz: pitchHz,
+    midiFloat,
+    integerLag,
+    interpolatedLag,
+    rawDifferenceLeft: domain.difference[integerLag - 1] ?? domain.difference[integerLag],
+    rawDifference: domain.difference[integerLag],
+    rawDifferenceRight: domain.difference[integerLag + 1] ?? domain.difference[integerLag],
+    cumulativeDifferenceLeft: domain.cumulative[integerLag - 1] ?? domain.cumulative[integerLag],
+    yinCumulativeDifference: cumulativeDifference,
+    cumulativeDifferenceRight: domain.cumulative[integerLag + 1] ?? domain.cumulative[integerLag],
+    candidateSearchMode: domain.searchMode,
+    periodicityUnclamped,
+    periodicity,
+    periodicityWeight: 0.50,
+    periodicityContribution,
+    harmonicSupport: salienceTerms.support,
+    harmonicWeightSum: salienceTerms.weightSum,
+    salienceNormalizationDenominator: salienceTerms.normalizationDenominator,
+    salienceUnclamped: salienceTerms.unclamped,
+    salience: salienceTerms.salience,
+    salienceWeight: 0.40,
+    salienceContribution,
+    frameRms: rms,
+    minimumRms: MELODY_ANALYSIS.minimumRms,
+    energyNormalizationSpan: 0.035,
+    energySupportUnclamped,
+    energySupport,
+    energySupportWeight: 0.10,
+    energySupportContribution,
+    weightedSum,
+    score,
+  }) : null;
+  return { pitchHz, midiFloat, periodicity, salience: salienceTerms.salience, score, scoreDiagnostic };
+}
+
+function candidateFrames(signal: Float32Array, collectScoreDiagnostics: boolean): AnalyzedFrame[] {
   const frames: AnalyzedFrame[] = [];
   for (let start = 0; start < signal.length; start += MELODY_ANALYSIS.hopSize) {
-    const frame = new Float32Array(MELODY_ANALYSIS.frameSize);
-    frame.set(signal.subarray(start, Math.min(signal.length, start + frame.length)));
+    const { frame, rms } = analysisFrame(signal, start);
     // Periodicity needs the long frame, while voicing boundaries use a short
     // center window so rests are not smeared by the 171 ms pitch aperture.
-    const centerStart = Math.floor((frame.length - 512) / 2);
-    let sumSquares = 0;
-    for (let index = centerStart; index < centerStart + 512; index += 1) sumSquares += frame[index] * frame[index];
-    const rms = Math.sqrt(sumSquares / 512);
     const candidates: Candidate[] = [];
     let rejectedCandidates: readonly Omit<MelodyRejectedCandidate, 'rank'>[] = [];
     let outOfRangeCandidateCount = 0;
@@ -166,60 +282,30 @@ function candidateFrames(signal: Float32Array): AnalyzedFrame[] {
     let duplicateCandidateRemovalCount = 0;
     let searchMode: MelodyCandidateGenerationEvidence['searchMode'] = 'NOT_RUN';
     if (rms >= MELODY_ANALYSIS.minimumRms) {
-      const difference = new Float64Array(maximumLag + 1);
-      const cumulative = new Float64Array(maximumLag + 1);
-      let running = 0;
-      for (let lag = 1; lag <= maximumLag; lag += 1) {
-        let sum = 0;
-        let weightSum = 0;
-        for (let index = 0; index + lag < frame.length; index += 2) {
-          const delta = frame[index] - frame[index + lag];
-          const weight = YIN_WINDOW[index] * YIN_WINDOW[index + lag];
-          sum += delta * delta * weight;
-          weightSum += weight;
-        }
-        difference[lag] = sum / Math.max(1e-9, weightSum);
-        running += difference[lag];
-        cumulative[lag] = running > 0 ? difference[lag] * lag / running : 1;
-      }
-      const minima: number[] = [];
-      for (let lag = minimumLag + 1; lag < maximumLag; lag += 1) {
-        if (cumulative[lag] <= cumulative[lag - 1] && cumulative[lag] < cumulative[lag + 1]
-          && cumulative[lag] < 0.48) minima.push(lag);
-      }
-      localMinimumCount = minima.length;
-      if (!minima.length) {
-        let best = minimumLag;
-        for (let lag = minimumLag + 1; lag <= maximumLag; lag += 1) {
-          if (cumulative[lag] < cumulative[best]) best = lag;
-        }
-        minima.push(best);
-      }
-      searchMode = localMinimumCount > 0 ? 'LOCAL_MINIMA' : 'GLOBAL_MINIMUM_FALLBACK';
-      for (const lag of minima) {
+      const domain = calculateYinLagDomain(frame);
+      localMinimumCount = domain.localMinima.length;
+      searchMode = domain.searchMode;
+      for (const lag of domain.candidateLags) {
         rawCandidateCount += 1;
-        const left = cumulative[lag - 1] ?? cumulative[lag];
-        const center = cumulative[lag];
-        const right = cumulative[lag + 1] ?? cumulative[lag];
+        const left = domain.cumulative[lag - 1] ?? domain.cumulative[lag];
+        const center = domain.cumulative[lag];
+        const right = domain.cumulative[lag + 1] ?? domain.cumulative[lag];
         const denominator = left - 2 * center + right;
         const interpolatedLag = denominator === 0 ? lag : lag + 0.5 * (left - right) / denominator;
-        const pitchHz = sampleRate / interpolatedLag;
-        const periodicity = clamp01(1 - center);
-        const salience = harmonicSalience(frame, pitchHz, rms);
-        const energySupport = clamp01((rms - MELODY_ANALYSIS.minimumRms) / 0.035);
-        const score = clamp01(periodicity * 0.50 + salience * 0.40 + energySupport * 0.10);
+        const candidate = scoreCandidate(lag, interpolatedLag, domain, frame, rms, collectScoreDiagnostics);
+        const pitchHz = candidate.pitchHz;
         if (!(pitchHz >= MELODY_ANALYSIS.minimumHz && pitchHz <= MELODY_ANALYSIS.maximumHz)) {
           outOfRangeCandidateCount += 1;
           rejectedCandidates = retainMelodyRejectedCandidate(rejectedCandidates, {
             frequencyHz: pitchHz,
-            periodicity,
-            salience,
-            score,
+            periodicity: candidate.periodicity,
+            salience: candidate.salience,
+            score: candidate.score,
             reason: pitchHz < MELODY_ANALYSIS.minimumHz ? 'BELOW_PITCH_RANGE' : 'ABOVE_PITCH_RANGE',
           });
           continue;
         }
-        candidates.push({ pitchHz, midiFloat: hzToMidi(pitchHz), periodicity, salience, score });
+        candidates.push(candidate);
         inRangeCandidateCountBeforeDeduplication += 1;
       }
       candidates.sort((a, b) => b.score - a.score || a.pitchHz - b.pitchHz);
@@ -248,7 +334,8 @@ function candidateFrames(signal: Float32Array): AnalyzedFrame[] {
       duplicateCandidateRemovalCount,
     };
     frames.push({
-      time: Math.min(signal.length / sampleRate, (start + MELODY_ANALYSIS.frameSize / 2) / sampleRate),
+      time: Math.min(signal.length / MELODY_ANALYSIS.analysisSampleRate,
+        (start + MELODY_ANALYSIS.frameSize / 2) / MELODY_ANALYSIS.analysisSampleRate),
       rms,
       candidates,
       generation,
@@ -258,6 +345,43 @@ function candidateFrames(signal: Float32Array): AnalyzedFrame[] {
     if (start + MELODY_ANALYSIS.frameSize >= signal.length && start > 0) break;
   }
   return frames;
+}
+
+/** Explicit test/debug seam. Full lag curves are never retained by normal analysis or AudioMap. */
+export function inspectMelodyYinFrame(input: MelodyAnalysisInput, frameIndex: number): MelodyYinFrameDiagnostic {
+  if (!Number.isInteger(frameIndex) || frameIndex < 0) throw new RangeError('frameIndex must be a non-negative integer');
+  const signal = resampleForAnalysis(input.mono, input.sampleRate);
+  const start = frameIndex * MELODY_ANALYSIS.hopSize;
+  if (start >= signal.length) throw new RangeError('frameIndex is outside the analyzed signal');
+  const { frame, rms } = analysisFrame(signal, start);
+  const domain = calculateYinLagDomain(frame);
+  const selected = new Set(domain.candidateLags);
+  const minima = new Set(domain.localMinima);
+  return Object.freeze({
+    frameIndex,
+    time: Math.min(signal.length / MELODY_ANALYSIS.analysisSampleRate,
+      (start + MELODY_ANALYSIS.frameSize / 2) / MELODY_ANALYSIS.analysisSampleRate),
+    rms,
+    minimumLag: domain.minimumLag,
+    maximumLag: domain.maximumLag,
+    searchMode: domain.searchMode,
+    localMinimumCount: domain.localMinima.length,
+    selectedCandidateLags: Object.freeze([...domain.candidateLags]),
+    lagPoints: Object.freeze(Array.from({ length: domain.maximumLag - domain.minimumLag + 1 }, (_, offset) => {
+      const lag = domain.minimumLag + offset;
+      const periodicityUnclamped = 1 - domain.cumulative[lag];
+      return Object.freeze({
+        lag,
+        frequencyHz: MELODY_ANALYSIS.analysisSampleRate / lag,
+        rawDifference: domain.difference[lag],
+        cumulativeDifference: domain.cumulative[lag],
+        periodicityUnclamped,
+        periodicity: clamp01(periodicityUnclamped),
+        isLocalMinimum: minima.has(lag),
+        selectedForCandidateGeneration: selected.has(lag),
+      });
+    })),
+  });
 }
 
 function transitionTerms(previous: Candidate | null, current: Candidate | null): TransitionTerms {
@@ -302,6 +426,7 @@ function choosePath(frames: readonly AnalyzedFrame[], collectDiagnostics: boolea
           pitchHz: candidate?.pitchHz ?? null,
           midiFloat: candidate?.midiFloat ?? null,
           candidateScore: candidate?.score ?? null,
+          candidateScoreDiagnostic: candidate?.scoreDiagnostic ?? null,
           localContribution: emission,
           predecessorStateIndex: null,
           predecessorCandidateIndex: null,
@@ -339,6 +464,7 @@ function choosePath(frames: readonly AnalyzedFrame[], collectDiagnostics: boolea
         pitchHz: candidate?.pitchHz ?? null,
         midiFloat: candidate?.midiFloat ?? null,
         candidateScore: candidate?.score ?? null,
+        candidateScoreDiagnostic: candidate?.scoreDiagnostic ?? null,
         localContribution: emission,
         predecessorStateIndex: previous,
         predecessorCandidateIndex: previous === 0 ? null : previous - 1,
@@ -612,7 +738,7 @@ function runMelodyAnalysis(input: MelodyAnalysisInput, collectEvidence: boolean,
   collectDpDiagnostics: boolean, localObjectiveVariant: MelodyLocalObjectiveVariant) {
   const signal = resampleForAnalysis(input.mono, input.sampleRate);
   const duration = input.mono.length / input.sampleRate;
-  const frames = candidateFrames(signal);
+  const frames = candidateFrames(signal, collectDpDiagnostics);
   const pathResult = choosePath(frames, collectDpDiagnostics, localObjectiveVariant);
   const path = pathResult.path;
   const contourResult = contourFromPath(frames, path);

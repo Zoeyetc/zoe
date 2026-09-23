@@ -107,6 +107,16 @@ export function createMelodyCompetitionStimulus(bassAmplitude: number,
   });
 }
 
+/** Exact bass timeline and synthesis used by the competition fixture, without the melody source. */
+export function createBassOnlyCompetitionStimulus(bassAmplitude: number,
+  bassTimeline: readonly GroundTruthBassSegment[] = GROUND_TRUTH_BASS) {
+  const duration = GROUND_TRUTH_MELODY.at(-1)!.endSec;
+  return Float32Array.from({ length: duration * CALIBRATION_SAMPLE_RATE }, (_, index) => {
+    const time = index / CALIBRATION_SAMPLE_RATE;
+    return bassTimeline.reduce((sum, segment) => sum + toneAt(time, segment, bassAmplitude), 0);
+  });
+}
+
 export const centsDistance = (actualHz: number, expectedHz: number) =>
   1200 * Math.log2(actualHz / expectedHz);
 
