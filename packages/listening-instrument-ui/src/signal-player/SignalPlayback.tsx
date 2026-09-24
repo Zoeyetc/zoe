@@ -1,8 +1,9 @@
-import { useId } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { AudioPreparationState } from '../contracts.ts';
 import type { BrowserTransportState } from '../contracts.ts';
 import type { InstrumentActions } from '../contracts.ts';
 import type { LiveInputState } from '@computational-listening/audio-source-browser';
+import type { PerformanceFullscreenState } from './performanceFullscreen';
 
 export type SignalPlaybackProps = Readonly<{
   transport: BrowserTransportState;
@@ -15,6 +16,7 @@ export type SignalPlaybackProps = Readonly<{
   onStopLive(): void;
   onSelectLiveInput(deviceId: string): void;
   compact?: boolean;
+  fullscreen?: PerformanceFullscreenState & Readonly<{ toggle(): void }>;
 }>;
 
 function clockTime(value: number) {
@@ -24,9 +26,16 @@ function clockTime(value: number) {
 }
 
 export function SignalPlayback({ transport, preparation, actions, onChooseAudio, onUseFixture,
-  liveInput, onStartLive, onStopLive, onSelectLiveInput, compact = false }: SignalPlaybackProps) {
+  liveInput, onStartLive, onStopLive, onSelectLiveInput, compact = false, fullscreen }: SignalPlaybackProps) {
   const inputId = useId();
   const seekId = useId();
+  const inputMenuId = useId();
+  const [choosingInput, setChoosingInput] = useState(false);
+  const liveButtonRef = useRef<HTMLButtonElement>(null);
+  const stopButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (liveInput.status === 'LIVE') stopButtonRef.current?.focus();
+  }, [liveInput.status]);
   const preparing = preparation.decodeState === 'decoding' || preparation.analysisState === 'analyzing';
   const source = preparation.sourceMode === 'fixture'
     ? 'Reference analysis source'
@@ -35,16 +44,30 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
   const transportState = transport.time >= transport.duration ? 'ended' : transport.playing ? 'playing' : 'paused';
   const progress = transport.duration > 0 ? Math.min(1, Math.max(0, transport.time / transport.duration)) : 0;
   const liveMode = liveInput.status === 'LIVE' || liveInput.status === 'REQUESTING';
-  const liveLabel = liveInput.deviceLabel ?? 'label unavailable';
+  const requestedDevice = liveInput.devices.find(device => device.deviceId === liveInput.selectedDeviceId);
+  const liveLabel = liveInput.status === 'REQUESTING'
+    ? liveInput.selectedDeviceId
+      ? requestedDevice?.labelAvailable ? requestedDevice.label : 'label unavailable'
+      : 'system default'
+    : liveInput.deviceLabel ?? 'label unavailable';
+  const inputStatus = liveInput.status === 'NOT_REQUESTED' ? 'NOT CONNECTED' : liveInput.status === 'ERROR'
+    ? 'INPUT ERROR' : liveInput.status.replaceAll('_', ' ');
+  const sourceStatus = liveMode ? inputStatus
+    : `FILE${preparation.sourceMode === 'fixture' ? ' · REFERENCE' : ''} · INPUT ${inputStatus === 'INPUT ERROR' ? 'ERROR' : inputStatus}`;
   const chooseAudio = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
-    if (file) onChooseAudio(file);
+    if (file) { setChoosingInput(false); onChooseAudio(file); }
     event.currentTarget.value = '';
+  };
+  const chooseInput = (deviceId: string | null) => {
+    setChoosingInput(false);
+    if (deviceId) onSelectLiveInput(deviceId);
+    else onStartLive(null);
   };
   const deviceSelector = <select className="signal-input-device" aria-label="Input device"
     value={liveInput.selectedDeviceId ?? ''} disabled={liveMode && liveInput.status === 'REQUESTING'}
     onChange={event => onSelectLiveInput(event.currentTarget.value)}>
-    <option value="">Input label unavailable</option>
+    <option value="">{liveMode ? liveLabel : 'SYSTEM DEFAULT'}</option>
     {liveInput.devices.map((device, index) => <option value={device.deviceId} key={device.deviceId || `input-${index}`}>
       {device.labelAvailable ? device.label : `Label unavailable · input ${index + 1}`}
     </option>)}
@@ -54,32 +77,63 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
     aria-label="Audio transport" data-transport-state={liveMode ? 'live' : transportState}
     data-source-mode={liveMode ? 'live-input' : 'file'}>
     <div className="signal-playback-command">
-      <label className="signal-load-command" htmlFor={inputId}>
-        <span>{liveMode ? 'audio.input(' : 'audio.load('}</span>
-        <strong>&quot;{liveMode ? liveLabel : sourceArgument}&quot;</strong><span>)</span>
-      </label>
-      <input className="signal-load-input" id={inputId} type="file"
-        accept="audio/mpeg,audio/wav,audio/mp4,audio/x-m4a,.mp3,.wav,.m4a"
-        disabled={preparing} onChange={chooseAudio} aria-label={`Load audio file; current source ${source}`} />
+      {liveMode ? <span className="signal-load-command signal-active-input-command">
+        <span>audio.input(</span><strong>&quot;{liveLabel}&quot;</strong><span>)</span>
+      </span> : <>
+        <label className="signal-load-command" htmlFor={inputId}>
+          <span>audio.load(</span><strong>&quot;{sourceArgument}&quot;</strong><span>)</span>
+        </label>
+        <input className="signal-load-input" id={inputId} type="file"
+          accept="audio/mpeg,audio/wav,audio/mp4,audio/x-m4a,.mp3,.wav,.m4a"
+          disabled={preparing} onChange={chooseAudio} aria-label={`Load audio file; current source ${source}`} />
+      </>}
       <div className="signal-playback-actions" aria-label="Playback controls">
-        {liveMode ? <button disabled={liveInput.status === 'REQUESTING'} onClick={onStopLive}>[STOP]</button> : <>
+        {liveMode ? <button ref={stopButtonRef} onClick={onStopLive}>[STOP]</button> : <>
         <button disabled={preparing || transport.playing || transport.time >= transport.duration}
           onClick={actions.play}>[PLAY]</button>
         <button disabled={!transport.playing} onClick={actions.pause}>[PAUSE]</button>
         <button onClick={actions.restart}>[RESTART]</button>
         </>}
-        {!liveMode ? <button onClick={() => onStartLive(liveInput.selectedDeviceId)}>[LIVE]</button> : null}
-        {preparation.sourceMode === 'real-audio'
-          ? <button className="signal-reference-action" type="button" onClick={onUseFixture}>[REFERENCE]</button>
+        {!liveMode ? <span className="signal-live-action" onKeyDown={event => {
+          if (event.key === 'Escape') { setChoosingInput(false); liveButtonRef.current?.focus(); }
+        }}>
+          <button ref={liveButtonRef} type="button" aria-expanded={choosingInput}
+            aria-controls={choosingInput ? inputMenuId : undefined}
+            onClick={() => setChoosingInput(open => !open)}>[LIVE]</button>
+          {choosingInput ? <div className="signal-input-menu" id={inputMenuId} role="group" aria-label="Select input">
+            <strong>SELECT INPUT</strong>
+            <button type="button" onClick={() => chooseInput(null)}>SYSTEM DEFAULT</button>
+            {liveInput.devices.filter(device => device.deviceId).map((device, index) =>
+              <button type="button" key={device.deviceId} onClick={() => chooseInput(device.deviceId)}>
+                {device.labelAvailable ? device.label : `LABEL UNAVAILABLE · INPUT ${index + 1}`}
+              </button>)}
+            <button type="button" onClick={() => { setChoosingInput(false); liveButtonRef.current?.focus(); }}>
+              [CANCEL]
+            </button>
+          </div> : null}
+        </span> : null}
+        {!liveMode && preparation.sourceMode === 'real-audio'
+          ? <button className="signal-reference-action" type="button" onClick={() => {
+            setChoosingInput(false); onUseFixture();
+          }}>[REFERENCE]</button>
           : null}
+        {fullscreen ? <button type="button" onClick={fullscreen.toggle} disabled={!fullscreen.supported}
+          aria-label={fullscreen.active ? 'Exit fullscreen' : 'Enter fullscreen'}
+          aria-pressed={fullscreen.active}>
+          {fullscreen.active ? '[EXIT FULLSCREEN]' : '[FULLSCREEN]'}
+        </button> : null}
+        {fullscreen?.error ? <span className="signal-command-status" role="status">
+          {fullscreen.error === 'unavailable' ? 'FULLSCREEN UNAVAILABLE' : 'FULLSCREEN FAILED'}
+        </span> : null}
       </div>
-      {deviceSelector}
+      <span className="signal-source-status" role="status">{sourceStatus}</span>
       <span className="signal-sr-only" role="status">Decode: {preparation.decodeState}; Analysis: {preparation.analysisState}
         {preparation.error ? `; ${preparation.error}` : ''}; Live input: {liveInput.status}
-        {liveInput.error ? `; ${liveInput.error}` : ''}</span>
+        {liveInput.error ? `; ${liveInput.error}` : ''}
+        {fullscreen?.error ? `; Fullscreen: ${fullscreen.error}` : ''}</span>
     </div>
     {liveMode ? <div className="signal-live-command" aria-label="Live listening session">
-      <strong>LIVE</strong><output aria-label="Live session time">{clockTime(transport.time)}</output>
+      <strong>{liveInput.status}</strong><output aria-label="Live session time">{clockTime(liveInput.sessionTime)}</output>
     </div> : <div className="signal-progress-command">
       <output aria-label="Current transport time">{clockTime(transport.time)}</output>
       <div className="signal-progress-track" aria-hidden="true">

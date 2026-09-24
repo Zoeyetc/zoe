@@ -180,6 +180,31 @@ test('permission denial remains explicit and never retries capture automatically
   await controller.dispose();
 });
 
+test('stopping during permission request discards a late microphone stream', async () => {
+  let resolveCapture: ((stream: MediaStream) => void) | undefined;
+  let stopped = false;
+  const mediaDevices = {
+    async enumerateDevices() { return []; },
+    getUserMedia() { return new Promise<MediaStream>(resolve => { resolveCapture = resolve; }); },
+    addEventListener() {}, removeEventListener() {},
+  };
+  const controller = createLiveAudioInputController({
+    secureContext: true, mediaDevices: mediaDevices as unknown as MediaDevices,
+    createCaptureNode: () => ({} as AudioWorkletNode), onState() {}, onAnalysis() {},
+  });
+  const starting = controller.start(null);
+  await Promise.resolve();
+  assert.equal(controller.read().status, 'REQUESTING');
+  await controller.stop();
+  assert.equal(controller.read().status, 'STOPPED');
+  assert.ok(resolveCapture);
+  resolveCapture({ getTracks: () => [{ stop() { stopped = true; } }] } as unknown as MediaStream);
+  await starting;
+  assert.equal(stopped, true);
+  assert.equal(controller.read().status, 'STOPPED');
+  await controller.dispose();
+});
+
 test('SignalPlayer exposes truthful compact live grammar without file transport controls', () => {
   const playback = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-player/SignalPlayback.tsx', import.meta.url), 'utf8');
   const player = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-player/SignalPlayer.tsx', import.meta.url), 'utf8');
@@ -197,7 +222,7 @@ test('SignalPlayer exposes truthful compact live grammar without file transport 
   assert.doesNotMatch(playback, /SYSTEM AUDIO|Spotify|Apple Music/);
   assert.match(player, /liveInput: LiveInputState/);
   assert.match(app, /createLiveAudioInputController/);
-  assert.match(app, /live\.stop\(\)\.then\(async \(\) =>/);
+  assert.match(app, /fileMapRef/);
   assert.match(telemetry, /UNAVAILABLE LIVE/);
   assert.match(telemetry, /WARMING UP/);
   assert.match(telemetry, /ROLLING 12\.0 S/);

@@ -49,15 +49,19 @@ export function createLiveAudioInputController(options: ControllerOptions) {
   let workletUrl: string | null = null;
   let session = 0;
   let disposed = false;
+  let requestGeneration = 0;
 
   const publish = (next: LiveInputState) => { state = Object.freeze(next); options.onState(state); };
   const refreshDevices = async () => {
+    if (disposed) return [];
     if (!mediaDevices) { publish({ ...state, status: 'ERROR', error: 'Media devices are unavailable' }); return []; }
     try {
       const devices = devicesFrom(await mediaDevices.enumerateDevices());
+      if (disposed) return [];
       publish({ ...state, devices });
       return devices;
     } catch (error) {
+      if (disposed) return [];
       const failure = classifyError(error); publish({ ...state, status: failure.status, error: failure.message }); return [];
     }
   };
@@ -74,6 +78,7 @@ export function createLiveAudioInputController(options: ControllerOptions) {
     workletUrl = null;
   };
   const stop = async (status: LiveInputStatus = 'STOPPED') => {
+    requestGeneration += 1;
     const frozen = clock?.read().time ?? state.sessionTime;
     const finalListeners = state.listeners;
     await cleanup();
@@ -88,7 +93,10 @@ export function createLiveAudioInputController(options: ControllerOptions) {
     if (!mediaDevices?.getUserMedia || !globalThis.AudioWorkletNode && !options.createCaptureNode) {
       publish({ ...state, status: 'ERROR', error: 'AudioWorklet live capture is unavailable' }); return;
     }
+    const generation = ++requestGeneration;
+    const cancelled = () => disposed || generation !== requestGeneration;
     await cleanup();
+    if (cancelled()) return;
     publish({ ...state, status: 'REQUESTING', selectedDeviceId: deviceId, sessionTime: 0,
       listeners: emptyLiveListeners(), error: null });
     try {
@@ -96,11 +104,15 @@ export function createLiveAudioInputController(options: ControllerOptions) {
         echoCancellation: false, noiseSuppression: false, autoGainControl: false,
         ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
       };
-      stream = await mediaDevices.getUserMedia({ audio: constraints, video: false });
+      const acquiredStream = await mediaDevices.getUserMedia({ audio: constraints, video: false });
+      if (cancelled()) { for (const track of acquiredStream.getTracks()) track.stop(); return; }
+      stream = acquiredStream;
       context = createContext();
       if (context.state === 'suspended') await context.resume();
+      if (cancelled()) return;
       workletUrl = createLivePcmWorkletUrl();
       await context.audioWorklet.addModule(workletUrl);
+      if (cancelled()) return;
       source = context.createMediaStreamSource(stream);
       capture = createCaptureNode(context);
       source.connect(capture);
@@ -109,6 +121,7 @@ export function createLiveAudioInputController(options: ControllerOptions) {
       const track = stream.getAudioTracks()[0];
       const settings = track?.getSettings();
       const devices = await refreshDevices();
+      if (cancelled()) return;
       const activeDeviceId = settings?.deviceId ?? deviceId;
       const exposed = devices.find(item => item.deviceId === activeDeviceId);
       const deviceLabel = track?.label || exposed?.label || null;
@@ -136,6 +149,7 @@ export function createLiveAudioInputController(options: ControllerOptions) {
         rollingPcmBytes: 0, retainedEvidenceBytes: 0, retainedEventCount: 0,
         droppedAnalysisRequests: 0, lastAnalysisLatency: null, listeners: emptyLiveListeners(), error: null });
     } catch (error) {
+      if (cancelled()) return;
       await cleanup(); const failure = classifyError(error);
       publish({ ...state, status: failure.status, error: failure.message });
     }
@@ -157,7 +171,8 @@ export function createLiveAudioInputController(options: ControllerOptions) {
     selectDevice: (deviceId: string) => start(deviceId),
     stop: () => stop('STOPPED'),
     async dispose() {
-      disposed = true; mediaDevices?.removeEventListener('devicechange', deviceChange); await cleanup();
+      disposed = true; requestGeneration += 1;
+      mediaDevices?.removeEventListener('devicechange', deviceChange); await cleanup();
     },
   };
 }

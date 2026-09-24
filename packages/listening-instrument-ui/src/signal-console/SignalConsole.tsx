@@ -14,6 +14,7 @@ type SignalConsoleProps = Readonly<{
   interpretation: InstrumentFrame;
   events: readonly InstrumentEvent[];
   composition?: SignalComposition;
+  nameplate?: Readonly<{ name: string; description: string }>;
 }>;
 
 type MelodyEvidenceVisualState = 'accepted' | 'active' | 'candidate' | 'rejected' | 'empty';
@@ -158,7 +159,7 @@ function eventText(event: InstrumentEvent) {
 
 function PerformanceHeader({ models }: { models: ReturnType<typeof selectPrimaryListeningView>['listeningModels'] }) {
   return <header className="signal-console-heading signal-console-heading--performance">
-    <h2 id="signal-console-heading">SignalConsole</h2>
+    <span className="signal-models-label">LISTENING MODELS</span>
     <div className="signal-performance-models" aria-label="Listening models">
       {models.map((domain, index) => <span data-hearing-domain={domain.id.toLowerCase()}
         data-hearing-status={domain.status} key={domain.id}>
@@ -169,7 +170,7 @@ function PerformanceHeader({ models }: { models: ReturnType<typeof selectPrimary
   </header>;
 }
 
-export function SignalConsole({ observe, interpretation, events, composition = 'temporal-score' }: SignalConsoleProps) {
+export function SignalConsole({ observe, interpretation, events, composition = 'temporal-score', nameplate }: SignalConsoleProps) {
   const initial = useRef(selectSignalTelemetry(observe()));
   const [telemetry, setTelemetry] = useState(initial.current);
   const signatureRef = useRef(initial.current.signature);
@@ -198,7 +199,8 @@ export function SignalConsole({ observe, interpretation, events, composition = '
 
   const primary = selectPrimaryListeningView(telemetry, interpretation, events);
   const snapshot = interpretation.snapshot;
-  return <section className="signal-console" aria-labelledby="signal-console-heading" data-composition={composition}
+  return <section className="signal-console" aria-label={composition === 'performance' ? 'Computational listening' : undefined}
+    aria-labelledby={composition === 'performance' ? undefined : 'signal-console-heading'} data-composition={composition}
     data-transport-state={telemetry.ended ? 'ended' : telemetry.transport.playing ? 'playing' : 'paused'}
     data-signal-map={telemetry.mapId} data-signal-map-revision={telemetry.mapRevision}
     data-signal-amplitude-index={telemetry.indexes.amplitude} data-signal-pitch-index={telemetry.indexes.pitch}
@@ -327,6 +329,9 @@ export function SignalConsole({ observe, interpretation, events, composition = '
               .map(([domain, available]) => `${domain.toUpperCase()}:${available ? '1' : '0'}`).join(' ')}</p>
           </div>
         </details>
+        {nameplate ? <div className="signal-machine-nameplate" aria-label={`${nameplate.name}, ${nameplate.description}`}>
+          <strong>{nameplate.name}</strong><span>{nameplate.description}</span>
+        </div> : null}
       </footer>
     </div>
   </section>;

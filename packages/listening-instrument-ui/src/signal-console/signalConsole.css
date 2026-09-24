@@ -592,6 +592,37 @@
 .signal-listening-field[data-composition='performance'] .listening-field-residue {
   line-height: 1.2;
 }
+.signal-listening-field[data-composition='performance'] .listening-field-cognition--melody {
+  row-gap: .12rem;
+}
+.signal-listening-field[data-composition='performance'] .listening-field-cognition--melody .listening-field-candidate {
+  min-height: 1.02rem;
+}
+.signal-listening-field[data-composition='performance'] .listening-field-cognition--melody .listening-field-residue {
+  font-size: .6rem;
+  line-height: 1.3;
+}
+.signal-listening-field[data-composition='performance'] .listening-field-cognition--harmony,
+.signal-listening-field[data-composition='performance'] .listening-field-cognition--tonal {
+  font-size: .74rem;
+  line-height: 1.35;
+  row-gap: .1rem;
+}
+.signal-listening-field[data-composition='performance'] .listening-field-cognition--harmony .listening-field-candidate,
+.signal-listening-field[data-composition='performance'] .listening-field-cognition--tonal .listening-field-candidate {
+  min-height: 1.15rem;
+}
+.signal-listening-field[data-composition='performance'] .listening-field-cognition--harmony .listening-field-cognition-margin,
+.signal-listening-field[data-composition='performance'] .listening-field-cognition--tonal .listening-field-cognition-margin {
+  min-height: 1.15rem;
+  font-size: .64rem;
+  line-height: 1.35;
+}
+.signal-listening-field[data-composition='performance'] .listening-field-cognition--harmony .listening-field-residue,
+.signal-listening-field[data-composition='performance'] .listening-field-cognition--tonal .listening-field-residue {
+  font-size: .54rem;
+  line-height: 1.3;
+}
 .listening-field-models--performance {
   display: grid;
   grid-template-columns: var(--listening-field-label) minmax(0, 1fr);
@@ -624,7 +655,7 @@
   padding: .22rem 0 .32rem;
   border-bottom-color: var(--signal-guide);
 }
-.signal-console[data-composition='performance'] .signal-console-heading h2 {
+.signal-console[data-composition='performance'] .signal-models-label {
   color: var(--signal-muted-text);
   font: 750 .66rem/1.25 var(--signal-font-mono);
   letter-spacing: .08em;
@@ -704,6 +735,23 @@
   padding-block: .32rem;
   border-top-color: color-mix(in srgb, var(--signal-guide) 45%, transparent);
 }
+.signal-console[data-composition='performance'] .signal-system-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.signal-console[data-composition='performance'] .signal-system-footer .signal-inspect { flex: 1; min-width: 0; }
+.signal-machine-nameplate {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .55rem;
+  padding-block: .32rem;
+  color: var(--signal-muted-text);
+  font: 600 .54rem/1.2 var(--signal-font-mono);
+  white-space: nowrap;
+}
+.signal-machine-nameplate strong { color: var(--signal-label); font: 650 .66rem/1 var(--signal-font-sans); }
 .signal-console[data-composition='performance'] [data-melody-evidence-state='candidate'],
 .signal-console[data-composition='performance'] [data-melody-evidence-state='active'] {
   --signal-evidence-strong: var(--performance-active, #62f296);
@@ -795,4 +843,22 @@
   .signal-listening-field[data-composition='performance'] .listening-field-rhythm .listening-field-annotation {
     flex-basis: 100%;
   }
+}
+
+@media (max-height: 760px) and (min-width: 901px) {
+  .signal-listening-field[data-composition='performance'] {
+    --performance-signal-height: 2rem;
+    --performance-rhythm-height: 2rem;
+    --performance-residue-height: 4.15rem;
+    --performance-structure-height: 2rem;
+  }
+  .signal-console[data-composition='performance'] .signal-console-heading {
+    grid-template-columns: 8rem minmax(0, 1fr);
+    column-gap: 1.25rem;
+  }
+  .signal-console[data-composition='performance'] .signal-console-heading { padding-block: .08rem; }
+  .signal-listening-field[data-composition='performance'] .listening-field-voice { padding-block: 0; }
+  .signal-console[data-composition='performance'] .signal-performance-band { margin-top: 0; }
+  .signal-console[data-composition='performance'] .signal-inspect { padding-block: .1rem; }
+  .signal-console[data-composition='performance'] .signal-inspect-stream { margin-top: .1rem; }
 }
