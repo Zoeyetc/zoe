@@ -1,15 +1,11 @@
 import type {
-  HarmonyRegion,
   ListeningMap,
   MelodyNote,
   MelodySource,
   MusicalCapabilities,
-  PercussionHit,
-  PercussionKind,
   ScaleDegreeEvidence,
-  StructureSegment,
-  TonalCenterSegment,
   TonalMode,
+  ListeningEvent,
 } from '@computational-listening/engine';
 import type { AudioMapHostMetadata } from './host/AudioMapHostMetadata.ts';
 import type { ZlandAuthoredOverlay } from './zland/ZlandAuthoredOverlay.ts';
@@ -127,13 +123,7 @@ export type AudioSnapshot = Readonly<{
   }>;
 }>;
 
-export type AudioEvent =
-  | Readonly<{ type: 'note-on' | 'note-off'; time: number; note: MelodyNote }>
-  | Readonly<{ type: PercussionKind; time: number; id: string; strength: number; confidence: number; hit: PercussionHit }>
-  | Readonly<{ type: 'beat'; time: number; id: string; index: number; strength: number }>
-  | Readonly<{ type: 'chord-change'; time: number; harmony: HarmonyRegion | null }>
-  | Readonly<{ type: 'tonal-center-change'; time: number; tonalCenter: TonalCenterSegment }>
-  | Readonly<{ type: 'section-change'; time: number; structure: StructureSegment }>
+export type AudioEvent = ListeningEvent
   | Readonly<{ type: 'drop'; time: number; id: string; strength: number }>
   | Readonly<{ type: 'seek'; from: number; to: number }>;
 

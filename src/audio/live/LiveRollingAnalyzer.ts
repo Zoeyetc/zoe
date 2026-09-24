@@ -1,3 +1,4 @@
+import { collectListeningEvents, type ListeningEvent } from '@computational-listening/engine';
 import { analyzePcmAudioAsync, type PcmAudio } from '../analysis/AudioAnalysis.ts';
 import { createCompactMelodyEvidenceTimeline, readCompactMelodyEvidenceStorage } from '../melody-evidence/compactTimeline.ts';
 import { selectMelodyEvidence } from '../melody-evidence/selectMelodyEvidence.ts';
@@ -10,7 +11,7 @@ import {
 } from './types.ts';
 
 type AnalyzePcm = (pcm: PcmAudio, source: Readonly<{ id: string; filename: string; mimeType: string }>) => Promise<AudioMap>;
-type TimedAudioEvent = Exclude<AudioEvent, Readonly<{ type: 'seek'; from: number; to: number }>>;
+type TimedAudioEvent = ListeningEvent;
 type LiveAnalyzerOptions = Readonly<{
   sampleRate: number;
   sessionId: string;
@@ -115,21 +116,10 @@ function eventKey(event: TimedAudioEvent) {
   return `${event.type}:${event.time.toFixed(4)}:${identity}`;
 }
 
-function eventsFrom(map: AudioMap): TimedAudioEvent[] {
-  const events: TimedAudioEvent[] = [];
-  for (const note of map.melody ?? []) {
-    events.push({ type: 'note-on', time: note.start, note }, { type: 'note-off', time: note.end, note });
-  }
-  for (const hit of map.percussion ?? []) events.push({ type: hit.type, time: hit.time, id: hit.id,
-    strength: hit.strength, confidence: hit.confidence ?? 0, hit });
-  for (const beat of map.rhythmAnalysis?.beats ?? []) events.push({ type: 'beat', time: beat.time,
-    id: beat.id, index: beat.index, strength: beat.strength });
-  for (const harmony of map.harmony ?? []) events.push({ type: 'chord-change', time: harmony.start, harmony });
-  for (const tonalCenter of map.tonalCenterAnalysis?.segments ?? []) events.push({
-    type: 'tonal-center-change', time: tonalCenter.start, tonalCenter,
-  });
-  return events.sort((left, right) => left.time - right.time);
-}
+const eventsFrom = (map: AudioMap): TimedAudioEvent[] => collectListeningEvents(map, {
+  includeInitialTonalCenter: true, includeHarmonyEnds: false, percussionDefaultConfidence: 0,
+  noteOffFirstAtSameTime: false,
+});
 
 const status = (ready: boolean, available: boolean): LiveListenerState =>
   !ready ? 'WARMING_UP' : available ? 'LIVE' : 'SEARCHING';

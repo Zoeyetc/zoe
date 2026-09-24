@@ -49,3 +49,6 @@ export * from './analysis/StructureAnalysis.ts';
 export * from './analysis/AudioAnalysis.ts';
 export * from './melody-evidence/compactTimeline.ts';
 export * from './melody-evidence/selectMelodyEvidence.ts';
+export { collectListeningEvents, createListeningTimeline, lookupListeningSnapshot } from './ListeningTimeline.ts';
+export type { ListeningEventCollectionOptions, ListeningTimeline } from './ListeningTimeline.ts';
+export type { ListeningEvent, ListeningFrame, ListeningMapIdentity, ListeningSnapshot } from './listeningTimelineTypes.ts';

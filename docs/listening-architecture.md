@@ -68,3 +68,16 @@ consumers import the engine and diagnostics package boundaries directly:
 Browser `AudioBuffer` conversion belongs to
 `@computational-listening/audio-source-browser`. Legacy host identity and Z.land
 authored overlays remain outside the engine.
+
+## Batch B temporal boundary
+
+`@computational-listening/engine` owns `ListeningTimeline`, `ListeningSnapshot`,
+and generic analyzed `ListeningEvent` crossing. It receives host/session map
+identity explicitly and owns no clock or transport mechanism.
+
+Z.land authored structure, build, tension, phrase progress, structural drops,
+host map identity, and seek notification remain behind
+`src/audio/zland/ZlandListeningAdapter.ts`. `src/audio/AudioWorld.ts` is a
+temporary legacy facade over these two boundaries and is scheduled for deletion
+or reduction after Z.land consumers migrate. The standalone Instrument must
+consume the engine timeline contract directly rather than importing AudioWorld.
