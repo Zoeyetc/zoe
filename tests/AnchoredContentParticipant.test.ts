@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createAnchoredContentParticipant } from '../src/physics/AnchoredContentParticipant.ts';
-import { createPhysicsWorld } from '../src/physics/PhysicsWorld.ts';
-import { createDomSpatialAdapter, domRectToWorldMeasurement } from '../src/physics/adapters/dom.ts';
-import type { PhysicsImpact } from '../src/physics/types.ts';
+import { createAnchoredContentParticipant } from '../apps/zland/src/physics/AnchoredContentParticipant.ts';
+import { createPhysicsWorld } from '../apps/zland/src/physics/PhysicsWorld.ts';
+import { createDomSpatialAdapter, domRectToWorldMeasurement } from '../apps/zland/src/physics/adapters/dom.ts';
+import type { PhysicsImpact } from '../apps/zland/src/physics/types.ts';
 
 const impact = (overrides: Partial<PhysicsImpact> = {}): PhysicsImpact => ({
   id: 'content-impact', sourceId: 'bumper-cars', sourceType: 'collision',

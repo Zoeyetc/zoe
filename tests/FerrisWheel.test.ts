@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { milestoneOneAudioMap, milestoneTwoBAudioMap } from '../src/audio/AudioMap.ts';
-import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import type { AudioFrame, TonalCenterSegment } from '../src/audio/types.ts';
-import { toFerrisWheelInput, type FerrisWheelInput } from '../src/rides/ferris-wheel/adapter.ts';
+import { milestoneOneZlandAudioMap, milestoneTwoBZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
+import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import type { TonalCenterSegment } from '@computational-listening/engine';
+import type { AudioFrame } from '../apps/zland/src/audio/types.ts';
+import { toFerrisWheelInput, type FerrisWheelInput } from '../apps/zland/src/rides/ferris-wheel/adapter.ts';
 import {
   FERRIS_BOARDING_ANGLE,
   FERRIS_FIFTH_STEP,
@@ -12,14 +13,14 @@ import {
   fifthsIndexForPitchClass,
   nearestContinuousTonicTarget,
   pitchClassAtFifthsIndex,
-} from '../src/rides/ferris-wheel/circleOfFifths.ts';
+} from '../apps/zland/src/rides/ferris-wheel/circleOfFifths.ts';
 import {
   createFerrisWheelSimulation,
   FERRIS_INITIAL_ANGLE,
   FERRIS_MAX_CABIN_SWING,
   FERRIS_MAX_WHEEL_ACCELERATION,
   FERRIS_MAX_WHEEL_SPEED,
-} from '../src/rides/ferris-wheel/simulation.ts';
+} from '../apps/zland/src/rides/ferris-wheel/simulation.ts';
 
 const input = (overrides: Partial<FerrisWheelInput> = {}): FerrisWheelInput => ({
   harmonyAvailable: true,
@@ -72,14 +73,14 @@ test('nearest continuous targets select adjacent G and wrapped F movements from 
 });
 
 test('FerrisWheel adapter consumes harmony and tonal center while excluding other actor domains', () => {
-  const base = lookupSnapshot(milestoneTwoBAudioMap, { time: 2, duration: 20, playing: true });
+  const base = lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 2, duration: 20, playing: true });
   const segment = tonalSegment(7, 'G major');
   const frame: AudioFrame = {
     snapshot: { ...base, tonalCenter: { available: true, rootPitchClass: 7, mode: 'major', label: 'G major',
       confidence: 0.9, segmentProgress: 0, circleOfFifthsIndex: 1, distanceFromPrevious: 1 } },
     events: [
       { type: 'kick', time: 2, id: 'ignored-kick', strength: 1 },
-      { type: 'note-on', time: 2, note: milestoneTwoBAudioMap.melody![0] },
+      { type: 'note-on', time: 2, note: milestoneTwoBZlandAudioMap.melody![0] },
       { type: 'tonal-center-change', time: 2, tonalCenter: segment },
     ],
   };
@@ -92,7 +93,7 @@ test('FerrisWheel adapter consumes harmony and tonal center while excluding othe
 });
 
 test('unavailable harmony keeps chord evidence inactive while authored fixture remains compatible', () => {
-  const snapshot = lookupSnapshot(milestoneOneAudioMap, { time: 2, duration: 12, playing: true });
+  const snapshot = lookupSnapshot(milestoneOneZlandAudioMap, { time: 2, duration: 12, playing: true });
   const simulation = createFerrisWheelSimulation();
   simulation.accept(toFerrisWheelInput({ snapshot, events: [] }), 0.1);
   assert.equal(simulation.read().mode, 'resting');
@@ -193,7 +194,7 @@ test('cabin identity and gravity orientation remain stable while acceleration dr
 });
 
 test('seek resolves snapshot tonic directly without replay or angle teleport', () => {
-  const world = createAudioWorld(milestoneTwoBAudioMap);
+  const world = createAudioWorld(milestoneTwoBZlandAudioMap);
   const simulation = createFerrisWheelSimulation();
   world.read({ time: 1, duration: 20, playing: true });
   advance(simulation, input({ tonicPitchClass: 7, tonalCenterLabel: 'G major' }), 1);

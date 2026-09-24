@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { physicsDebugVisible, resolveExperienceMode } from '../src/experience/mode.ts';
+import { physicsDebugVisible, resolveExperienceMode } from '../apps/zland/src/experience/mode.ts';
 import {
   PARK_ACTOR_ANCHORS, PARK_BUMPER_CARS_BOUNDS, PARK_CONTENT_BOUNDS,
   PARK_DISTRICT_CONTOURS, PARK_DROP_TOWER_RENDERER, PARK_FOCUS_BOUNDS,
@@ -10,15 +10,15 @@ import {
   PARK_SPATIAL_CATEGORIES, PARK_TRAIN_ROUTE,
   PARK_FREE_BODY_PRESENTATION,
   PARK_TRAIN_BOUNDS, PARK_TRAIN_STATIONS, PARK_VIEWBOX, worldToPark,
-} from '../src/experience/park/config.ts';
-import { bumperArenaPointToWorld } from '../src/physics/adapters/bumperCars.ts';
+} from '../apps/zland/src/experience/park/config.ts';
+import { bumperArenaPointToWorld } from '../apps/zland/src/physics/adapters/bumperCars.ts';
 
-const parkSource = readFileSync(new URL('../src/experience/park/ParkMap.tsx', import.meta.url), 'utf8');
+const parkSource = readFileSync(new URL('../apps/zland/src/experience/park/ParkMap.tsx', import.meta.url), 'utf8');
 const appSource = readFileSync(new URL('../apps/zland/src/App.tsx', import.meta.url), 'utf8');
 const experienceSource = readFileSync(new URL('../apps/zland/src/createExperience.ts', import.meta.url), 'utf8');
-const trainSource = readFileSync(new URL('../src/experience/park/ParkTrain.tsx', import.meta.url), 'utf8');
-const dropTowerViewSource = readFileSync(new URL('../src/rides/drop-tower/DropTowerView.tsx', import.meta.url), 'utf8');
-const pirateShipViewSource = readFileSync(new URL('../src/rides/pirate-ship/PirateShipView.tsx', import.meta.url), 'utf8');
+const trainSource = readFileSync(new URL('../apps/zland/src/experience/park/ParkTrain.tsx', import.meta.url), 'utf8');
+const dropTowerViewSource = readFileSync(new URL('../apps/zland/src/rides/drop-tower/DropTowerView.tsx', import.meta.url), 'utf8');
+const pirateShipViewSource = readFileSync(new URL('../apps/zland/src/rides/pirate-ship/PirateShipView.tsx', import.meta.url), 'utf8');
 
 test('Park Map defines explicit normalized actor anchors inside the canonical world', () => {
   assert.deepEqual(PARK_VIEWBOX, { width: 1000, height: 640 });

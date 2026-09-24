@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
+import { analyzePcmListening } from '@computational-listening/engine';
 import { analyzeRhythm, type RhythmEnvelopeFrame } from '@computational-listening/engine';
-import { createPreviewAudioClock } from '../src/audio/AudioClock.ts';
-import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import { toBumperCarsInput } from '../src/rides/bumper-cars/adapter.ts';
-import { toPirateShipInput } from '../src/rides/pirate-ship/adapter.ts';
-import { createPirateShipSimulation } from '../src/rides/pirate-ship/simulation.ts';
+import { createPreviewAudioClock } from '../apps/zland/src/audio/AudioClock.ts';
+import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import { toBumperCarsInput } from '../apps/zland/src/rides/bumper-cars/adapter.ts';
+import { toPirateShipInput } from '../apps/zland/src/rides/pirate-ship/adapter.ts';
+import { createPirateShipSimulation } from '../apps/zland/src/rides/pirate-ship/simulation.ts';
 
 const hop = 0.02;
 const envelope = (
@@ -97,7 +97,7 @@ test('half/double-time ambiguity uses direct recurring onset support', () => {
 
 test('PCM analysis reuses the 9A onset pipeline and enables only spectrum plus confident rhythm', () => {
   const sampleRate = 48_000;
-  const map = analyzePcmAudio({ sampleRate, channels: [pcmClicks(sampleRate, 8, 120)] }, {
+  const map = analyzePcmListening({ sampleRate, channels: [pcmClicks(sampleRate, 8, 120)] }, {
     id: 'rhythm-pcm', filename: 'rhythm.wav', mimeType: 'audio/wav',
   });
   assert.equal(map.capabilities.spectrum, true);
@@ -111,7 +111,7 @@ test('PCM analysis reuses the 9A onset pipeline and enables only spectrum plus c
 
 test('AudioWorld derives phase from beat timestamps across pause, seek, restart, and end', () => {
   const sampleRate = 48_000;
-  const map = analyzePcmAudio({ sampleRate, channels: [pcmClicks(sampleRate, 8, 120)] }, {
+  const map = analyzePcmListening({ sampleRate, channels: [pcmClicks(sampleRate, 8, 120)] }, {
     id: 'rhythm-world', filename: 'rhythm.wav', mimeType: 'audio/wav',
   });
   let now = 0;
@@ -137,7 +137,7 @@ test('AudioWorld derives phase from beat timestamps across pause, seek, restart,
 
 test('real rhythm wakes PirateShip through AudioWorld while beat events cannot wake BumperCars', () => {
   const sampleRate = 48_000;
-  const map = analyzePcmAudio({ sampleRate, channels: [pcmClicks(sampleRate, 8, 120)] }, {
+  const map = analyzePcmListening({ sampleRate, channels: [pcmClicks(sampleRate, 8, 120)] }, {
     id: 'rhythm-actors', filename: 'rhythm.wav', mimeType: 'audio/wav',
   });
   const world = createAudioWorld(map);
@@ -156,7 +156,7 @@ test('real rhythm wakes PirateShip through AudioWorld while beat events cannot w
 
 test('AudioWorld reads the correct phase region directly after a seek', () => {
   const sampleRate = 48_000;
-  const map = analyzePcmAudio({ sampleRate, channels: [pcmClicks(sampleRate, 8, 90)] }, {
+  const map = analyzePcmListening({ sampleRate, channels: [pcmClicks(sampleRate, 8, 90)] }, {
     id: 'rhythm-seek', filename: 'rhythm.wav', mimeType: 'audio/wav',
   });
   const atA = lookupSnapshot(map, { time: 1.1, duration: map.duration, playing: false }).rhythm;

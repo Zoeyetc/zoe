@@ -1,20 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { milestoneTwoBAudioMap } from '../src/audio/AudioMap.ts';
-import { createAudioWorld } from '../src/audio/AudioWorld.ts';
-import { createAnchoredReceiver } from '../src/physics/AnchoredReceiver.ts';
-import { createPhysicsWorld } from '../src/physics/PhysicsWorld.ts';
-import { bumperArenaPointToWorld, bumperCollisionToWorldImpact } from '../src/physics/adapters/bumperCars.ts';
-import type { PhysicsImpact } from '../src/physics/types.ts';
-import type { PhysicsPulse } from '../src/physics/types.ts';
-import type { BumperCarsInput } from '../src/rides/bumper-cars/adapter.ts';
-import { toBumperCarsInput } from '../src/rides/bumper-cars/adapter.ts';
+import { milestoneTwoBZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
+import { createAudioWorld } from '../apps/zland/src/audio/AudioWorld.ts';
+import { createAnchoredReceiver } from '../apps/zland/src/physics/AnchoredReceiver.ts';
+import { createPhysicsWorld } from '../apps/zland/src/physics/PhysicsWorld.ts';
+import { bumperArenaPointToWorld, bumperCollisionToWorldImpact } from '../apps/zland/src/physics/adapters/bumperCars.ts';
+import type { PhysicsImpact } from '../apps/zland/src/physics/types.ts';
+import type { PhysicsPulse } from '../apps/zland/src/physics/types.ts';
+import type { BumperCarsInput } from '../apps/zland/src/rides/bumper-cars/adapter.ts';
+import { toBumperCarsInput } from '../apps/zland/src/rides/bumper-cars/adapter.ts';
 import {
   BUMPER_SHARED_IMPACT_THRESHOLD,
   createBumperCarsSimulation,
   type BumperBodyState,
   type BumperCollision,
-} from '../src/rides/bumper-cars/simulation.ts';
+} from '../apps/zland/src/rides/bumper-cars/simulation.ts';
 
 const body = (overrides: Partial<BumperBodyState> = {}): BumperBodyState => ({
   id: 0, x: 100, y: 100, width: 54, height: 34,
@@ -48,7 +48,7 @@ test('receiver has only a PhysicsWorld registration and percussion alone does no
 });
 
 test('authored timeline reaches receiver only through actual collision and PhysicsWorld', () => {
-  const audioWorld = createAudioWorld(milestoneTwoBAudioMap);
+  const audioWorld = createAudioWorld(milestoneTwoBZlandAudioMap);
   const bumperCars = createBumperCarsSimulation({ seed: 2048 });
   const physicsWorld = createPhysicsWorld();
   const receiver = createAnchoredReceiver();

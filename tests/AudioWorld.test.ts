@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { milestoneOneAudioMap, milestoneTwoAudioMap, milestoneTwoBAudioMap, unavailableMelodyAudioMap } from '../src/audio/AudioMap.ts';
-import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import { emptyScaleDegree } from '../src/audio/ScaleDegree.ts';
-import type { TransportState } from '../src/audio/types.ts';
+import { milestoneOneZlandAudioMap, milestoneTwoZlandAudioMap, milestoneTwoBZlandAudioMap, unavailableMelodyZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
+import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import { emptyScaleDegree } from '@computational-listening/engine';
+import type { TransportState } from '../apps/zland/src/audio/types.ts';
 
 const transport = (time: number, playing = true): TransportState => ({ time, duration: 12, playing });
 
 test('snapshot lookup is deterministic and handles unavailable melody', () => {
-  assert.deepEqual(lookupSnapshot(milestoneOneAudioMap, transport(1.5)), lookupSnapshot(milestoneOneAudioMap, transport(1.5)));
-  assert.equal(lookupSnapshot(milestoneOneAudioMap, transport(1.5)).melody.activeNote?.midi, 60);
-  assert.deepEqual(lookupSnapshot(unavailableMelodyAudioMap, transport(1.5)).melody, {
+  assert.deepEqual(lookupSnapshot(milestoneOneZlandAudioMap, transport(1.5)), lookupSnapshot(milestoneOneZlandAudioMap, transport(1.5)));
+  assert.equal(lookupSnapshot(milestoneOneZlandAudioMap, transport(1.5)).melody.activeNote?.midi, 60);
+  assert.deepEqual(lookupSnapshot(unavailableMelodyZlandAudioMap, transport(1.5)).melody, {
     available: false, active: false, source: 'unavailable', activeNote: null, noteProgress: 0,
     midi: null, pitchHz: null, noteName: null, intensity: 0, confidence: 0,
     scaleDegree: emptyScaleDegree(),
@@ -18,7 +18,7 @@ test('snapshot lookup is deterministic and handles unavailable melody', () => {
 });
 
 test('timeline crossing delivers each note event once even across a skipped frame', () => {
-  const world = createAudioWorld(milestoneOneAudioMap);
+  const world = createAudioWorld(milestoneOneZlandAudioMap);
   world.read(transport(0));
   const crossed = world.read(transport(2.4)).events;
   assert.deepEqual(crossed.map(event => event.type), ['note-on', 'note-off', 'note-on']);
@@ -26,7 +26,7 @@ test('timeline crossing delivers each note event once even across a skipped fram
 });
 
 test('seek synchronizes without replaying historical note events', () => {
-  const world = createAudioWorld(milestoneOneAudioMap);
+  const world = createAudioWorld(milestoneOneZlandAudioMap);
   world.read(transport(0));
   const seek = world.synchronize(0, transport(6.5, false));
   assert.deepEqual(seek.events, [{ type: 'seek', from: 0, to: 6.5 }]);
@@ -36,7 +36,7 @@ test('seek synchronizes without replaying historical note events', () => {
 });
 
 test('percussion events use timeline crossings and expose domain availability', () => {
-  const world = createAudioWorld(milestoneTwoAudioMap);
+  const world = createAudioWorld(milestoneTwoZlandAudioMap);
   assert.equal(world.read(transport(0)).snapshot.percussion.available, true);
   const events = world.read(transport(3.4)).events;
   assert.deepEqual(
@@ -48,7 +48,7 @@ test('percussion events use timeline crossings and expose domain availability', 
 });
 
 test('seek across percussion skips history and resumes future events', () => {
-  const world = createAudioWorld(milestoneTwoAudioMap);
+  const world = createAudioWorld(milestoneTwoZlandAudioMap);
   world.read(transport(0));
   assert.deepEqual(world.synchronize(0, transport(7.5, false)).events, [
     { type: 'seek', from: 0, to: 7.5 },
@@ -66,8 +66,8 @@ test('all six percussion roles use one timeline and multiple crossings deliver o
     { id: 't', time: 0.6, type: 'tom' as const, strength: 0.75 },
     { id: 'o', time: 0.7, type: 'other-percussion' as const, strength: 0.55 },
   ];
-  const map = { ...milestoneOneAudioMap, id: 'six-role-timeline',
-    capabilities: { ...milestoneOneAudioMap.capabilities, percussion: true }, percussion: hits };
+  const map = { ...milestoneOneZlandAudioMap, id: 'six-role-timeline',
+    capabilities: { ...milestoneOneZlandAudioMap.capabilities, percussion: true }, percussion: hits };
   const world = createAudioWorld(map);
   world.read(transport(0));
   const frame = world.read(transport(0.8));
@@ -78,7 +78,7 @@ test('all six percussion roles use one timeline and multiple crossings deliver o
 });
 
 test('pause does not advance percussion cursor and restart permits beginning events again', () => {
-  const world = createAudioWorld(milestoneTwoAudioMap);
+  const world = createAudioWorld(milestoneTwoZlandAudioMap);
   world.read(transport(0));
   assert.deepEqual(world.read(transport(0, false)).events, []);
   assert.equal(world.read(transport(1)).events.filter(event => event.type === 'kick').length, 1);
@@ -87,9 +87,9 @@ test('pause does not advance percussion cursor and restart permits beginning eve
 });
 
 test('rhythm snapshot separates steady BPM from authored groove and swing', () => {
-  const straight = lookupSnapshot(milestoneTwoBAudioMap, { time: 2.125, duration: 20, playing: true }).rhythm;
-  const transition = lookupSnapshot(milestoneTwoBAudioMap, { time: 6.125, duration: 20, playing: true }).rhythm;
-  const swung = lookupSnapshot(milestoneTwoBAudioMap, { time: 10.125, duration: 20, playing: true }).rhythm;
+  const straight = lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 2.125, duration: 20, playing: true }).rhythm;
+  const transition = lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 6.125, duration: 20, playing: true }).rhythm;
+  const swung = lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 10.125, duration: 20, playing: true }).rhythm;
   assert.equal(straight.bpm, 120);
   assert.equal(transition.bpm, 120);
   assert.equal(swung.bpm, 120);
@@ -97,20 +97,20 @@ test('rhythm snapshot separates steady BPM from authored groove and swing', () =
   assert.equal(transition.beatPhase, swung.beatPhase);
   assert.ok(straight.swing < transition.swing && transition.swing < swung.swing);
   assert.ok(straight.groove < transition.groove && transition.groove < swung.groove);
-  assert.equal(lookupSnapshot(milestoneTwoBAudioMap, { time: 15, duration: 20, playing: true }).rhythm.bpm, null);
+  assert.equal(lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 15, duration: 20, playing: true }).rhythm.bpm, null);
 });
 
 test('authored harmony lookup exposes sustained major/minor regions and final inactivity', () => {
-  assert.equal(lookupSnapshot(milestoneTwoBAudioMap, { time: 2, duration: 20, playing: true }).harmony.chord, 'C major');
-  assert.deepEqual(lookupSnapshot(milestoneTwoBAudioMap, { time: 6, duration: 20, playing: true }).harmony.pitchClasses, [9, 0, 4]);
-  assert.equal(lookupSnapshot(milestoneTwoBAudioMap, { time: 10, duration: 20, playing: true }).harmony.rootPitchClass, 5);
-  assert.deepEqual(lookupSnapshot(milestoneTwoBAudioMap, { time: 17, duration: 20, playing: true }).harmony, {
+  assert.equal(lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 2, duration: 20, playing: true }).harmony.chord, 'C major');
+  assert.deepEqual(lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 6, duration: 20, playing: true }).harmony.pitchClasses, [9, 0, 4]);
+  assert.equal(lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 10, duration: 20, playing: true }).harmony.rootPitchClass, 5);
+  assert.deepEqual(lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 17, duration: 20, playing: true }).harmony, {
     available: true, active: false, chord: null, rootPitchClass: null, pitchClasses: [], confidence: 0,
   });
 });
 
 test('chord changes use timeline crossings and seek does not replay skipped harmony', () => {
-  const world = createAudioWorld(milestoneTwoBAudioMap);
+  const world = createAudioWorld(milestoneTwoBZlandAudioMap);
   world.read({ time: 0, duration: 20, playing: true });
   const crossed = world.read({ time: 13, duration: 20, playing: true }).events
     .filter(event => event.type === 'chord-change');
@@ -121,10 +121,10 @@ test('chord changes use timeline crossings and seek does not replay skipped harm
 });
 
 test('authored structure exposes build, hold, release, and settling snapshots', () => {
-  const rest = lookupSnapshot(milestoneTwoBAudioMap, { time: 2, duration: 20, playing: true }).structure;
-  const build = lookupSnapshot(milestoneTwoBAudioMap, { time: 7, duration: 20, playing: true }).structure;
-  const hold = lookupSnapshot(milestoneTwoBAudioMap, { time: 12.5, duration: 20, playing: true }).structure;
-  const release = lookupSnapshot(milestoneTwoBAudioMap, { time: 14, duration: 20, playing: true }).structure;
+  const rest = lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 2, duration: 20, playing: true }).structure;
+  const build = lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 7, duration: 20, playing: true }).structure;
+  const hold = lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 12.5, duration: 20, playing: true }).structure;
+  const release = lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 14, duration: 20, playing: true }).structure;
   assert.equal(rest.section, 'rest');
   assert.equal(build.section, 'build');
   assert.ok(build.build > rest.build && build.tension > rest.tension);
@@ -135,7 +135,7 @@ test('authored structure exposes build, hold, release, and settling snapshots', 
 });
 
 test('drop is a discrete crossing and seek after it does not replay release', () => {
-  const world = createAudioWorld(milestoneTwoBAudioMap);
+  const world = createAudioWorld(milestoneTwoBZlandAudioMap);
   world.read({ time: 12.8, duration: 20, playing: true });
   const crossed = world.read({ time: 13.1, duration: 20, playing: true }).events;
   assert.deepEqual(crossed.filter(event => event.type === 'drop').map(event => event.id), ['major-drop']);
@@ -145,11 +145,11 @@ test('drop is a discrete crossing and seek after it does not replay release', ()
 });
 
 test('Milestone 6A fixture exposes a distinct continuous long-form phrase contour', async () => {
-  const { milestoneSixAAudioMap } = await import('../src/audio/AudioMap.ts');
-  const early = lookupSnapshot(milestoneSixAAudioMap, { time: 5, duration: 24, playing: true }).structure;
-  const crest = lookupSnapshot(milestoneSixAAudioMap, { time: 13.5, duration: 24, playing: true }).structure;
-  const release = lookupSnapshot(milestoneSixAAudioMap, { time: 17, duration: 24, playing: true }).structure;
-  const ending = lookupSnapshot(milestoneSixAAudioMap, { time: 23.5, duration: 24, playing: true }).structure;
+  const { milestoneSixAZlandAudioMap } = await import('../apps/zland/src/audio/ZlandAudioMaps.ts');
+  const early = lookupSnapshot(milestoneSixAZlandAudioMap, { time: 5, duration: 24, playing: true }).structure;
+  const crest = lookupSnapshot(milestoneSixAZlandAudioMap, { time: 13.5, duration: 24, playing: true }).structure;
+  const release = lookupSnapshot(milestoneSixAZlandAudioMap, { time: 17, duration: 24, playing: true }).structure;
+  const ending = lookupSnapshot(milestoneSixAZlandAudioMap, { time: 23.5, duration: 24, playing: true }).structure;
   assert.equal(early.section, 'development');
   assert.equal(crest.section, 'crest');
   assert.ok(crest.tension > early.tension);
@@ -160,11 +160,11 @@ test('Milestone 6A fixture exposes a distinct continuous long-form phrase contou
 });
 
 test('Milestone 7A fixture exposes authored continuous spectrum evidence', async () => {
-  const { milestoneSevenAAudioMap } = await import('../src/audio/AudioMap.ts');
-  const calm = lookupSnapshot(milestoneSevenAAudioMap, { time: 2, duration: 24, playing: true }).spectrum;
-  const bright = lookupSnapshot(milestoneSevenAAudioMap, { time: 7, duration: 24, playing: true }).spectrum;
-  const textured = lookupSnapshot(milestoneSevenAAudioMap, { time: 11, duration: 24, playing: true }).spectrum;
-  const settling = lookupSnapshot(milestoneSevenAAudioMap, { time: 23.5, duration: 24, playing: true }).spectrum;
+  const { milestoneSevenZlandAudioMap } = await import('../apps/zland/src/audio/ZlandAudioMaps.ts');
+  const calm = lookupSnapshot(milestoneSevenZlandAudioMap, { time: 2, duration: 24, playing: true }).spectrum;
+  const bright = lookupSnapshot(milestoneSevenZlandAudioMap, { time: 7, duration: 24, playing: true }).spectrum;
+  const textured = lookupSnapshot(milestoneSevenZlandAudioMap, { time: 11, duration: 24, playing: true }).spectrum;
+  const settling = lookupSnapshot(milestoneSevenZlandAudioMap, { time: 23.5, duration: 24, playing: true }).spectrum;
   assert.equal(calm.available, true);
   assert.ok(bright.brightness > calm.brightness);
   assert.ok(textured.texture > bright.texture);

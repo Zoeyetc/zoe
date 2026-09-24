@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ListeningMap } from '@computational-listening/engine';
 import {
-  analyzePcmAudio,
   analyzePcmListening,
   type PcmAudio,
-} from '../src/audio/analysis/AudioAnalysis.ts';
-import { composeLegacyAudioMap } from '../src/audio/composeLegacyAudioMap.ts';
-import type { ZlandAuthoredOverlay } from '../src/audio/types.ts';
+} from '@computational-listening/engine';
+import { analyzeZlandPcmAudio } from '../apps/zland/src/audio/analyzeZlandAudio.ts';
+import { composeZlandAudioMap } from '../apps/zland/src/audio/composeZlandAudioMap.ts';
+import type { ZlandAuthoredOverlay } from '../apps/zland/src/audio/types.ts';
 
 const pcm: PcmAudio = {
   sampleRate: 12_000,
@@ -35,16 +35,16 @@ test('ListeningMap contains analyzed truth without host, source, or Z.land autho
   }
 });
 
-test('legacy AudioMap is composition over one ListeningMap without copied analysis values', () => {
+test('ZlandAudioMap is explicit product composition over one ListeningMap without copied analysis values', () => {
   const listening = analyzePcmListening(pcm);
   const authored: ZlandAuthoredOverlay = { structure: null, drops: null };
-  const composed = composeLegacyAudioMap(listening, {
+  const composed = composeZlandAudioMap(listening, {
     id: 'real-audio-contract',
     source: { kind: 'real-audio', filename: source.filename, mimeType: source.mimeType },
   }, authored);
-  const compatibility = analyzePcmAudio(pcm, source);
+  const analyzedProductMap = analyzeZlandPcmAudio(pcm, source);
 
-  assert.deepEqual(composed, compatibility);
+  assert.deepEqual(composed, analyzedProductMap);
   assert.equal(composed.melody, listening.melody);
   assert.equal(composed.melodyAnalysis, listening.melodyAnalysis);
   assert.equal(composed.structureAnalysis, listening.structureAnalysis);
@@ -60,7 +60,7 @@ test('Z.land authored structure remains an explicit overlay outside ListeningMap
       tension: [0, 1], build: [0, 1], phraseProgress: [0, 1] }],
     drops: [{ id: 'drop', time: 0.8, strength: 1 }],
   };
-  const composed = composeLegacyAudioMap(listening, { id: 'authored-contract' }, authored);
+  const composed = composeZlandAudioMap(listening, { id: 'authored-contract' }, authored);
 
   assert.equal('structure' in listening, false);
   assert.equal(composed.structure, authored.structure);

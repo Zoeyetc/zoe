@@ -1,47 +1,52 @@
-import { createPreviewAudioClock, type AudioClock } from '../../../src/audio/AudioClock.ts';
-import { milestoneSevenAAudioMap } from '../../../src/audio/AudioMap.ts';
-import { createAudioWorld, lookupSnapshot } from '../../../src/audio/AudioWorld.ts';
-import type { ControlActions } from '../../../src/control/types.ts';
-import { createPhysicsWorld } from '../../../src/physics/PhysicsWorld.ts';
-import { createAnchoredContentParticipant, type WorldBounds } from '../../../src/physics/AnchoredContentParticipant.ts';
-import { bumperCollisionToWorldImpact } from '../../../src/physics/adapters/bumperCars.ts';
-import { rollerCoasterToPhysicsWake, ROLLER_WAKE_SOURCE_ID } from '../../../src/physics/adapters/rollerCoaster.ts';
-import { toCarouselInput } from '../../../src/rides/carousel/adapter.ts';
-import { createCarouselSimulation } from '../../../src/rides/carousel/simulation.ts';
-import { toBumperCarsInput } from '../../../src/rides/bumper-cars/adapter.ts';
-import { createBumperCarsSimulation } from '../../../src/rides/bumper-cars/simulation.ts';
-import { toPirateShipInput } from '../../../src/rides/pirate-ship/adapter.ts';
-import { createPirateShipSimulation } from '../../../src/rides/pirate-ship/simulation.ts';
-import { toFerrisWheelInput } from '../../../src/rides/ferris-wheel/adapter.ts';
-import { createFerrisWheelSimulation } from '../../../src/rides/ferris-wheel/simulation.ts';
-import { createDropTowerSimulation } from '../../../src/rides/drop-tower/simulation.ts';
-import { createDropTowerStructureInterpreter } from '../../../src/rides/drop-tower/realStructureAdapter.ts';
-import { toRollerCoasterInput } from '../../../src/rides/roller-coaster/adapter.ts';
-import { createRollerCoasterSimulation } from '../../../src/rides/roller-coaster/simulation.ts';
-import { planRollerCoasterTrack } from '../../../src/rides/roller-coaster/trackPlan.ts';
-import { createRollerCoasterTrack } from '../../../src/rides/roller-coaster/trackMap.ts';
-import { toFreeBodiesInput } from '../../../src/free-bodies/adapter.ts';
-import { createFreeBodiesSimulation, FREE_BODIES_SEED } from '../../../src/free-bodies/simulation.ts';
-import { PARK_BUMPER_CARS_BOUNDS, PARK_ROLLER_COASTER_BOUNDS } from '../../../src/experience/park/config.ts';
-import { createAudioBufferPlaybackTransport, type AudioPlaybackTransport } from '../../../src/audio/AudioPlaybackTransport.ts';
-import type { AudioPreparationState, PreparedRealAudio } from '../../../src/audio/AudioPreparationController.ts';
-import type { AudioMap } from '../../../src/audio/types.ts';
-import { composeLegacyAudioMap } from '../../../src/audio/composeLegacyAudioMap.ts';
-import { createParkPulse, PARK_PULSE_SOURCE_ID } from '../../../src/physics/ParkPulse.ts';
-import { LIVE_INPUT_WINDOW_SECONDS, type LiveAnalysisUpdate, type LiveInputState } from '../../../src/audio/live/types.ts';
-import type { TransportState } from '../../../src/audio/types.ts';
+import { createPreviewAudioClock, type AudioClock } from './audio/AudioClock.ts';
+import { milestoneSevenZlandAudioMap } from './audio/ZlandAudioMaps.ts';
+import { createAudioWorld, lookupSnapshot } from './audio/AudioWorld.ts';
+import type { ControlActions } from './control/types.ts';
+import { createPhysicsWorld } from './physics/PhysicsWorld.ts';
+import { createAnchoredContentParticipant, type WorldBounds } from './physics/AnchoredContentParticipant.ts';
+import { bumperCollisionToWorldImpact } from './physics/adapters/bumperCars.ts';
+import { rollerCoasterToPhysicsWake, ROLLER_WAKE_SOURCE_ID } from './physics/adapters/rollerCoaster.ts';
+import { toCarouselInput } from './rides/carousel/adapter.ts';
+import { createCarouselSimulation } from './rides/carousel/simulation.ts';
+import { toBumperCarsInput } from './rides/bumper-cars/adapter.ts';
+import { createBumperCarsSimulation } from './rides/bumper-cars/simulation.ts';
+import { toPirateShipInput } from './rides/pirate-ship/adapter.ts';
+import { createPirateShipSimulation } from './rides/pirate-ship/simulation.ts';
+import { toFerrisWheelInput } from './rides/ferris-wheel/adapter.ts';
+import { createFerrisWheelSimulation } from './rides/ferris-wheel/simulation.ts';
+import { createDropTowerSimulation } from './rides/drop-tower/simulation.ts';
+import { createDropTowerStructureInterpreter } from './rides/drop-tower/realStructureAdapter.ts';
+import { toRollerCoasterInput } from './rides/roller-coaster/adapter.ts';
+import { createRollerCoasterSimulation } from './rides/roller-coaster/simulation.ts';
+import { planRollerCoasterTrack } from './rides/roller-coaster/trackPlan.ts';
+import { createRollerCoasterTrack } from './rides/roller-coaster/trackMap.ts';
+import { toFreeBodiesInput } from './free-bodies/adapter.ts';
+import { createFreeBodiesSimulation, FREE_BODIES_SEED } from './free-bodies/simulation.ts';
+import { PARK_BUMPER_CARS_BOUNDS, PARK_ROLLER_COASTER_BOUNDS } from './experience/park/config.ts';
+import {
+  createAudioBufferPlaybackTransport,
+  LIVE_INPUT_WINDOW_SECONDS,
+  type AudioPlaybackTransport,
+  type LiveAnalysisUpdate,
+  type LiveInputState,
+} from '@computational-listening/audio-source-browser';
+import type { AudioPreparationState, PreparedRealAudio } from './audio/AudioPreparationController.ts';
+import type { ZlandAudioMap } from './audio/types.ts';
+import { composeZlandAudioMap } from './audio/composeZlandAudioMap.ts';
+import { createParkPulse, PARK_PULSE_SOURCE_ID } from './physics/ParkPulse.ts';
+import type { TransportState } from './audio/types.ts';
 
 /** Composition only: systems keep their own state and ownership. */
-export function createExperience(now: () => number, reducedMotion = false, fixtureMap: AudioMap = milestoneSevenAAudioMap) {
+export function createExperience(now: () => number, reducedMotion = false, fixtureMap: ZlandAudioMap = milestoneSevenZlandAudioMap) {
   let clock: AudioClock | AudioPlaybackTransport = createPreviewAudioClock(fixtureMap.duration, now);
-  let activeMap: AudioMap = fixtureMap;
+  let activeMap: ZlandAudioMap = fixtureMap;
   let mapRevision = 0;
   let world = createAudioWorld(activeMap);
   let preparation: AudioPreparationState = {
     sourceMode: 'fixture', filename: null, duration: activeMap.duration,
     decodeState: 'idle', analysisState: 'idle', error: null, requestId: 0,
   };
-  const melodyMidi = (milestoneSevenAAudioMap.melody ?? []).map(note => note.midi);
+  const melodyMidi = (milestoneSevenZlandAudioMap.melody ?? []).map(note => note.midi);
   const carousel = createCarouselSimulation({
     reducedMotion,
     pitchRange: { min: Math.min(...melodyMidi), max: Math.max(...melodyMidi) },
@@ -234,7 +239,7 @@ export function createExperience(now: () => number, reducedMotion = false, fixtu
     },
     updateLiveInput(update: LiveAnalysisUpdate) {
       if (!liveTransport) return;
-      activeMap = composeLegacyAudioMap(update.map, {
+      activeMap = composeZlandAudioMap(update.map, {
         id: `live-input-${update.sessionId}`, source: update.source,
       }, { structure: null, drops: null });
       liveState = update.state; mapRevision += 1;

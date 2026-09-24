@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,9 +27,13 @@ const boundaries = [
     forbidden: new Set(['zland','@zland','rides','physics','experience','ZlandAuthoredOverlay','ZlandListeningAdapter','AudioWorld']) },
   { name: 'zland', root: resolve(repositoryRoot, 'apps/zland'),
     forbidEscape: false,
-    forbidden: new Set(['zoe']) },
+    forbidden: new Set(['zoe','instrument-ui','signal-console','signal-player']) },
 ];
 const violations = [];
+try {
+  await access(resolve(repositoryRoot, 'src'));
+  violations.push('src/: legacy root production tree must not exist after Batch E');
+} catch { /* Expected final state. */ }
 for (const boundary of boundaries) for (const file of await sourceFiles(boundary.root)) {
   const source = await readFile(file, 'utf8');
   for (const match of source.matchAll(importPattern)) {

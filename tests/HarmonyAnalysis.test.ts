@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { analyzeHarmony } from '@computational-listening/engine';
-import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
-import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import { toFerrisWheelInput } from '../src/rides/ferris-wheel/adapter.ts';
-import { createFerrisWheelSimulation } from '../src/rides/ferris-wheel/simulation.ts';
+import { analyzePcmListening } from '@computational-listening/engine';
+import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import { toFerrisWheelInput } from '../apps/zland/src/rides/ferris-wheel/adapter.ts';
+import { createFerrisWheelSimulation } from '../apps/zland/src/rides/ferris-wheel/simulation.ts';
 
 const SAMPLE_RATE = 12_000;
 const hz = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
@@ -125,15 +125,15 @@ test('frequency mapping is sample-rate aware and stereo downmix retains tonal ev
     const signal = Float32Array.from({ length: Math.floor(sampleRate * seconds) }, (_, index) =>
       midis.reduce((sum, midi) => sum + 0.22 * Math.sin(2 * Math.PI * hz(midi) * index / sampleRate), 0));
     assert.equal(analyze(signal, sampleRate).segments[0]?.chord, 'G major');
-    const map = analyzePcmAudio({ sampleRate, channels: [signal, signal] },
+    const map = analyzePcmListening({ sampleRate, channels: [signal, signal] },
       { id: `stereo-${sampleRate}`, filename: 'stereo.wav', mimeType: 'audio/wav' });
     assert.equal(map.harmonyAnalysis?.segments[0]?.chord, 'G major');
   }
 });
 
-test('AudioMap, AudioWorld, and FerrisWheel share one exact chord timeline', () => {
+test('ZlandAudioMap, AudioWorld, and FerrisWheel share one exact chord timeline', () => {
   const signal = concatenate(chord(0, 'major'), chord(9, 'minor'));
-  const map = analyzePcmAudio({ sampleRate: SAMPLE_RATE, channels: [signal] },
+  const map = analyzePcmListening({ sampleRate: SAMPLE_RATE, channels: [signal] },
     { id: 'harmony-chain', filename: 'harmony.wav', mimeType: 'audio/wav' });
   assert.equal(map.capabilities.harmony, true);
   const world = createAudioWorld(map);
@@ -149,7 +149,7 @@ test('AudioMap, AudioWorld, and FerrisWheel share one exact chord timeline', () 
 
 test('seek resolves target harmony without replaying skipped chord changes', () => {
   const signal = concatenate(chord(0, 'major'), chord(9, 'minor'), chord(5, 'major'), chord(7, 'major'));
-  const map = analyzePcmAudio({ sampleRate: SAMPLE_RATE, channels: [signal] },
+  const map = analyzePcmListening({ sampleRate: SAMPLE_RATE, channels: [signal] },
     { id: 'harmony-seek', filename: 'harmony.wav', mimeType: 'audio/wav' });
   const world = createAudioWorld(map);
   world.read({ time: 0, duration: map.duration, playing: false });
@@ -169,19 +169,19 @@ test('real harmony coexists with melody, rhythm, and spectrum without fabricatin
       pulseChord[start + index] += 0.35 * (1 - index / 240);
     }
   }
-  const map = analyzePcmAudio({ sampleRate: SAMPLE_RATE, channels: [pulseChord] },
+  const map = analyzePcmListening({ sampleRate: SAMPLE_RATE, channels: [pulseChord] },
     { id: 'coexistence', filename: 'coexistence.wav', mimeType: 'audio/wav' });
   assert.equal(map.capabilities.harmony, true);
   assert.equal(map.capabilities.spectrum, true);
   assert.equal(map.capabilities.structure, false);
   assert.equal(map.percussion, null);
-  assert.equal(map.structure, null);
+  assert.equal('structure' in map, false);
 });
 
 test('authored harmony lookup remains unchanged', async () => {
-  const { milestoneSevenAAudioMap } = await import('../src/audio/AudioMap.ts');
-  const harmony = lookupSnapshot(milestoneSevenAAudioMap,
-    { time: 2, duration: milestoneSevenAAudioMap.duration, playing: false }).harmony;
+  const { milestoneSevenZlandAudioMap } = await import('../apps/zland/src/audio/ZlandAudioMaps.ts');
+  const harmony = lookupSnapshot(milestoneSevenZlandAudioMap,
+    { time: 2, duration: milestoneSevenZlandAudioMap.duration, playing: false }).harmony;
   assert.equal(harmony.chord, 'C major');
   assert.deepEqual(harmony.pitchClasses, [0, 4, 7]);
 });

@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import type { AudioMap } from '../src/audio/types.ts';
-import { lookupSnapshot } from '../src/audio/AudioWorld.ts';
+import type { ZlandAudioMap } from '../apps/zland/src/audio/types.ts';
+import { lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
 import { selectSignalInterpretationFields, selectSignalTelemetry, signalPhraseGroups,
   TEMPORAL_RESIDUE_POLICY } from '../packages/listening-instrument-ui/src/signal-console/signalTelemetry.ts';
 import { listeningFieldBeatEmphasis, selectPrimaryListeningView } from '../packages/listening-instrument-ui/src/signal-console/primaryListening.ts';
 import type { SignalConsoleObservation } from '../packages/listening-instrument-ui/src/signal-console/types.ts';
-import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
-import { selectMelodyEvidenceForTransport } from '../src/audio/melody-evidence/selectMelodyEvidence.ts';
+import { analyzePcmListening } from '@computational-listening/engine';
+import { selectMelodyEvidenceForTransport } from '@computational-listening/engine';
 
-function map(id = 'signal-map', rms: readonly [number, number] = [.284, .291]): AudioMap {
+function map(id = 'signal-map', rms: readonly [number, number] = [.284, .291]): ZlandAudioMap {
   return {
     version: 1, id, duration: 2,
     capabilities: { melody: true, rhythm: true, percussion: true, harmony: true,
@@ -64,15 +64,15 @@ function map(id = 'signal-map', rms: readonly [number, number] = [.284, .291]): 
       { id: 'st1', start: 1, end: 2, vector: [], energy: .75, onsetDensity: .6 },
     ], novelty: [.1, .8], noveltyScales: { short: [.11, .7], medium: [.12, .6], long: [.13, .5] } },
     drops: null,
-  } as unknown as AudioMap;
+  } as unknown as ZlandAudioMap;
 }
 
-const observation = (audioMap: AudioMap, time: number, revision = 0, playing = true): SignalConsoleObservation => ({
+const observation = (audioMap: ZlandAudioMap, time: number, revision = 0, playing = true): SignalConsoleObservation => ({
   audioMap, mapRevision: revision, transport: { time, duration: audioMap.duration, playing },
 });
 const field = (telemetry: ReturnType<typeof selectSignalTelemetry>, domain: string, label: string) =>
   telemetry.domains.find(item => item.id === domain)?.fields.find(item => item.label === label)?.value;
-const interpretationField = (audioMap: AudioMap, time: number, ended: boolean) => {
+const interpretationField = (audioMap: ZlandAudioMap, time: number, ended: boolean) => {
   const snapshot = lookupSnapshot(audioMap, { time, duration: audioMap.duration, playing: false });
   const fields = selectSignalInterpretationFields({ snapshot, events: [] }, ended);
   return (label: string) => fields.find(item => item.label === label)?.value;
@@ -104,7 +104,7 @@ test('paused seek resolves destination frames instead of suppressing synchroniza
   assert.equal(field(sought, 'TRANSIENT', 'ONSET'), '0.800');
 });
 
-test('AudioMap replacement refreshes equal indexes through explicit revision identity', () => {
+test('ZlandAudioMap replacement refreshes equal indexes through explicit revision identity', () => {
   const first = selectSignalTelemetry(observation(map('same-id', [.1, .2]), .01, 4, false));
   const replacement = selectSignalTelemetry(observation(map('same-id', [.9, .8]), .01, 5, false));
   assert.deepEqual(replacement.indexes, first.indexes);
@@ -242,7 +242,7 @@ test('Melody Inspect retains rejected evidence and five stable candidate lines w
     state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
     return ((state / 0xffffffff) * 2 - 1) * 0.45;
   });
-  const rejectedMap = analyzePcmAudio({ sampleRate, channels: [noise] }, {
+  const rejectedMap = analyzePcmListening({ sampleRate, channels: [noise] }, {
     id: 'rejected-melody', filename: 'noise.wav', mimeType: 'audio/wav',
   });
   const telemetry = selectSignalTelemetry(observation(rejectedMap, 0.3));
@@ -255,7 +255,7 @@ test('Melody Inspect retains rejected evidence and five stable candidate lines w
   assert.match(telemetry.melodyInspect.decision.find(item => item.label === 'RESULT')?.value ?? '', /REJECTED/);
   assert.notEqual(telemetry.melodyInspect.decision.find(item => item.label === 'REASON')?.value, '—');
 
-  const silentMap = analyzePcmAudio({ sampleRate, channels: [new Float32Array(sampleRate)] }, {
+  const silentMap = analyzePcmListening({ sampleRate, channels: [new Float32Array(sampleRate)] }, {
     id: 'silent-melody', filename: 'silence.wav', mimeType: 'audio/wav',
   });
   const silent = selectSignalTelemetry(observation(silentMap, 0.3));
@@ -271,10 +271,10 @@ test('Melody Inspect renders explicit below/above provenance separately from usa
   const sampleRate = 48_000;
   const tone = (frequency: number) => Float32Array.from({ length: sampleRate }, (_, index) =>
     0.8 * Math.sin(2 * Math.PI * frequency * index / sampleRate));
-  const belowMap = analyzePcmAudio({ sampleRate, channels: [tone(75)] }, {
+  const belowMap = analyzePcmListening({ sampleRate, channels: [tone(75)] }, {
     id: 'below-range', filename: 'below.wav', mimeType: 'audio/wav',
   });
-  const aboveMap = analyzePcmAudio({ sampleRate, channels: [tone(1400)] }, {
+  const aboveMap = analyzePcmListening({ sampleRate, channels: [tone(1400)] }, {
     id: 'above-range', filename: 'above.wav', mimeType: 'audio/wav',
   });
   const below = selectSignalTelemetry(observation(belowMap, .4, 8, false));
@@ -427,7 +427,7 @@ test('below-range observed pitch remains primary evidence while Melody reports s
   const projected = selectPrimaryListeningView({ ...telemetry, primaryEvidence: {
     ...telemetry.primaryEvidence,
     observedPitch: { frequencyHz: '79.73', noteName: 'D#2', score: '.714', rangeStatus: 'BELOW MELODY RANGE' },
-  } }, { snapshot: lookupSnapshot({ ...map(), capabilities: { ...map().capabilities, melody: false }, melody: null } as AudioMap,
+  } }, { snapshot: lookupSnapshot({ ...map(), capabilities: { ...map().capabilities, melody: false }, melody: null } as ZlandAudioMap,
     { time: .2, duration: 2, playing: true }), events: [] }, []);
   assert.equal(projected.observedPitch.frequencyHz, '79.73');
   assert.equal(projected.observedPitch.rangeStatus, 'BELOW MELODY RANGE');
@@ -490,7 +490,7 @@ test('Listening Field reuses the primary listening projection through a presenta
   assert.match(player, /composition=\{composition\}/);
   assert.match(host, /composition="performance"/);
   assert.doesNotMatch(host, /ParkMap|Development Workbench|createExperience/);
-  assert.doesNotMatch(fieldComponent, /AudioMap|AudioWorld|selectSignalTelemetry|requestAnimationFrame|setInterval/);
+  assert.doesNotMatch(fieldComponent, /ZlandAudioMap|AudioWorld|selectSignalTelemetry|requestAnimationFrame|setInterval/);
 });
 
 test('Performance Surface keeps permanent model orientation and opens performance layers by default', () => {
@@ -575,7 +575,7 @@ test('Uncertainty Field projects retained Melody candidates without changing the
   const tone = Float32Array.from({ length: sampleRate }, (_, index) =>
     .66 * Math.sin(2 * Math.PI * 220 * index / sampleRate)
     + .24 * Math.sin(2 * Math.PI * 440 * index / sampleRate));
-  const audioMap = analyzePcmAudio({ sampleRate, channels: [tone] }, {
+  const audioMap = analyzePcmListening({ sampleRate, channels: [tone] }, {
     id: 'uncertainty-melody', filename: 'uncertainty.wav', mimeType: 'audio/wav',
   });
   const transport = { time: .4, duration: audioMap.duration, playing: true };
@@ -609,7 +609,7 @@ test('Uncertainty Field projects retained Harmony and Tonal top, second, and mar
     tonalCenterAnalysis: { ...audioMap.tonalCenterAnalysis!, frames: audioMap.tonalCenterAnalysis!.frames.map((frame, index) =>
       index === 0 ? { ...frame, topCandidate: tonal('C minor', 0, .58),
         secondCandidate: tonal('G minor', 7, .51), topScore: .58, secondScore: .51, margin: .07 } : frame) },
-  } as AudioMap;
+  } as ZlandAudioMap;
   const uncertainty = selectSignalTelemetry(observation(enriched, .1)).primaryEvidence.uncertainty;
   assert.deepEqual(uncertainty.harmony, {
     top: { identity: 'G major', score: '0.240' },
@@ -669,7 +669,7 @@ test('Listening Field CSS preserves one responsive field, fixed depth rows, and 
   assert.doesNotMatch(styles, /transition\s*:|animation\s*:|@keyframes/);
 });
 
-function temporalMap(id = 'temporal-map', offset = 0): AudioMap {
+function temporalMap(id = 'temporal-map', offset = 0): ZlandAudioMap {
   const chord = (index: number, second = false) => ({
     label: `${second ? 'G' : 'C'} ${index % 2 ? 'minor' : 'major'}`,
     rootPitchClass: second ? 7 : 0,
@@ -713,7 +713,7 @@ function temporalMap(id = 'temporal-map', offset = 0): AudioMap {
         majorProfile: Array(12).fill(0), minorProfile: Array(12).fill(0), similarity: 'cosine',
         smoothing: 'non-causal-dynamic-programming-plus-minimum-segment', minimumSegmentDuration: 4,
         minimumUsableDuration: 2, availabilityThreshold: .56, switchPenalty: .11 } },
-  } as AudioMap;
+  } as ZlandAudioMap;
 }
 
 test('Temporal residue selects bounded real retained states at domain-specific cadence', () => {
@@ -734,7 +734,7 @@ test('Melody residue uses retained candidate frames without interpolation or rep
   const sampleRate = 48_000;
   const tone = Float32Array.from({ length: sampleRate }, (_, index) =>
     .72 * Math.sin(2 * Math.PI * 220 * index / sampleRate));
-  const audioMap = analyzePcmAudio({ sampleRate, channels: [tone] }, {
+  const audioMap = analyzePcmListening({ sampleRate, channels: [tone] }, {
     id: 'melody-residue', filename: 'melody-residue.wav', mimeType: 'audio/wav',
   });
   const telemetry = selectSignalTelemetry(observation(audioMap, .8));
@@ -751,7 +751,7 @@ test('Melody residue uses retained candidate frames without interpolation or rep
     }))));
 });
 
-test('restart, seek, and AudioMap replacement reconstruct residue without stale UI history', () => {
+test('restart, seek, and ZlandAudioMap replacement reconstruct residue without stale UI history', () => {
   const original = temporalMap('same', 0);
   const restarted = selectSignalTelemetry(observation(original, 0, 2, false));
   assert.deepEqual(restarted.primaryEvidence.uncertainty.harmony.history, []);
@@ -770,7 +770,7 @@ test('restart, seek, and AudioMap replacement reconstruct residue without stale 
 
 test('Melody, Harmony, and Tonal gates expose only audited production conditions', () => {
   const sampleRate = 48_000;
-  const silence = analyzePcmAudio({ sampleRate, channels: [new Float32Array(sampleRate)] }, {
+  const silence = analyzePcmListening({ sampleRate, channels: [new Float32Array(sampleRate)] }, {
     id: 'gate-silence', filename: 'gate-silence.wav', mimeType: 'audio/wav',
   });
   const melody = selectSignalTelemetry(observation(silence, .5)).primaryEvidence.gates.melody;
@@ -778,7 +778,7 @@ test('Melody, Harmony, and Tonal gates expose only audited production conditions
   assert.match(melody?.text ?? '', /^rms 0\.0000 < required 0\.0025$/);
   const belowTone = Float32Array.from({ length: sampleRate }, (_, index) =>
     .72 * Math.sin(2 * Math.PI * 75 * index / sampleRate));
-  const below = analyzePcmAudio({ sampleRate, channels: [belowTone] }, {
+  const below = analyzePcmListening({ sampleRate, channels: [belowTone] }, {
     id: 'gate-below', filename: 'gate-below.wav', mimeType: 'audio/wav',
   });
   const belowGate = selectSignalTelemetry(observation(below, .5)).primaryEvidence.gates.melody;
@@ -787,13 +787,13 @@ test('Melody, Harmony, and Tonal gates expose only audited production conditions
 
   const base = temporalMap();
   const lowHarmony = { ...base, harmonyAnalysis: { ...base.harmonyAnalysis!, frames: base.harmonyAnalysis!.frames.map(
-    (frame, index) => index === 12 ? { ...frame, confidence: .51, chord: null } : frame) } } as AudioMap;
+    (frame, index) => index === 12 ? { ...frame, confidence: .51, chord: null } : frame) } } as ZlandAudioMap;
   const harmony = selectSignalTelemetry(observation(lowHarmony, 1.21)).primaryEvidence.gates.harmony;
   assert.equal(harmony?.reason, 'LOW_FRAME_CONFIDENCE');
   assert.equal(harmony?.text, 'confidence 0.510 < required 0.520');
 
   const lowTonal = { ...base, tonalCenterAnalysis: { ...base.tonalCenterAnalysis!, available: false,
-    confidence: .55, segments: [] } } as AudioMap;
+    confidence: .55, segments: [] } } as ZlandAudioMap;
   const tonal = selectSignalTelemetry(observation(lowTonal, 10)).primaryEvidence.gates.tonalCenter;
   assert.equal(tonal?.reason, 'LOW_TRACK_CONFIDENCE');
   assert.equal(tonal?.text, 'track confidence 0.550 < required 0.560');

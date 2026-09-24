@@ -1,9 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  analyzeMelody, analyzeMelodyWithEvidence, MELODY_ANALYSIS,
-} from '../src/audio/analysis/MelodyAnalysis.ts';
-import { selectMelodyEvidence } from '../src/audio/melody-evidence/selectMelodyEvidence.ts';
+import { analyzeMelody, analyzeMelodyWithEvidence, MELODY_ANALYSIS } from '@computational-listening/engine';
+import { selectMelodyEvidence } from '@computational-listening/engine';
 import {
   BASS_AMPLITUDE, CALIBRATION_SAMPLE_RATE, centsDistance, characterizeMelodyPath, classifyWrongPath,
   createMelodyPathCalibrationStimulus, formatMelodyPathCharacterization,

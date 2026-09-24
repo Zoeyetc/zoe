@@ -1,21 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import { milestoneSevenAAudioMap } from '../src/audio/AudioMap.ts';
+import { lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import { milestoneSevenZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
 import {
   ATTENTION_ACTOR_IDS, ATTENTION_MINIMUM_PRIMARY_HOLD, ATTENTION_SWITCH_MARGIN,
   createAttentionController, resolveAttentionRoles, type AttentionEvidence,
-} from '../src/experience/attention.ts';
-import { scoreStructuralAttention, STRUCTURAL_ATTENTION_CONFIG } from '../src/experience/attention/StructuralAttentionPolicy.ts';
+} from '../apps/zland/src/experience/attention.ts';
+import { scoreStructuralAttention, STRUCTURAL_ATTENTION_CONFIG } from '../apps/zland/src/experience/attention/StructuralAttentionPolicy.ts';
 import {
   PARK_ACTOR_ANCHORS, PARK_FOCUS_BOUNDS, PARK_OVERVIEW_VIEWPORT, focusViewport,
-} from '../src/experience/park/config.ts';
+} from '../apps/zland/src/experience/park/config.ts';
 import { readFileSync } from 'node:fs';
 
 function evidence(time: number, overrides: Partial<AttentionEvidence> = {}): AttentionEvidence {
   return {
-    snapshot: lookupSnapshot(milestoneSevenAAudioMap, {
-      time, duration: milestoneSevenAAudioMap.duration, playing: true,
+    snapshot: lookupSnapshot(milestoneSevenZlandAudioMap, {
+      time, duration: milestoneSevenZlandAudioMap.duration, playing: true,
     }),
     dropTowerPhase: 'RESTING',
     rollerCoasterReleaseActive: false,
@@ -174,8 +174,8 @@ test('candidate diagnostics are finite and explain availability, activity, struc
 });
 
 test('attention composition has no AudioClock or simulation ownership', () => {
-  const source = readFileSync(new URL('../src/experience/attention.ts', import.meta.url), 'utf8')
-    + readFileSync(new URL('../src/experience/attention/StructuralAttentionPolicy.ts', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../apps/zland/src/experience/attention.ts', import.meta.url), 'utf8')
+    + readFileSync(new URL('../apps/zland/src/experience/attention/StructuralAttentionPolicy.ts', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /from ['"][^'"]*(AudioClock|simulation|physics)[^'"]*['"]/i);
   assert.doesNotMatch(source, /createAudioWorld|create[A-Z][A-Za-z]+Simulation/);
   const frame = evidence(6);

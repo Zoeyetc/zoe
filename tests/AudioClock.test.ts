@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPreviewAudioClock } from '../src/audio/AudioClock.ts';
+import { createPreviewAudioClock } from '../apps/zland/src/audio/AudioClock.ts';
 
 test('AudioClock owns deterministic play, pause, seek, restart, and end state', () => {
   let now = 0;

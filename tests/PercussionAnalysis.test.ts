@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
+import { analyzePcmListening } from '@computational-listening/engine';
 import { classifyPercussion } from '@computational-listening/engine';
-import type { PercussionDescriptors, PercussionKind } from '../src/audio/types.ts';
+import type { PercussionDescriptors, PercussionKind } from '@computational-listening/engine';
 import {
   ambiguousClap, denseHats, fourOnFloorHats, isolatedClosedHat, isolatedKick,
   isolatedOpenHat, isolatedSnare, isolatedTom, lowSine, overlappingKickSnare,
@@ -10,7 +10,7 @@ import {
 } from './percussionFixtures.ts';
 
 const source = { id: 'percussion-synthetic', filename: 'generated.wav', mimeType: 'audio/wav' };
-const analyze = (pcm: ReturnType<typeof isolatedKick>) => analyzePcmAudio(pcm, source).percussionAnalysis!;
+const analyze = (pcm: ReturnType<typeof isolatedKick>) => analyzePcmListening(pcm, source).percussionAnalysis!;
 const descriptor = (overrides: Partial<PercussionDescriptors>): PercussionDescriptors => ({
   subRatio: 0.1, lowMidRatio: 0.15, midRatio: 0.25, highRatio: 0.25, airRatio: 0.25,
   centroid: 0.45, spread: 0.3, flatness: 0.35, duration: 0.1, decay: 0.8,
@@ -78,7 +78,7 @@ test('sustained cymbal has one onset cluster rather than frame-rate event spam',
 });
 
 test('four-on-floor plus hats enables bounded real percussion capability', () => {
-  const map = analyzePcmAudio(fourOnFloorHats(), source);
+  const map = analyzePcmListening(fourOnFloorHats(), source);
   const result = map.percussionAnalysis!;
   assert.equal(result.available, true);
   assert.equal(map.capabilities.percussion, true);

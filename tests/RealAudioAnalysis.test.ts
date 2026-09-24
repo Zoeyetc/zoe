@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzePcmAudio, downmixToMono } from '../src/audio/analysis/AudioAnalysis.ts';
-import { lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import { toFreeBodiesInput } from '../src/free-bodies/adapter.ts';
+import { downmixToMono } from '@computational-listening/engine';
+import { analyzeZlandPcmAudio } from '../apps/zland/src/audio/analyzeZlandAudio.ts';
+import { lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import { toFreeBodiesInput } from '../apps/zland/src/free-bodies/adapter.ts';
 
 const source = { id: 'synthetic', filename: 'synthetic.wav', mimeType: 'audio/wav' };
 const sine = (sampleRate: number, seconds: number, frequency: number, gain = 0.8) =>
   Float32Array.from({ length: Math.floor(sampleRate * seconds) }, (_, index) =>
     gain * Math.sin(2 * Math.PI * frequency * index / sampleRate));
 const analyze = (channels: readonly Float32Array[], sampleRate = 48_000) =>
-  analyzePcmAudio({ sampleRate, channels }, source);
+  analyzeZlandPcmAudio({ sampleRate, channels }, source);
 const snapshot = (map: ReturnType<typeof analyze>, time = map.duration / 2) =>
   lookupSnapshot(map, { time, duration: map.duration, playing: false });
 

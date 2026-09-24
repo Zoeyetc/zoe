@@ -4,8 +4,8 @@ import {
   createListeningTimeline, lookupListeningSnapshot,
   type ListeningMap,
 } from '@computational-listening/engine';
-import { milestoneOneAudioMap, milestoneTwoBAudioMap } from '../src/audio/AudioMap.ts';
-import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
+import { milestoneOneZlandAudioMap, milestoneTwoBZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
+import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
 
 const genericMap = {
   version: 1, duration: 4,
@@ -37,8 +37,8 @@ const genericMap = {
 
 test('generic snapshot matches legacy generic fields and excludes Z.land authored semantics', () => {
   const time = 1.5;
-  const generic = lookupListeningSnapshot(milestoneOneAudioMap, time);
-  const legacy = lookupSnapshot(milestoneOneAudioMap, { time, duration: 12, playing: true });
+  const generic = lookupListeningSnapshot(milestoneOneZlandAudioMap, time);
+  const legacy = lookupSnapshot(milestoneOneZlandAudioMap, { time, duration: 12, playing: true });
   assert.deepEqual(generic.melody, legacy.melody);
   assert.deepEqual(generic.rhythm, legacy.rhythm);
   assert.deepEqual(generic.harmony, legacy.harmony);
@@ -76,7 +76,7 @@ test('synchronize, restart, ended, and map replacement reset crossing without re
 });
 
 test('generic events contain analyzed events but never authored drops or seek notifications', () => {
-  const timeline = createListeningTimeline(milestoneTwoBAudioMap, 'zland-fixture');
+  const timeline = createListeningTimeline(milestoneTwoBZlandAudioMap, 'zland-fixture');
   timeline.read(12.8);
   const generic = timeline.read(13.1).events;
   assert.equal(generic.some(event => (event as { type: string }).type === 'drop'), false);
@@ -84,7 +84,7 @@ test('generic events contain analyzed events but never authored drops or seek no
 });
 
 test('Z.land adapter facade preserves authored structure, drop, and seek behavior', () => {
-  const world = createAudioWorld(milestoneTwoBAudioMap);
+  const world = createAudioWorld(milestoneTwoBZlandAudioMap);
   const before = world.read({ time: 12.8, duration: 20, playing: true });
   assert.equal(before.snapshot.structure.source, 'authored');
   assert.equal(before.snapshot.structure.section, 'hold');

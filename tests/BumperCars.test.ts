@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { AudioEvent, PercussionKind, PercussionHit } from '../src/audio/types.ts';
-import type { BumperCarsInput } from '../src/rides/bumper-cars/adapter.ts';
+import type { PercussionKind, PercussionHit } from '@computational-listening/engine';
+import type { AudioEvent } from '../apps/zland/src/audio/types.ts';
+import type { BumperCarsInput } from '../apps/zland/src/rides/bumper-cars/adapter.ts';
 import {
   BUMPER_MAX_ANGULAR_SPEED, BUMPER_MAX_SPEED, createBumperCarsSimulation,
   createInitialBumperBodies, type BumperBodyState,
-} from '../src/rides/bumper-cars/simulation.ts';
+} from '../apps/zland/src/rides/bumper-cars/simulation.ts';
 
 const roles: readonly PercussionKind[] = ['kick', 'snare', 'closed-hat', 'open-hat', 'tom', 'other-percussion'];
 const percussion = (type: PercussionKind, strength = 0.8, id = `${type}-test`): AudioEvent => {

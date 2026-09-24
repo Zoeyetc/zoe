@@ -1,18 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  analyzeMelody, analyzeMelodyWithDpDiagnostics, analyzeMelodyWithEvidence,
-  analyzeMelodyWithNoCliffExperiment, MELODY_ANALYSIS,
-} from '../src/audio/analysis/MelodyAnalysis.ts';
+import { analyzeMelody, analyzeMelodyWithEvidence, MELODY_ANALYSIS } from '@computational-listening/engine';
+import { analyzeMelodyWithDpDiagnostics, analyzeMelodyWithNoCliffExperiment } from '@computational-listening/engine/diagnostics';
 import type {
   MelodyCandidateScoreDiagnostic, MelodyDpFrameDiagnostic, MelodyDpStateDiagnostic,
-} from '../src/audio/melody-evidence/dpDiagnostics.ts';
+} from '@computational-listening/engine/diagnostics';
 import {
   CALIBRATION_SAMPLE_RATE, characterizeMelodyPath, classifyWrongPath,
   createMelodyCompetitionStimulus, GROUND_TRUTH_BASS, GROUND_TRUTH_MELODY,
   matchesPitchIdentity, TRANSITION_MARGIN_SECONDS,
 } from './melodyPathIdentityCalibration.ts';
-import { selectMelodyEvidence } from '../src/audio/melody-evidence/selectMelodyEvidence.ts';
+import { selectMelodyEvidence } from '@computational-listening/engine';
 
 const CONDITIONS = Object.freeze([0, 0.10, 0.15, 0.20, 0.25] as const);
 const COMPONENTS = Object.freeze([

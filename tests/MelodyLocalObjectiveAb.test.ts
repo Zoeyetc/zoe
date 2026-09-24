@@ -1,12 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  analyzeMelody, analyzeMelodyWithDpDiagnostics, analyzeMelodyWithEvidence,
-  analyzeMelodyWithNoCliffExperiment, MELODY_ANALYSIS,
-} from '../src/audio/analysis/MelodyAnalysis.ts';
-import type { MelodyAnalysisWithDpDiagnostics } from '../src/audio/analysis/MelodyAnalysis.ts';
-import type { MelodyDpFrameDiagnostic, MelodyDpStateDiagnostic } from '../src/audio/melody-evidence/dpDiagnostics.ts';
-import { selectMelodyEvidence } from '../src/audio/melody-evidence/selectMelodyEvidence.ts';
+import { analyzeMelody, analyzeMelodyWithEvidence, MELODY_ANALYSIS } from '@computational-listening/engine';
+import { analyzeMelodyWithDpDiagnostics, analyzeMelodyWithNoCliffExperiment } from '@computational-listening/engine/diagnostics';
+import type { MelodyAnalysisWithDpDiagnostics } from '@computational-listening/engine/diagnostics';
+import type { MelodyDpFrameDiagnostic, MelodyDpStateDiagnostic } from '@computational-listening/engine/diagnostics';
+import { selectMelodyEvidence } from '@computational-listening/engine';
 import {
   BASS_AMPLITUDE_MATRIX, CALIBRATION_SAMPLE_RATE, characterizeMelodyPath, classifyWrongPath,
   createMelodyCompetitionStimulus, GROUND_TRUTH_BASS, GROUND_TRUTH_MELODY,

@@ -80,7 +80,7 @@ function toRollingMap(map: ListeningMap, offset: number, sessionTime: number): L
   } as const;
   return {
     ...map,
-    // AudioMap remains a lookup carrier here, not a claim about external-track duration.
+    // ListeningMap remains a lookup carrier here, not a claim about external-track duration.
     // A fixed rolling horizon prevents a slow analysis pass from looking ENDED.
     duration: Math.max(1, sessionTime + ROLLING_LISTENING_WINDOW_SECONDS),
     capabilities,

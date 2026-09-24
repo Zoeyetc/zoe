@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { milestoneTwoBAudioMap } from '../src/audio/AudioMap.ts';
-import { lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import type { AudioFrame } from '../src/audio/types.ts';
-import { toPirateShipInput, type PirateShipInput } from '../src/rides/pirate-ship/adapter.ts';
+import { milestoneTwoBZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
+import { lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import type { AudioFrame } from '../apps/zland/src/audio/types.ts';
+import { toPirateShipInput, type PirateShipInput } from '../apps/zland/src/rides/pirate-ship/adapter.ts';
 import {
   PIRATE_MAX_ANGLE,
   PIRATE_MAX_ANGULAR_VELOCITY,
   createPirateShipSimulation,
   warpBeatPhase,
-} from '../src/rides/pirate-ship/simulation.ts';
+} from '../apps/zland/src/rides/pirate-ship/simulation.ts';
 
 const rhythmInput = (overrides: Partial<PirateShipInput> = {}): PirateShipInput => ({
   rhythmAvailable: true,
@@ -25,7 +25,7 @@ const rhythmInput = (overrides: Partial<PirateShipInput> = {}): PirateShipInput 
 });
 
 test('adapter consumes continuous rhythm snapshot and ignores percussion events', () => {
-  const snapshot = lookupSnapshot(milestoneTwoBAudioMap, { time: 2.125, duration: 20, playing: true });
+  const snapshot = lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 2.125, duration: 20, playing: true });
   const withoutEvent: AudioFrame = { snapshot, events: [] };
   const withKick: AudioFrame = {
     snapshot,

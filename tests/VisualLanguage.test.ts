@@ -3,10 +3,10 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
 const css = readFileSync(new URL('../apps/zland/src/styles.css', import.meta.url), 'utf8');
-const park = readFileSync(new URL('../src/experience/park/ParkMap.tsx', import.meta.url), 'utf8');
-const train = readFileSync(new URL('../src/experience/park/ParkTrain.tsx', import.meta.url), 'utf8');
-const carousel = readFileSync(new URL('../src/rides/carousel/CarouselView.tsx', import.meta.url), 'utf8');
-const ferris = readFileSync(new URL('../src/rides/ferris-wheel/FerrisWheelView.tsx', import.meta.url), 'utf8');
+const park = readFileSync(new URL('../apps/zland/src/experience/park/ParkMap.tsx', import.meta.url), 'utf8');
+const train = readFileSync(new URL('../apps/zland/src/experience/park/ParkTrain.tsx', import.meta.url), 'utf8');
+const carousel = readFileSync(new URL('../apps/zland/src/rides/carousel/CarouselView.tsx', import.meta.url), 'utf8');
+const ferris = readFileSync(new URL('../apps/zland/src/rides/ferris-wheel/FerrisWheelView.tsx', import.meta.url), 'utf8');
 
 const token = (name: string) => {
   const match = css.match(new RegExp(`--${name}:\\s*([^;]+);`));

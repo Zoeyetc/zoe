@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { milestoneSevenAAudioMap } from '../src/audio/AudioMap.ts';
-import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import { createDropTowerQaAudioMap } from '../src/audio/DropTowerQaAudioMap.ts';
-import type { AudioEvent, AudioFrame, StructureSegment } from '../src/audio/types.ts';
-import { createDropTowerStructureInterpreter, DROP_TOWER_STRUCTURE_CONSTANTS } from '../src/rides/drop-tower/realStructureAdapter.ts';
-import { createDropTowerSimulation } from '../src/rides/drop-tower/simulation.ts';
+import { milestoneSevenZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
+import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import { createDropTowerQaZlandAudioMap } from '../apps/zland/src/audio/DropTowerQaZlandAudioMap.ts';
+import type { StructureSegment } from '@computational-listening/engine';
+import type { AudioEvent, AudioFrame } from '../apps/zland/src/audio/types.ts';
+import { createDropTowerStructureInterpreter, DROP_TOWER_STRUCTURE_CONSTANTS } from '../apps/zland/src/rides/drop-tower/realStructureAdapter.ts';
+import { createDropTowerSimulation } from '../apps/zland/src/rides/drop-tower/simulation.ts';
 import { DROP_TOWER_STRUCTURE_FIXTURES } from './dropTowerStructureFixtures.ts';
 
 type Evidence = Readonly<{
@@ -21,7 +22,7 @@ const segment = (id: string, start: number, energy: number, contrast: number, im
 });
 
 function frame(time: number, evidence: Evidence = {}, events: readonly AudioEvent[] = [], playing = true): AudioFrame {
-  const snapshot = lookupSnapshot(milestoneSevenAAudioMap, { time, duration: 24, playing });
+  const snapshot = lookupSnapshot(milestoneSevenZlandAudioMap, { time, duration: 24, playing });
   const available = evidence.available ?? true;
   return {
     events,
@@ -271,12 +272,12 @@ test('analyzed simulation remains finite and bounded under repeated structure up
 test('authored and analyzed sources remain explicit and distinct', () => {
   const interpreter = createDropTowerStructureInterpreter();
   assert.equal(interpreter.accept(frame(6), .1).drive.source, 'analyzed');
-  const authoredSnapshot = lookupSnapshot(milestoneSevenAAudioMap, { time: 7, duration: 24, playing: true });
+  const authoredSnapshot = lookupSnapshot(milestoneSevenZlandAudioMap, { time: 7, duration: 24, playing: true });
   assert.equal(interpreter.accept({ snapshot: authoredSnapshot, events: [] }, .1).drive.source, 'authored');
 });
 
 test('AudioWorld forward crossing drives prepared release and nearby boundary cooldown', () => {
-  const map = createDropTowerQaAudioMap('nearby-boundaries');
+  const map = createDropTowerQaZlandAudioMap('nearby-boundaries');
   const world = createAudioWorld(map);
   const interpreter = createDropTowerStructureInterpreter();
   world.read({ time: 7.4, duration: map.duration, playing: true });

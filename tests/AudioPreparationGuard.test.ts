@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createLatestRequestGuard } from '../src/audio/analysis/requestGuard.ts';
+import { createLatestRequestGuard } from '../apps/zland/src/audio/requestGuard.ts';
 
 test('a second source invalidates a late result from the first source', () => {
   const requests = createLatestRequestGuard();

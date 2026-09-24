@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createAnchoredReceiver } from '../src/physics/AnchoredReceiver.ts';
-import { createPhysicsWorld } from '../src/physics/PhysicsWorld.ts';
+import { createAnchoredReceiver } from '../apps/zland/src/physics/AnchoredReceiver.ts';
+import { createPhysicsWorld } from '../apps/zland/src/physics/PhysicsWorld.ts';
 import {
   ROLLER_WAKE_SOURCE_ID,
   ROLLER_WAKE_SPEED_THRESHOLD,
   rollerCoasterRouteForwardToWorld,
   rollerCoasterRoutePointToWorld,
   rollerCoasterToPhysicsWake,
-} from '../src/physics/adapters/rollerCoaster.ts';
-import type { PhysicsImpact, PhysicsWake } from '../src/physics/types.ts';
-import type { RollerCoasterInput } from '../src/rides/roller-coaster/adapter.ts';
-import { createRollerCoasterSimulation } from '../src/rides/roller-coaster/simulation.ts';
+} from '../apps/zland/src/physics/adapters/rollerCoaster.ts';
+import type { PhysicsImpact, PhysicsWake } from '../apps/zland/src/physics/types.ts';
+import type { RollerCoasterInput } from '../apps/zland/src/rides/roller-coaster/adapter.ts';
+import { createRollerCoasterSimulation } from '../apps/zland/src/rides/roller-coaster/simulation.ts';
 
 const input = (overrides: Partial<RollerCoasterInput> = {}): RollerCoasterInput => ({
   structureAvailable: true,

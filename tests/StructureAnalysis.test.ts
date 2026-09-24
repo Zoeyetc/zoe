@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { milestoneOneAudioMap } from '../src/audio/AudioMap.ts';
-import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
+import { milestoneOneZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
+import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
 import { analyzeStructure, type StructureSourceFrame } from '@computational-listening/engine';
-import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
-import { toDropTowerInput } from '../src/rides/drop-tower/adapter.ts';
-import { toRollerCoasterInput } from '../src/rides/roller-coaster/adapter.ts';
-import type { AudioMap, BeatMarker } from '../src/audio/types.ts';
+import { analyzePcmListening } from '@computational-listening/engine';
+import { toDropTowerInput } from '../apps/zland/src/rides/drop-tower/adapter.ts';
+import { toRollerCoasterInput } from '../apps/zland/src/rides/roller-coaster/adapter.ts';
+import type { BeatMarker } from '@computational-listening/engine';
+import type { ZlandAudioMap } from '../apps/zland/src/audio/types.ts';
 
 type SectionName = 'A' | 'B' | 'C' | 'Aprime';
 const SECTION = {
@@ -139,8 +140,8 @@ test('analysis is deterministic and uses beat or fallback aggregation explicitly
 
 test('AudioWorld resolves current analyzed section and crosses section-change only during forward playback', () => {
   const structureAnalysis = analyzeFixture(['A', 'B', 'A']);
-  const map: AudioMap = { ...milestoneOneAudioMap, id: 'structure-world', duration: 36,
-    capabilities: { ...milestoneOneAudioMap.capabilities, structure: true },
+  const map: ZlandAudioMap = { ...milestoneOneZlandAudioMap, id: 'structure-world', duration: 36,
+    capabilities: { ...milestoneOneZlandAudioMap.capabilities, structure: true },
     melody: null, structure: null, structureAnalysis };
   const middle = lookupSnapshot(map, { time: 15, duration: 36, playing: true }).structure;
   assert.equal(middle.source, 'analysis');
@@ -157,8 +158,8 @@ test('AudioWorld resolves current analyzed section and crosses section-change on
 
 test('real analyzed structure remains isolated from authored-only base adapters', () => {
   const structureAnalysis = analyzeFixture(['A', 'B']);
-  const map: AudioMap = { ...milestoneOneAudioMap, id: 'structure-actor-isolation', duration: 24,
-    capabilities: { ...milestoneOneAudioMap.capabilities, structure: true },
+  const map: ZlandAudioMap = { ...milestoneOneZlandAudioMap, id: 'structure-actor-isolation', duration: 24,
+    capabilities: { ...milestoneOneZlandAudioMap.capabilities, structure: true },
     melody: null, structure: null, structureAnalysis };
   const frame = { snapshot: lookupSnapshot(map, { time: 14, duration: 24, playing: true }), events: [] };
   assert.equal(frame.snapshot.structure.available, true);
@@ -180,13 +181,13 @@ test('full PCM pipeline derives beat-synchronous A-B-A structure without copyrig
         + (pulse < 180 ? 0.35 * (1 - pulse / 180) : 0);
     }
   });
-  const map = analyzePcmAudio({ sampleRate, channels: [signal] },
+  const map = analyzePcmListening({ sampleRate, channels: [signal] },
     { id: 'generated-aba', filename: 'generated-aba.wav', mimeType: 'audio/wav' });
   assert.equal(map.capabilities.structure, true);
   assert.equal(map.structureAnalysis?.aggregationMode, 'beat-synchronous');
   assert.deepEqual(map.structureAnalysis?.segments.map(segment => segment.recurrenceGroup), ['A', 'B', 'A']);
-  assert.equal(map.structure, null);
-  assert.equal(map.drops, null);
+  assert.equal('structure' in map, false);
+  assert.equal('drops' in map, false);
 });
 
 function repetitiveFixture(duration = 96, mutate?: (frame: StructureSourceFrame, time: number) => StructureSourceFrame) {
@@ -271,8 +272,8 @@ test('arrangement evidence is analysis-only and does not add AudioWorld section 
   const input = repetitiveFixture(48, (frame, time) => time >= 16 && time < 24 ? { ...frame, brightness: 0.9 } : frame);
   const structureAnalysis = analyzeStructure(input.frames, input.duration, input.beats);
   assert.ok(structureAnalysis.arrangementChanges.length > 0);
-  const map: AudioMap = { ...milestoneOneAudioMap, id: 'arrangement-world', duration: 48,
-    capabilities: { ...milestoneOneAudioMap.capabilities, structure: structureAnalysis.available },
+  const map: ZlandAudioMap = { ...milestoneOneZlandAudioMap, id: 'arrangement-world', duration: 48,
+    capabilities: { ...milestoneOneZlandAudioMap.capabilities, structure: structureAnalysis.available },
     melody: null, structure: null, structureAnalysis };
   const world = createAudioWorld(map);
   world.read({ time: 0, duration: 48, playing: true });

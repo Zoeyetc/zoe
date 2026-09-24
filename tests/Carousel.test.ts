@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createCarouselSimulation } from '../src/rides/carousel/simulation.ts';
-import type { CarouselInput } from '../src/rides/carousel/adapter.ts';
-import type { ScaleDegree, ScaleDegreeEvidence } from '../src/audio/types.ts';
+import { createCarouselSimulation } from '../apps/zland/src/rides/carousel/simulation.ts';
+import type { CarouselInput } from '../apps/zland/src/rides/carousel/adapter.ts';
+import type { ScaleDegree, ScaleDegreeEvidence } from '@computational-listening/engine';
 
 const melodyNote = (midi = 60, intensity = 0.8) => ({
   id: `note-${midi}`, start: 1, end: 2, midi, intensity,

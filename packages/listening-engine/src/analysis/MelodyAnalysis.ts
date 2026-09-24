@@ -353,7 +353,7 @@ function candidateFrames(signal: Float32Array, collectScoreDiagnostics: boolean)
   return frames;
 }
 
-/** Explicit test/debug seam. Full lag curves are never retained by normal analysis or AudioMap. */
+/** Explicit test/debug seam. Full lag curves are never retained by normal analysis or ListeningMap. */
 export function inspectMelodyYinFrame(input: MelodyAnalysisInput, frameIndex: number): MelodyYinFrameDiagnostic {
   if (!Number.isInteger(frameIndex) || frameIndex < 0) throw new RangeError('frameIndex must be a non-negative integer');
   const signal = resampleForAnalysis(input.mono, input.sampleRate);

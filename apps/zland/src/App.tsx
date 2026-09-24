@@ -1,22 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ControlSurface } from '../../../src/control/ControlSurface';
-import { DebugConsole } from '../../../src/debug/DebugConsole';
-import { CarouselView } from '../../../src/rides/carousel/CarouselView';
-import { BumperCarsView } from '../../../src/rides/bumper-cars/BumperCarsView';
-import { PirateShipView } from '../../../src/rides/pirate-ship/PirateShipView';
-import { PhysicsDebugOverlay } from '../../../src/physics/PhysicsDebugOverlay';
-import { AnchoredContentView } from '../../../src/physics/AnchoredContentView';
-import { FerrisWheelView } from '../../../src/rides/ferris-wheel/FerrisWheelView';
-import { DropTowerView } from '../../../src/rides/drop-tower/DropTowerView';
-import { RollerCoasterView } from '../../../src/rides/roller-coaster/RollerCoasterView';
-import { FreeBodiesView } from '../../../src/free-bodies/FreeBodiesView';
+import { ControlSurface } from './control/ControlSurface';
+import { DebugConsole } from './debug/DebugConsole';
+import { CarouselView } from './rides/carousel/CarouselView';
+import { BumperCarsView } from './rides/bumper-cars/BumperCarsView';
+import { PirateShipView } from './rides/pirate-ship/PirateShipView';
+import { PhysicsDebugOverlay } from './physics/PhysicsDebugOverlay';
+import { AnchoredContentView } from './physics/AnchoredContentView';
+import { FerrisWheelView } from './rides/ferris-wheel/FerrisWheelView';
+import { DropTowerView } from './rides/drop-tower/DropTowerView';
+import { RollerCoasterView } from './rides/roller-coaster/RollerCoasterView';
+import { FreeBodiesView } from './free-bodies/FreeBodiesView';
 import { createExperience } from './createExperience';
-import { ParkMap } from '../../../src/experience/park/ParkMap';
-import { PARK_CONTENT_BOUNDS } from '../../../src/experience/park/config';
-import { physicsDebugVisible, resolveExperienceMode } from '../../../src/experience/mode';
-import { createAttentionController, type AttentionState } from '../../../src/experience/attention';
-import { createAudioPreparationController, FIXTURE_PREPARATION_STATE, type AudioPreparationState } from '../../../src/audio/AudioPreparationController';
-import { resolveDropTowerQaAudioMap } from '../../../src/audio/DropTowerQaAudioMap';
+import { ParkMap } from './experience/park/ParkMap';
+import { PARK_CONTENT_BOUNDS } from './experience/park/config';
+import { physicsDebugVisible, resolveExperienceMode } from './experience/mode';
+import { createAttentionController, type AttentionState } from './experience/attention';
+import { createAudioPreparationController, FIXTURE_PREPARATION_STATE, type AudioPreparationState } from './audio/AudioPreparationController';
+import { resolveDropTowerQaZlandAudioMap } from './audio/DropTowerQaZlandAudioMap';
 
 export function App() {
   const physicsStageRef = useRef<HTMLDivElement>(null);
@@ -24,7 +24,7 @@ export function App() {
     || new URLSearchParams(window.location.search).has('reduce-motion');
   const mode = resolveExperienceMode(window.location.search);
   const showPhysicsDebug = physicsDebugVisible(window.location.search);
-  const dropTowerQaMap = resolveDropTowerQaAudioMap(new URLSearchParams(window.location.search).get('drop-tower-qa'));
+  const dropTowerQaMap = resolveDropTowerQaZlandAudioMap(new URLSearchParams(window.location.search).get('drop-tower-qa'));
   const [experience] = useState(() => createExperience(
     () => performance.now() / 1000,
     reduceMotion,

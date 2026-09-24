@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { createDoodleCircle, createDoodlePath, createDoodlePolyline } from '../src/experience/doodle/geometry.ts';
-import { PARK_ACTOR_ANCHORS, PARK_FOCUS_BOUNDS, PARK_DISTRICT_CONTOURS } from '../src/experience/park/config.ts';
+import { createDoodleCircle, createDoodlePath, createDoodlePolyline } from '../apps/zland/src/experience/doodle/geometry.ts';
+import { PARK_ACTOR_ANCHORS, PARK_FOCUS_BOUNDS, PARK_DISTRICT_CONTOURS } from '../apps/zland/src/experience/park/config.ts';
 
-const geometrySource = readFileSync(new URL('../src/experience/doodle/geometry.ts', import.meta.url), 'utf8');
-const parkSource = readFileSync(new URL('../src/experience/park/ParkMap.tsx', import.meta.url), 'utf8');
-const carouselSource = readFileSync(new URL('../src/rides/carousel/CarouselView.tsx', import.meta.url), 'utf8');
-const ferrisSource = readFileSync(new URL('../src/rides/ferris-wheel/FerrisWheelView.tsx', import.meta.url), 'utf8');
+const geometrySource = readFileSync(new URL('../apps/zland/src/experience/doodle/geometry.ts', import.meta.url), 'utf8');
+const parkSource = readFileSync(new URL('../apps/zland/src/experience/park/ParkMap.tsx', import.meta.url), 'utf8');
+const carouselSource = readFileSync(new URL('../apps/zland/src/rides/carousel/CarouselView.tsx', import.meta.url), 'utf8');
+const ferrisSource = readFileSync(new URL('../apps/zland/src/rides/ferris-wheel/FerrisWheelView.tsx', import.meta.url), 'utf8');
 
 test('doodle geometry is deterministic, seeded, and finite', () => {
   const points = [{ x: 0, y: 0 }, { x: 40, y: 12 }, { x: 82, y: 4 }];
@@ -47,6 +47,6 @@ test('Park-only doodle treatment leaves precise evidence membership intact', () 
 test('annotations remain sparse and debug overlays are outside the doodle utility', () => {
   assert.match(parkSource, /<LiveAnnotationSystem/);
   assert.doesNotMatch(parkSource, /park-annotation-line/);
-  assert.doesNotMatch(geometrySource, /PhysicsDebug|confidence|AudioMap/);
+  assert.doesNotMatch(geometrySource, /PhysicsDebug|confidence|ZlandAudioMap/);
   assert.match(parkSource, /<PhysicsDebugOverlay/);
 });

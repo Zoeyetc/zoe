@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import { milestoneSevenAAudioMap } from '../src/audio/AudioMap.ts';
-import { createParkPulse, PARK_PULSE_SOURCE_ID } from '../src/physics/ParkPulse.ts';
-import type { AudioFrame } from '../src/audio/types.ts';
+import { lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import { milestoneSevenZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
+import { createParkPulse, PARK_PULSE_SOURCE_ID } from '../apps/zland/src/physics/ParkPulse.ts';
+import type { AudioFrame } from '../apps/zland/src/audio/types.ts';
 
 function frame(time: number, beatPhase: number, playing = true, events: AudioFrame['events'] = []): AudioFrame {
-  const snapshot = lookupSnapshot(milestoneSevenAAudioMap, {
-    time, duration: milestoneSevenAAudioMap.duration, playing,
+  const snapshot = lookupSnapshot(milestoneSevenZlandAudioMap, {
+    time, duration: milestoneSevenZlandAudioMap.duration, playing,
   });
   return {
     events,

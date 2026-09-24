@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { AudioMap, ChordSegment, ChromaFrame, HarmonyAnalysis, TonalMode } from '../src/audio/types.ts';
-import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
+import type { ChordSegment, ChromaFrame, HarmonyAnalysis, TonalMode } from '@computational-listening/engine';
+import type { ZlandAudioMap } from '../apps/zland/src/audio/types.ts';
+import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import { analyzePcmListening } from '@computational-listening/engine';
 import {
   analyzeTonalCenter,
   circleOfFifthsDistance,
   circleOfFifthsIndex,
   MAJOR_KEY_PROFILE,
   MINOR_KEY_PROFILE,
-} from '../src/audio/analysis/TonalCenterAnalysis.ts';
+} from '@computational-listening/engine';
 
 const rotateProfile = (profile: readonly number[], root: number) => {
   const rotated = Array.from({ length: 12 }, (_, pitchClass) => profile[(pitchClass - root + 12) % 12] ?? 0);
@@ -167,7 +168,7 @@ test('real PCM analysis derives C-major tonal evidence at two sample rates witho
       return notes.reduce((sum, midi, voice) => sum
         + (0.18 + voice * 0.02) * Math.sin(2 * Math.PI * hz(midi) * time + voice * 0.23), 0);
     });
-    const map = analyzePcmAudio({ sampleRate, channels: [signal] },
+    const map = analyzePcmListening({ sampleRate, channels: [signal] },
       { id: `tonal-${sampleRate}`, filename: 'tonal.wav', mimeType: 'audio/wav' });
     assert.equal(map.capabilities.tonalCenter, true);
     assert.equal(map.tonalCenterAnalysis?.segments[0]?.label, 'C major');
@@ -176,7 +177,7 @@ test('real PCM analysis derives C-major tonal evidence at two sample rates witho
   }
 });
 
-const mapWith = (analysis: ReturnType<typeof analyzeTonalCenter>): AudioMap => ({
+const mapWith = (analysis: ReturnType<typeof analyzeTonalCenter>): ZlandAudioMap => ({
   version: 1, id: 'tonal-test', duration: 24,
   capabilities: { melody: false, rhythm: false, percussion: false, harmony: false, tonalCenter: analysis.available,
     structure: false, spectrum: false },
@@ -212,9 +213,9 @@ test('tonal-center-change emits once on a real forward timeline crossing', () =>
 });
 
 test('FerrisWheel chord and Carousel note evidence remain independent of tonal-center metadata', async () => {
-  const { milestoneSevenAAudioMap } = await import('../src/audio/AudioMap.ts');
-  const snapshot = lookupSnapshot(milestoneSevenAAudioMap,
-    { time: 2, duration: milestoneSevenAAudioMap.duration, playing: false });
+  const { milestoneSevenZlandAudioMap } = await import('../apps/zland/src/audio/ZlandAudioMaps.ts');
+  const snapshot = lookupSnapshot(milestoneSevenZlandAudioMap,
+    { time: 2, duration: milestoneSevenZlandAudioMap.duration, playing: false });
   assert.deepEqual(snapshot.harmony.pitchClasses, [0, 4, 7]);
   assert.equal(snapshot.melody.activeNote?.midi, 60);
   assert.equal(snapshot.tonalCenter.available, false);

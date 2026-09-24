@@ -1,14 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
-import {
-  analyzeMelody, analyzeMelodyWithDpDiagnostics, analyzeMelodyWithEvidence, MELODY_ANALYSIS,
-} from '../src/audio/analysis/MelodyAnalysis.ts';
+import { readFileSync } from 'node:fs'; import {   analyzeMelody, analyzeMelodyWithEvidence, MELODY_ANALYSIS } from '@computational-listening/engine';
+import { analyzeMelodyWithDpDiagnostics } from '@computational-listening/engine/diagnostics';
 import {
   selectMelodyEvidence, selectMelodyEvidenceForTransport, selectObservedPitchEvidence,
-} from '../src/audio/melody-evidence/selectMelodyEvidence.ts';
-import type { MelodyEvidenceCandidate, MelodyRejectedCandidate } from '../src/audio/melody-evidence/types.ts';
-import type { AudioMap } from '../src/audio/types.ts';
+} from '@computational-listening/engine';
+import type { MelodyEvidenceCandidate, MelodyRejectedCandidate } from '@computational-listening/engine';
+import type { ZlandAudioMap } from '../apps/zland/src/audio/types.ts';
 import { selectSignalTelemetry } from '../packages/listening-instrument-ui/src/signal-console/signalTelemetry.ts';
 
 const SAMPLE_RATE = 48_000;
@@ -31,7 +29,7 @@ const rejected = (frequencyHz: number, score: number,
   rank: 1, frequencyHz, periodicity: .8, salience: .7, score, reason,
 });
 
-function mapWithEvidence(id: string, signal: Float32Array): AudioMap {
+function mapWithEvidence(id: string, signal: Float32Array): ZlandAudioMap {
   const result = analyze(signal);
   return {
     version: 1, id, duration: signal.length / SAMPLE_RATE,
@@ -43,7 +41,7 @@ function mapWithEvidence(id: string, signal: Float32Array): AudioMap {
     percussion: [], percussionAnalysis: null, rhythm: [], rhythmAnalysis: null,
     harmony: [], harmonyAnalysis: null, tonalCenterAnalysis: null,
     structure: null, structureAnalysis: null, drops: null,
-  } as unknown as AudioMap;
+  } as unknown as ZlandAudioMap;
 }
 
 const field = (telemetry: ReturnType<typeof selectSignalTelemetry>, domain: string, label: string) =>
@@ -156,7 +154,7 @@ test('transport selection keeps Observed Pitch on the same pause, seek, restart,
   }
 });
 
-test('AudioMap replacement and SignalConsole expose Observed Pitch without changing HEARING', () => {
+test('ZlandAudioMap replacement and SignalConsole expose Observed Pitch without changing HEARING', () => {
   const belowMap = mapWithEvidence('same-map', tone(75));
   const inRangeMap = mapWithEvidence('same-map', tone(110));
   const below = selectSignalTelemetry({ audioMap: belowMap, mapRevision: 1,

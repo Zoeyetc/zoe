@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { milestoneOneAudioMap, milestoneSixAAudioMap } from '../src/audio/AudioMap.ts';
-import { lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import type { AudioFrame } from '../src/audio/types.ts';
-import { toRollerCoasterInput, type RollerCoasterInput } from '../src/rides/roller-coaster/adapter.ts';
-import { dot, magnitude, sub } from '../src/rides/roller-coaster/geometry.ts';
-import { composeRollerCoasterRoute, sampleRoute } from '../src/rides/roller-coaster/route.ts';
+import { milestoneOneZlandAudioMap, milestoneSixAZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
+import { lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import type { AudioFrame } from '../apps/zland/src/audio/types.ts';
+import { toRollerCoasterInput, type RollerCoasterInput } from '../apps/zland/src/rides/roller-coaster/adapter.ts';
+import { dot, magnitude, sub } from '../apps/zland/src/rides/roller-coaster/geometry.ts';
+import { composeRollerCoasterRoute, sampleRoute } from '../apps/zland/src/rides/roller-coaster/route.ts';
 import {
   createRollerCoasterSimulation,
   ROLLER_MAX_ACCELERATION,
   ROLLER_MAX_VELOCITY,
   ROLLER_REDUCED_MAX_VELOCITY,
-} from '../src/rides/roller-coaster/simulation.ts';
+} from '../apps/zland/src/rides/roller-coaster/simulation.ts';
 
 const input = (overrides: Partial<RollerCoasterInput> = {}): RollerCoasterInput => ({
   structureAvailable: true,
@@ -35,13 +35,13 @@ const advance = (
 };
 
 test('RollerCoaster adapter consumes structure phrase semantics and excludes local musical domains', () => {
-  const snapshot = lookupSnapshot(milestoneSixAAudioMap, { time: 10, duration: 24, playing: true });
+  const snapshot = lookupSnapshot(milestoneSixAZlandAudioMap, { time: 10, duration: 24, playing: true });
   const frame: AudioFrame = {
     snapshot,
     events: [
       { type: 'kick', time: 10, id: 'ignored', strength: 1 },
-      { type: 'note-on', time: 10, note: milestoneSixAAudioMap.melody![0] },
-      { type: 'chord-change', time: 10, harmony: milestoneSixAAudioMap.harmony![2] },
+      { type: 'note-on', time: 10, note: milestoneSixAZlandAudioMap.melody![0] },
+      { type: 'chord-change', time: 10, harmony: milestoneSixAZlandAudioMap.harmony![2] },
     ],
   };
   const adapted = toRollerCoasterInput(frame);
@@ -53,7 +53,7 @@ test('RollerCoaster adapter consumes structure phrase semantics and excludes loc
 });
 
 test('unavailable structure keeps RollerCoaster at its station', () => {
-  const snapshot = lookupSnapshot(milestoneOneAudioMap, { time: 6, duration: 12, playing: true });
+  const snapshot = lookupSnapshot(milestoneOneZlandAudioMap, { time: 6, duration: 12, playing: true });
   const simulation = createRollerCoasterSimulation();
   simulation.accept(toRollerCoasterInput({ snapshot, events: [] }), 0.1);
   assert.equal(simulation.read().mode, 'station');

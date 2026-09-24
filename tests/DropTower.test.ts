@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { milestoneOneAudioMap, milestoneTwoBAudioMap } from '../src/audio/AudioMap.ts';
-import { lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import type { AudioFrame } from '../src/audio/types.ts';
-import { toDropTowerInput, type DropTowerInput } from '../src/rides/drop-tower/adapter.ts';
+import { milestoneOneZlandAudioMap, milestoneTwoBZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
+import { lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import type { AudioFrame } from '../apps/zland/src/audio/types.ts';
+import { toDropTowerInput, type DropTowerInput } from '../apps/zland/src/rides/drop-tower/adapter.ts';
 import {
   createDropTowerSimulation,
   DROP_TOWER_MAX_VELOCITY,
   DROP_TOWER_REDUCED_TOP,
   DROP_TOWER_TOP,
-} from '../src/rides/drop-tower/simulation.ts';
+} from '../apps/zland/src/rides/drop-tower/simulation.ts';
 
 const input = (overrides: Partial<DropTowerInput> = {}): DropTowerInput => ({
   structureAvailable: true,
@@ -44,12 +44,12 @@ const prepareHold = (simulation: ReturnType<typeof createDropTowerSimulation>) =
 };
 
 test('DropTower adapter consumes structure/drop and excludes local musical domains', () => {
-  const snapshot = lookupSnapshot(milestoneTwoBAudioMap, { time: 7, duration: 20, playing: true });
+  const snapshot = lookupSnapshot(milestoneTwoBZlandAudioMap, { time: 7, duration: 20, playing: true });
   const frame: AudioFrame = {
     snapshot,
     events: [
       { type: 'kick', time: 7, id: 'ignored', strength: 1 },
-      { type: 'chord-change', time: 7, harmony: milestoneTwoBAudioMap.harmony![1] },
+      { type: 'chord-change', time: 7, harmony: milestoneTwoBZlandAudioMap.harmony![1] },
     ],
   };
   const adapted = toDropTowerInput(frame);
@@ -61,7 +61,7 @@ test('DropTower adapter consumes structure/drop and excludes local musical domai
 });
 
 test('unavailable structure keeps DropTower inactive at rest', () => {
-  const snapshot = lookupSnapshot(milestoneOneAudioMap, { time: 6, duration: 12, playing: true });
+  const snapshot = lookupSnapshot(milestoneOneZlandAudioMap, { time: 6, duration: 12, playing: true });
   const simulation = createDropTowerSimulation();
   simulation.accept(toDropTowerInput({ snapshot, events: [] }), 0.1);
   assert.equal(simulation.read().phase, 'IDLE');

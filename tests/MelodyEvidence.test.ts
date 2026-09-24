@@ -9,7 +9,7 @@ import {
 import {
   createCompactMelodyEvidenceTimeline, retainMelodyRejectedCandidate,
 } from '@computational-listening/engine';
-import { MELODY_REJECTED_CANDIDATE_CAP } from '../src/audio/melody-evidence/types.ts';
+import { MELODY_REJECTED_CANDIDATE_CAP } from '@computational-listening/engine';
 
 const SAMPLE_RATE = 48_000;
 const tone = (frequency: number, seconds: number, gain = 0.8) => Float32Array.from(

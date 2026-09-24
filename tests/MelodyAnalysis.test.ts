@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { analyzeMelody } from '@computational-listening/engine';
-import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
-import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import { toCarouselInput } from '../src/rides/carousel/adapter.ts';
-import { createCarouselSimulation } from '../src/rides/carousel/simulation.ts';
+import { analyzePcmListening } from '@computational-listening/engine';
+import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import { toCarouselInput } from '../apps/zland/src/rides/carousel/adapter.ts';
+import { createCarouselSimulation } from '../apps/zland/src/rides/carousel/simulation.ts';
 
 const SAMPLE_RATE = 48_000;
 const source = { id: 'melody-test', filename: 'melody-test.wav', mimeType: 'audio/wav' };
@@ -128,9 +128,9 @@ test('continuous slide keeps contour without chromatic note chatter', () => {
   assert.ok(result.notes.length <= 4);
 });
 
-test('real AudioMap preserves absolute melody at Carousel boundary when tonal context is unavailable', () => {
+test('real ZlandAudioMap preserves absolute melody at Carousel boundary when tonal context is unavailable', () => {
   const signal = concat(tone(261.6256, 0.65), tone(329.6276, 0.65), tone(391.9954, 0.65));
-  const map = analyzePcmAudio({ sampleRate: SAMPLE_RATE, channels: [signal] }, source);
+  const map = analyzePcmListening({ sampleRate: SAMPLE_RATE, channels: [signal] }, source);
   assert.equal(map.capabilities.melody, true);
   assert.ok((map.melodyAnalysis?.notes.length ?? 0) >= 3);
   assert.equal(map.capabilities.harmony, false);
@@ -163,7 +163,7 @@ test('real AudioMap preserves absolute melody at Carousel boundary when tonal co
 
 test('pause lookup freezes note progress, seek synchronizes directly, and restart returns to timeline start', () => {
   const signal = concat(tone(261.6256, 0.65), tone(329.6276, 0.65), tone(391.9954, 0.65));
-  const map = analyzePcmAudio({ sampleRate: SAMPLE_RATE, channels: [signal] }, source);
+  const map = analyzePcmListening({ sampleRate: SAMPLE_RATE, channels: [signal] }, source);
   const world = createAudioWorld(map);
   const heldTime = map.melody![0].start + 0.2;
   const pausedA = lookupSnapshot(map, { time: heldTime, duration: map.duration, playing: false });

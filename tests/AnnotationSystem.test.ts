@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import type { AttentionState } from '../src/experience/attention.ts';
-import type { ExperienceState } from '../src/experience/createExperience.ts';
-import { PARK_FOCUS_BOUNDS, PARK_OVERVIEW_VIEWPORT, focusViewport } from '../src/experience/park/config.ts';
-import { resolveAnnotationAnchors, annotationSafeZones } from '../src/experience/annotations/annotationAnchors.ts';
-import { annotationBlocksOverlap, resolveAnnotationLayout, transformAnnotationPoint, visibleWorldBounds } from '../src/experience/annotations/annotationLayout.ts';
-import { buildAnnotationModels } from '../src/experience/annotations/annotationModels.ts';
-import { annotationPresentationHz, compactAngle, compactSigned, compactUnit } from '../src/experience/annotations/formatAnnotation.ts';
-import { rollerCoasterRoute } from '../src/rides/roller-coaster/route.ts';
+import type { AttentionState } from '../apps/zland/src/experience/attention.ts';
+import type { ExperienceState } from '../apps/zland/src/experience/createExperience.ts';
+import { PARK_FOCUS_BOUNDS, PARK_OVERVIEW_VIEWPORT, focusViewport } from '../apps/zland/src/experience/park/config.ts';
+import { resolveAnnotationAnchors, annotationSafeZones } from '../apps/zland/src/experience/annotations/annotationAnchors.ts';
+import { annotationBlocksOverlap, resolveAnnotationLayout, transformAnnotationPoint, visibleWorldBounds } from '../apps/zland/src/experience/annotations/annotationLayout.ts';
+import { buildAnnotationModels } from '../apps/zland/src/experience/annotations/annotationModels.ts';
+import { annotationPresentationHz, compactAngle, compactSigned, compactUnit } from '../apps/zland/src/experience/annotations/formatAnnotation.ts';
+import { rollerCoasterRoute } from '../apps/zland/src/rides/roller-coaster/route.ts';
 
 const roles = {
   carousel: 'primary', ferrisWheel: 'secondary', pirateShip: 'ambient',
@@ -117,7 +117,7 @@ test('all canonical actor anchors are finite and dynamic anchors follow physical
 });
 
 test('anchor calculation is canonical and has no doodle perturbation input', () => {
-  const source = readFileSync(new URL('../src/experience/annotations/annotationAnchors.ts', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../apps/zland/src/experience/annotations/annotationAnchors.ts', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /doodle|roughness|jitter|seed/i);
 });
 
@@ -172,8 +172,8 @@ test('formatting and update policy remain compact presentation concerns', () => 
 });
 
 test('annotation source contains no system writes, analysis, clock, or Park Train model', () => {
-  const modelSource = readFileSync(new URL('../src/experience/annotations/annotationModels.ts', import.meta.url), 'utf8');
-  const systemSource = readFileSync(new URL('../src/experience/annotations/LiveAnnotationSystem.tsx', import.meta.url), 'utf8');
+  const modelSource = readFileSync(new URL('../apps/zland/src/experience/annotations/annotationModels.ts', import.meta.url), 'utf8');
+  const systemSource = readFileSync(new URL('../apps/zland/src/experience/annotations/LiveAnnotationSystem.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(modelSource, /createAudio|analyze|accept\(|registerSource|registerReceiver|publishImpact|AttentionState\s*=/);
   assert.doesNotMatch(systemSource, /AudioClock|setInterval|requestAnimationFrame|ParkTrain/);
 });

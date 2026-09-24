@@ -4,11 +4,6 @@ import {
   hzToMidi as packageHzToMidi,
   midiToNoteName as packageMidiToNoteName,
 } from '@computational-listening/engine';
-import {
-  hzToMidi as compatibilityHzToMidi,
-  midiToNoteName as compatibilityMidiToNoteName,
-} from '../src/audio/pitch.ts';
-
 test('engine pitch API preserves exact representative frequency, MIDI, and note-name behavior', () => {
   assert.equal(packageHzToMidi(440), 69);
   assert.equal(packageHzToMidi(261.6255653005986), 60);
@@ -17,12 +12,11 @@ test('engine pitch API preserves exact representative frequency, MIDI, and note-
   assert.equal(packageMidiToNoteName(-1), 'B-2');
 });
 
-test('legacy pitch path is an exact compatibility re-export of the engine API', () => {
+test('engine pitch API remains deterministic across its supported range', () => {
   for (const frequency of [55, 261.6255653005986, 440, 880]) {
-    assert.equal(compatibilityHzToMidi(frequency), packageHzToMidi(frequency));
+    assert.equal(packageHzToMidi(frequency), 69 + 12 * Math.log2(frequency / 440));
   }
 
-  for (const midi of [-1, 0, 60, 61, 69, 127]) {
-    assert.equal(compatibilityMidiToNoteName(midi), packageMidiToNoteName(midi));
-  }
+  assert.deepEqual([-1, 0, 60, 61, 69, 127].map(packageMidiToNoteName),
+    ['B-2', 'C-1', 'C4', 'C#4', 'A4', 'G9']);
 });

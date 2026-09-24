@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { dot, magnitude, sub } from '../src/rides/roller-coaster/geometry.ts';
-import { sampleRoute } from '../src/rides/roller-coaster/route.ts';
-import { createSafeTrackPlan, type TrackFeaturePlan, type TrackPlan } from '../src/rides/roller-coaster/trackPlan.ts';
-import { generateTrackMap, TRACK_LOCAL_BOUNDS, validateTrackMap } from '../src/rides/roller-coaster/trackMap.ts';
+import { dot, magnitude, sub } from '../apps/zland/src/rides/roller-coaster/geometry.ts';
+import { sampleRoute } from '../apps/zland/src/rides/roller-coaster/route.ts';
+import { createSafeTrackPlan, type TrackFeaturePlan, type TrackPlan } from '../apps/zland/src/rides/roller-coaster/trackPlan.ts';
+import { generateTrackMap, TRACK_LOCAL_BOUNDS, validateTrackMap } from '../apps/zland/src/rides/roller-coaster/trackMap.ts';
 
 const evidence = { source:'structure-analysis', summary:'synthetic bounded evidence', sectionIds:['s'], boundaryIds:['b'], arrangementChangeIds:[], recurrenceGroup:'A', energyBefore:.3, energyAfter:.8, energySlope:.02, contrast:.8, importance:.8, rhythmConfidence:.9, releaseProxy:.8 } as const;
 const types = ['station','lift','crest','drop','run','loop','runout'] as const;

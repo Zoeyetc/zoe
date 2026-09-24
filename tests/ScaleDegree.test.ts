@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { deriveScaleDegreeEvidence, selectReferenceTonicMidi, TONAL_CONFIDENCE_THRESHOLD } from '@computational-listening/engine';
-import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import { milestoneOneAudioMap } from '../src/audio/AudioMap.ts';
-import type { AudioMap, MelodyNote, TonalCenterAnalysis, TonalCenterSegment, TonalMode } from '../src/audio/types.ts';
+import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import { milestoneOneZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
+import type { MelodyNote, TonalCenterAnalysis, TonalCenterSegment, TonalMode } from '@computational-listening/engine';
+import type { ZlandAudioMap } from '../apps/zland/src/audio/types.ts';
 
 const note = (midi: number, confidence = 0.9): MelodyNote => ({ id: `n-${midi}`, start: 0, end: 8, midi, intensity: 0.8, confidence });
 const tonal = (rootPitchClass: number, mode: TonalMode, confidence = 0.9) => ({ rootPitchClass, mode, confidence });
@@ -74,9 +75,9 @@ const segment = (id: string, start: number, end: number, rootPitchClass: number,
   ({ id, start, end, rootPitchClass, mode: 'major', label, confidence: 0.9,
     circleOfFifthsIndex: 0, distanceFromPrevious: null });
 
-function tonalMap(melody: readonly MelodyNote[], segments: readonly TonalCenterSegment[]): AudioMap {
-  return { ...milestoneOneAudioMap, id: 'degree-fixture', duration: 8, melody,
-    capabilities: { ...milestoneOneAudioMap.capabilities, tonalCenter: true }, tonalCenterAnalysis: analysis(segments) };
+function tonalMap(melody: readonly MelodyNote[], segments: readonly TonalCenterSegment[]): ZlandAudioMap {
+  return { ...milestoneOneZlandAudioMap, id: 'degree-fixture', duration: 8, melody,
+    capabilities: { ...milestoneOneZlandAudioMap.capabilities, tonalCenter: true }, tonalCenterAnalysis: analysis(segments) };
 }
 
 test('AudioWorld preserves MIDI while a sustained note is reinterpreted across modulation', () => {
@@ -100,6 +101,6 @@ test('AudioWorld keeps chromatic and no-tonal-center notes absolute with no degr
   const chromatic = lookupSnapshot(tonalMap([note(66)], [segment('c', 0, 8, 0, 'C major')]),
     { time: 2, duration: 8, playing: false });
   assert.equal(chromatic.melody.midi, 66); assert.equal(chromatic.melody.scaleDegree.degree, null);
-  const noKey = lookupSnapshot(milestoneOneAudioMap, { time: 1.5, duration: 12, playing: false });
+  const noKey = lookupSnapshot(milestoneOneZlandAudioMap, { time: 1.5, duration: 12, playing: false });
   assert.equal(noKey.melody.midi, 60); assert.equal(noKey.melody.scaleDegree.available, false);
 });

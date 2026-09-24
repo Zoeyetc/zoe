@@ -1,6 +1,7 @@
-# Z.land Music Box
+# Zoë + Z.land
 
-Vite + React + TypeScript development experience through Milestone 9E.
+Two independent Vite + React + TypeScript products sharing explicitly owned
+computational-listening packages.
 
 ## Run
 
@@ -8,34 +9,31 @@ Node.js 22.12+ (Node 24 recommended), npm:
 
 ```sh
 npm install
-npm run dev
+npm run dev:zoe
+npm run dev:zland
 ```
 
 ```sh
 npm run typecheck
 npm run build
-npm run preview
 ```
 
-Vite prints the local URL. Runtime dependencies: React and React DOM only.
-Vite handles TSX without an additional React plugin; edits reload the page.
+`npm run build` builds both products and no legacy root application. Vite
+prints each product's local URL.
 
-The default route renders the shared Park Map. Add `?mode=workbench` to retain
+The Z.land route renders the shared Park Map. Add `?mode=workbench` to retain
 the vertical actor-by-actor development view. `?hide-physics-debug` works with
 either mode and may be combined as `?mode=workbench&hide-physics-debug`.
 
 ## Ownership
 
-- `src/audio/AudioClock.ts`: transport contract and authored-fixture implementation. `AudioPlaybackTransport.ts` implements the same contract from `AudioContext.currentTime` for decoded audio.
-- `src/audio/AudioMap.ts` and `types.ts`: serializable contracts shared by deterministic authored fixtures and locally analyzed real audio.
-- `src/audio/AudioSourceLoader.ts`, `AudioPreparationController.ts`, and `analysis/`: browser-local decode, stale-request protection, and offline feature preparation. Audio files never leave the browser.
-- `src/audio/AudioWorld.ts`: pure snapshot lookup plus stateful event timeline crossing. Seek resets its cursor and emits only a seek event.
-- `src/rides/carousel`: semantic adapter, actor-local mechanical simulation, and separate renderer. Base rotation/inertia and per-rider pitch springs are independent motion channels.
-- `src/physics`: shared impact/wake causality, canonical normalized coordinates, spatial adapters, anchored receivers, and debug projection.
-- `src/free-bodies`: atmospheric adapter, deterministic dynamic-body simulation, PhysicsWorld registrations, and minimal Orb renderer.
-- `src/control`: utilitarian local-file preparation and playback controls.
-- `src/debug`: read-only instrumentation for musical, actor, shared physics, and dynamic-body state.
-- `src/experience`: composition root and App wiring. 10 Hz UI polling samples the active clock; it never advances transport and is not a simulation loop.
+- `apps/zoe`: standalone file/live computational-listening instrument.
+- `apps/zland`: complete Z.land runtime, including rides, physics, controls,
+  authored overlays, Park presentation, and app-local `AudioWorld` facade.
+- `packages/listening-engine`: browser-independent analysis and timelines.
+- `packages/audio-source-browser`: browser file/playback/live source ownership.
+- `packages/listening-instrument-ui`: SignalPlayer and SignalConsole presentation.
+- repository root: workspace scripts, tests, docs, and boundary enforcement only.
 
 ## Placeholder behavior
 
@@ -45,7 +43,7 @@ The Milestone 3A.1 debug overlay projects the latest actual PhysicsWorld impact,
 
 Milestone 3B replaces the generic receiver view with a normal-layout content card. A DOM spatial adapter measures its authored bounds on mount, resize, ResizeObserver notification, or the explicit `zland:physics-layout-invalidate` event; simulation reads do not measure layout. The existing AnchoredReceiver supplies only the nested temporary response transform. Layout anchor changes do not create physics velocity, and restart clears response energy without replacing the measured layout.
 
-Milestone 4A adds authored harmony to the prepared AudioMap and routes the continuous harmony snapshot plus chord-change/seek events through a dedicated FerrisWheel adapter. The actor retains its own slow wheel inertia and acceleration-driven suspended-cabin springs. Twelve abstract carriers represent simultaneous pitch classes; active chord tones are sustained together. FerrisWheel remains actor-local and has no PhysicsWorld role in this milestone.
+Milestone 4A adds authored harmony to the prepared ZlandAudioMap and routes the continuous harmony snapshot plus chord-change/seek events through a dedicated FerrisWheel adapter. The actor retains its own slow wheel inertia and acceleration-driven suspended-cabin springs. Twelve abstract carriers represent simultaneous pitch classes; active chord tones are sustained together. FerrisWheel remains actor-local and has no PhysicsWorld role in this milestone.
 
 Milestone 5A adds an authored structural fixture with rest, build, tension, hold, explicit major drop, release, and settling regions. AudioWorld exposes continuous structure state and a timeline-crossed `drop` event. DropTower interprets these through its own lift, hold, gravity drop, rebound, and settling state machine; seek reconciles directly without replaying a skipped drop. DropTower remains actor-local and has no PhysicsWorld role in this milestone.
 
@@ -53,7 +51,7 @@ Milestone 6A adds a separate 24-second phrase contour for RollerCoaster. The ext
 
 Milestone 6B registers RollerCoaster as a continuous PhysicsWorld wake source. An explicit spatial adapter maps current route pose and forward direction into normalized world coordinates; wake strength derives only from physical speed and bounded acceleration. The directional trailing field and BumperCars impacts both feed the same anchored content receiver state.
 
-Milestone 9F replaces the permanent fixed-route assumption with a deterministic two-stage generator. A serializable TrackPlan converts whole-song structure, smoothed macro energy, pulse context, recurrence, and an explicitly non-formal phrase proxy into evidence-backed Station, Lift, Crest, Drop, Run, Loop, and Runout features. A separate geometry generator composes and globally normalizes one TrackMap inside the existing RollerCoaster district. The map is generated once per adopted AudioMap; playback, seek, restart, focus, and attention do not regenerate it. The rider still advances by actor-local route physics, and PhysicsWorld wake still derives only from its actual pose, velocity, and acceleration. Weak inputs use a deterministic gentle fallback grammar.
+Milestone 9F replaces the permanent fixed-route assumption with a deterministic two-stage generator. A serializable TrackPlan converts whole-song structure, smoothed macro energy, pulse context, recurrence, and an explicitly non-formal phrase proxy into evidence-backed Station, Lift, Crest, Drop, Run, Loop, and Runout features. A separate geometry generator composes and globally normalizes one TrackMap inside the existing RollerCoaster district. The map is generated once per adopted ZlandAudioMap; playback, seek, restart, focus, and attention do not regenerate it. The rider still advances by actor-local route physics, and PhysicsWorld wake still derives only from its actual pose, velocity, and acceleration. Weak inputs use a deterministic gentle fallback grammar.
 
 Milestone 7A adds eight deterministic Free Bodies / Orbs in canonical PhysicsWorld space. Authored spectrum evidence changes bounded buoyancy and seeded continuous turbulence, while the same bodies receive real RollerCoaster wake and BumperCars collision effects through PhysicsWorld. All forces compose into one actor-local trajectory with soft containment, deterministic restart, and a restrained reduced-motion mode.
 
@@ -148,7 +146,7 @@ bounded beat grid to nearby onsets. Rhythm becomes available only for at least
 four seconds of material with sufficient onsets, periodicity, grid support, and
 the configured confidence threshold (`0.56` after the 9E.2 multi-band pass).
 
-The serialized real AudioMap stores confidence, tempo candidates, monotonic
+The serialized real ListeningMap stores confidence, tempo candidates, monotonic
 beat timestamps, interval, and conservative groove/swing evidence. AudioWorld
 derives beat index and phase from adjacent stored timestamps at the current
 AudioClock time. It does not run an independent metronome. Meter and downbeat
@@ -176,7 +174,7 @@ A small dynamic-programming path penalizes large semitone jumps, octave jumps,
 and unsupported voiced/unvoiced transitions. Isolated one-frame octave glitches
 are corrected only when both neighboring frames agree.
 
-The AudioMap preserves the continuous `pitchHz` / `midiFloat` contour separately
+The ListeningMap preserves the continuous `pitchHz` / `midiFloat` contour separately
 from discrete notes. Segmentation requires a stable pitch change, uses a
 confidence-weighted median before MIDI quantization, merges at most 64 ms of
 consistent unvoiced interruption, and rejects notes shorter than 80 ms. Melody
@@ -250,7 +248,7 @@ and diatonic chord compatibility assist major/minor disambiguation. The
 analyzer uses full-song, non-causal dynamic programming with a switch penalty
 and a 4-second minimum modulation segment.
 
-AudioMap stores candidate frames, stable tonal-center segments, global fallback,
+ListeningMap stores candidate frames, stable tonal-center segments, global fallback,
 confidence, fifths metadata, and all analysis parameters. AudioWorld resolves
 the active segment from transport time and emits `tonal-center-change` only
 when a real boundary is crossed. Seek resolves the destination directly. The

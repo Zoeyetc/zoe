@@ -1,6 +1,4 @@
-import type { MelodyEvidenceObservation, MelodyEvidenceTimeline } from '../src/audio/melody-evidence/types.ts';
-import { selectMelodyEvidence } from '../src/audio/melody-evidence/selectMelodyEvidence.ts';
-import { MELODY_ANALYSIS } from '../src/audio/analysis/MelodyAnalysis.ts';
+import type { MelodyEvidenceObservation, MelodyEvidenceTimeline } from '@computational-listening/engine'; import { selectMelodyEvidence } from '@computational-listening/engine'; import { MELODY_ANALYSIS } from '@computational-listening/engine';
 
 export const CALIBRATION_SAMPLE_RATE = 12_000;
 export const MELODY_AMPLITUDE = 0.42;

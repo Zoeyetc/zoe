@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import { milestoneSevenAAudioMap } from '../src/audio/AudioMap.ts';
-import { toFreeBodiesInput, type FreeBodiesInput } from '../src/free-bodies/adapter.ts';
-import { createFreeBodiesSimulation, FREE_BODY_MAX_SPEED } from '../src/free-bodies/simulation.ts';
-import { createPhysicsWorld } from '../src/physics/PhysicsWorld.ts';
-import type { AudioFrame, AudioEvent } from '../src/audio/types.ts';
-import type { PhysicsImpact, PhysicsPulse, PhysicsWake } from '../src/physics/types.ts';
+import { lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+import { milestoneSevenZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
+import { toFreeBodiesInput, type FreeBodiesInput } from '../apps/zland/src/free-bodies/adapter.ts';
+import { createFreeBodiesSimulation, FREE_BODY_MAX_SPEED } from '../apps/zland/src/free-bodies/simulation.ts';
+import { createPhysicsWorld } from '../apps/zland/src/physics/PhysicsWorld.ts';
+import type { AudioFrame, AudioEvent } from '../apps/zland/src/audio/types.ts';
+import type { PhysicsImpact, PhysicsPulse, PhysicsWake } from '../apps/zland/src/physics/types.ts';
 
 const atmosphere = (overrides: Partial<FreeBodiesInput> = {}): FreeBodiesInput => ({
   spectrumAvailable: true,
@@ -38,7 +38,7 @@ const step = (simulation: ReturnType<typeof createFreeBodiesSimulation>, input =
 };
 
 test('Free Bodies consume only authored spectrum atmosphere', () => {
-  const snapshot = lookupSnapshot(milestoneSevenAAudioMap, { time: 13, duration: 24, playing: true });
+  const snapshot = lookupSnapshot(milestoneSevenZlandAudioMap, { time: 13, duration: 24, playing: true });
   const base: AudioFrame = { snapshot, events: [] };
   const musicalNoise: readonly AudioEvent[] = [
     { type: 'note-on', time: 13, note: { id: 'ignored', start: 13, end: 14, midi: 72, intensity: 1 } },

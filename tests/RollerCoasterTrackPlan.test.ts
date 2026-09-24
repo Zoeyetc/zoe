@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { AudioMap, StructureRegion } from '../src/audio/types.ts';
-import { createSafeTrackPlan, planRollerCoasterTrack, validateTrackPlan } from '../src/rides/roller-coaster/trackPlan.ts';
+import type { ZlandAudioMap, StructureRegion } from '../apps/zland/src/audio/types.ts';
+import { createSafeTrackPlan, planRollerCoasterTrack, validateTrackPlan } from '../apps/zland/src/rides/roller-coaster/trackPlan.ts';
 
 const capabilities = { melody: false, rhythm: true, percussion: false, harmony: false, tonalCenter: false, structure: true, spectrum: true } as const;
 const region = (id: string, start: number, end: number, energy: readonly [number, number], section = id): StructureRegion => ({
   id, start, end, section, energy, tension: energy, build: energy, phraseProgress: [0, 1],
 });
-const map = (id: string, duration: number, structure: readonly StructureRegion[] | null, arrangements = 0): AudioMap => ({
+const map = (id: string, duration: number, structure: readonly StructureRegion[] | null, arrangements = 0): ZlandAudioMap => ({
   version: 1, id, duration, capabilities: { ...capabilities, structure: structure !== null }, melody: null, percussion: null,
   rhythm: [{ id: 'pulse', start: 0, end: duration, bpm: 120, beatsPerBar: null, groove: .4, swing: .1 }],
-  rhythmAnalysis: { available: true, confidence: .82, beatInterval: .5 } as AudioMap['rhythmAnalysis'],
+  rhythmAnalysis: { available: true, confidence: .82, beatInterval: .5 } as ZlandAudioMap['rhythmAnalysis'],
   harmony: null, structure, drops: null, spectrum: [{ id: 's', start: 0, end: duration, low: [.3,.3], mid: [.3,.3], high: [.2,.2], brightness: [.3,.3], texture: [.3,.3] }],
   structureAnalysis: arrangements ? {
     available: true, trackConfidence: .78,
@@ -18,7 +18,7 @@ const map = (id: string, duration: number, structure: readonly StructureRegion[]
     boundaries: [], arrangementChanges: Array.from({ length: arrangements }, (_, index) => ({ id: `arr-${index}`, time: 2 + index * 2, frameIndex: index, confidence: .7, magnitude: .5, featureContributions: { brightness:.3, texture:.3, highBand:.2, onsetDensity:.2, energy:.1 } })),
     frames: [{ id:'f', start:0, end:duration, vector:[1], energy:.5, onsetDensity:.5 }], selfSimilarity:{ size:1, values:new Float32Array([1]) }, novelty:[0], noveltyScales:{short:[0],medium:[0],long:[0]}, recurrenceGroupCount:1, averageSegmentDuration:duration,
     version:1, aggregationMode:'time-fallback', metadata:{} as never,
-  } as AudioMap['structureAnalysis'] : null,
+  } as ZlandAudioMap['structureAnalysis'] : null,
 });
 
 const buildRelease = map('build-release', 120, [region('intro',0,12,[.12,.18]), region('build',12,62,[.18,.88],'A'), region('release',62,86,[.9,.18],'B'), region('settle',86,120,[.3,.2],'C')]);
