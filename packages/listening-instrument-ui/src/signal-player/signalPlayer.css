@@ -1,10 +1,20 @@
 .signal-player {
-  --signal-player-background: #f2f0e9;
-  --signal-player-surface: #faf8f2;
-  --signal-player-structure: #242321;
-  --signal-player-secondary: #74716b;
-  --signal-player-border: #c9c5bc;
-  --signal-player-muted: #69665f;
+  --signal-player-background: rgba(13, 16, 14, .95);
+  --signal-player-surface: rgba(22, 27, 23, .82);
+  --signal-player-structure: #e6e9e5;
+  --signal-player-secondary: #8b978f;
+  --signal-player-border: rgba(179, 196, 184, .28);
+  --signal-player-muted: #929e96;
+  --signal-theme-console-primary: #e6e9e5;
+  --signal-theme-console-secondary: #8b978f;
+  --signal-theme-console-guide: rgba(157, 174, 162, .24);
+  --signal-theme-console-anchor: #e6e9e5;
+  --signal-theme-console-label: #9aa69d;
+  --signal-theme-console-signal: #a8cbb1;
+  --signal-theme-console-interpretation: #c0cec4;
+  --signal-theme-console-event: #b6c8bb;
+  --signal-theme-console-muted: #8b978f;
+  --signal-theme-console-separator: #748078;
   --performance-cognition: #40584a;
   --performance-cognition-quiet: #314238;
   --performance-active: #62f296;

@@ -1,8 +1,8 @@
-export type ExperienceMode = 'park' | 'workbench' | 'signal-console';
+export type ExperienceMode = 'park' | 'workbench';
 
 export const resolveExperienceMode = (search: string): ExperienceMode => {
   const mode = new URLSearchParams(search).get('mode');
-  return mode === 'workbench' || mode === 'signal-console' ? mode : 'park';
+  return mode === 'workbench' ? mode : 'park';
 };
 
 export const physicsDebugVisible = (search: string) =>

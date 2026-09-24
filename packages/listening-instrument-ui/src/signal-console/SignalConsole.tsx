@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AudioEvent, AudioFrame } from '../audio/types';
+import type { InstrumentEvent, InstrumentFrame } from '../contracts.ts';
 import { selectPrimaryListeningView, type EventEmphasis } from './primaryListening';
 import { selectSignalTelemetry, signalPhraseGroups, signalPresentationKey,
   type MelodyInspectTelemetry, type SignalField } from './signalTelemetry';
@@ -11,8 +11,8 @@ export type SignalComposition = 'temporal-score' | 'listening-field' | 'listenin
 
 type SignalConsoleProps = Readonly<{
   observe(): SignalConsoleObservation;
-  interpretation: AudioFrame;
-  events: readonly AudioEvent[];
+  interpretation: InstrumentFrame;
+  events: readonly InstrumentEvent[];
   composition?: SignalComposition;
 }>;
 
@@ -151,7 +151,7 @@ function MelodyInspect({ inspect, acceptedNote, acceptedConfidence, defaultOpen 
   </details>;
 }
 
-function eventText(event: AudioEvent) {
+function eventText(event: InstrumentEvent) {
   if (event.type === 'seek') return `SEEK ${event.from.toFixed(3)} → ${event.to.toFixed(3)}`;
   return `${event.type.toUpperCase()} ${event.time.toFixed(3)}`;
 }

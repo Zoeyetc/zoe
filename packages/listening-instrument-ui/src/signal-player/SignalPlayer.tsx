@@ -1,17 +1,17 @@
-import type { AudioPreparationState } from '../audio/AudioPreparationController';
-import type { AudioEvent, AudioFrame, TransportState } from '../audio/types';
-import type { ControlActions } from '../control/types';
+import type { AudioPreparationState } from '../contracts.ts';
+import type { InstrumentEvent, InstrumentFrame, BrowserTransportState } from '../contracts.ts';
+import type { InstrumentActions } from '../contracts.ts';
 import { SignalConsole, type SignalComposition } from '../signal-console/SignalConsole';
 import type { SignalConsoleObservation } from '../signal-console/types';
 import { SignalPlayback } from './SignalPlayback';
 import './signalPlayer.css';
-import type { LiveInputState } from '../audio/live/types';
+import type { LiveInputState } from '@computational-listening/audio-source-browser';
 
 export type SignalPlayerProps = Readonly<{
   title?: string;
-  transport: TransportState;
+  transport: BrowserTransportState;
   preparation: AudioPreparationState;
-  actions: ControlActions;
+  actions: InstrumentActions;
   onChooseAudio(file: File): void;
   onUseFixture(): void;
   liveInput: LiveInputState;
@@ -19,8 +19,8 @@ export type SignalPlayerProps = Readonly<{
   onStopLive(): void;
   onSelectLiveInput(deviceId: string): void;
   observe(): SignalConsoleObservation;
-  interpretation: AudioFrame;
-  events: readonly AudioEvent[];
+  interpretation: InstrumentFrame;
+  events: readonly InstrumentEvent[];
   composition?: SignalComposition;
 }>;
 

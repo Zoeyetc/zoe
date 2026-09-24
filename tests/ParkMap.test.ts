@@ -14,8 +14,8 @@ import {
 import { bumperArenaPointToWorld } from '../src/physics/adapters/bumperCars.ts';
 
 const parkSource = readFileSync(new URL('../src/experience/park/ParkMap.tsx', import.meta.url), 'utf8');
-const appSource = readFileSync(new URL('../src/experience/App.tsx', import.meta.url), 'utf8');
-const experienceSource = readFileSync(new URL('../src/experience/createExperience.ts', import.meta.url), 'utf8');
+const appSource = readFileSync(new URL('../apps/zland/src/App.tsx', import.meta.url), 'utf8');
+const experienceSource = readFileSync(new URL('../apps/zland/src/createExperience.ts', import.meta.url), 'utf8');
 const trainSource = readFileSync(new URL('../src/experience/park/ParkTrain.tsx', import.meta.url), 'utf8');
 const dropTowerViewSource = readFileSync(new URL('../src/rides/drop-tower/DropTowerView.tsx', import.meta.url), 'utf8');
 const pirateShipViewSource = readFileSync(new URL('../src/rides/pirate-ship/PirateShipView.tsx', import.meta.url), 'utf8');
@@ -204,7 +204,7 @@ test('Park mode, workbench mode, and physics debug flag remain independently add
   assert.equal(resolveExperienceMode(''), 'park');
   assert.equal(resolveExperienceMode('?mode=workbench'), 'workbench');
   assert.equal(resolveExperienceMode('?mode=workbench&hide-physics-debug'), 'workbench');
-  assert.equal(resolveExperienceMode('?mode=signal-console'), 'signal-console');
+  assert.equal(resolveExperienceMode('?mode=signal-console'), 'park');
   assert.equal(physicsDebugVisible('?mode=workbench'), true);
   assert.equal(physicsDebugVisible('?hide-physics-debug'), false);
 });

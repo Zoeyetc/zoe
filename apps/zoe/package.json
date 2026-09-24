@@ -1,5 +1,5 @@
 {
-  "name": "@computational-listening/instrument-app",
+  "name": "@computational-listening/zoe",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,6 +9,8 @@
   "dependencies": {
     "@computational-listening/audio-source-browser": "0.0.0",
     "@computational-listening/engine": "0.0.0",
-    "@computational-listening/instrument-ui": "0.0.0"
+    "@computational-listening/instrument-ui": "0.0.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   }
 }

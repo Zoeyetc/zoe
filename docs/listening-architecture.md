@@ -1,8 +1,7 @@
 # Computational Listening workspace boundary
 
-The current root application remains the production entry during extraction.
-The workspace directories establish future ownership without copying or moving
-the existing implementation.
+Zoë and Z.land are independent Vite applications. Shared listening behavior is
+available only through workspace packages; neither product imports the other.
 
 ## Ownership
 
@@ -12,13 +11,24 @@ the existing implementation.
   `MediaStream`, capture worklets, device authorization, and source lifecycle.
 - **Instrument UI** owns SignalConsole, ListeningField, SignalPlayer, and their
   presentation dependencies.
-- **Instrument App** owns the standalone Computational Listening composition
-  root.
+- **Zoë** owns the standalone Computational Listening composition, source
+  selection, and file/live session orchestration.
 - **Z.land** owns rides, PhysicsWorld integration, choreography, and authored
   structure overlays.
 
 The shared listening engine must never import application UI, Z.land rides,
 physics, SignalConsole, SignalPlayer, or experience composition.
+
+## Product applications
+
+`apps/zoe` builds the Zoë computational listening instrument from the engine,
+browser source, and Instrument UI packages. It consumes `ListeningTimeline`
+directly and has no `AudioWorld`, authored Z.land, ride, or physics dependency.
+
+`apps/zland` builds Z.land Music Box. It owns the application bootstrap and
+`createExperience`; its temporary `AudioWorld` facade remains Z.land-only.
+The historical root Vite entry delegates to Z.land solely as a compatibility
+path and is not a shared product composition.
 
 ## Gradual migration
 

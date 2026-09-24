@@ -1,13 +1,13 @@
 import { useId } from 'react';
-import type { AudioPreparationState } from '../audio/AudioPreparationController';
-import type { TransportState } from '../audio/types';
-import type { ControlActions } from '../control/types';
-import type { LiveInputState } from '../audio/live/types';
+import type { AudioPreparationState } from '../contracts.ts';
+import type { BrowserTransportState } from '../contracts.ts';
+import type { InstrumentActions } from '../contracts.ts';
+import type { LiveInputState } from '@computational-listening/audio-source-browser';
 
 export type SignalPlaybackProps = Readonly<{
-  transport: TransportState;
+  transport: BrowserTransportState;
   preparation: AudioPreparationState;
-  actions: ControlActions;
+  actions: InstrumentActions;
   onChooseAudio(file: File): void;
   onUseFixture(): void;
   liveInput: LiveInputState;

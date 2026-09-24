@@ -14,9 +14,20 @@ async function sourceFiles(directory) {
 }
 const boundaries = [
   { name: 'listening-engine', root: resolve(repositoryRoot, 'packages/listening-engine'),
-    forbidden: new Set(['apps','rides','physics','signal-console','signal-player','experience','audio-source-browser','zland']) },
+    forbidEscape: true,
+    forbidden: new Set(['apps','rides','physics','signal-console','signal-player','experience','audio-source-browser','zland','zoe']) },
   { name: 'audio-source-browser', root: resolve(repositoryRoot, 'packages/audio-source-browser'),
-    forbidden: new Set(['apps','rides','physics','signal-console','signal-player','experience','instrument-ui','instrument-app','zland']) },
+    forbidEscape: true,
+    forbidden: new Set(['apps','rides','physics','signal-console','signal-player','experience','instrument-ui','instrument-app','zland','zoe']) },
+  { name: 'listening-instrument-ui', root: resolve(repositoryRoot, 'packages/listening-instrument-ui'),
+    forbidEscape: true,
+    forbidden: new Set(['apps','rides','physics','experience','zland','@zland','zoe','ZlandAuthoredOverlay','ZlandListeningAdapter','AudioWorld']) },
+  { name: 'zoe', root: resolve(repositoryRoot, 'apps/zoe'),
+    forbidEscape: false,
+    forbidden: new Set(['zland','@zland','rides','physics','experience','ZlandAuthoredOverlay','ZlandListeningAdapter','AudioWorld']) },
+  { name: 'zland', root: resolve(repositoryRoot, 'apps/zland'),
+    forbidEscape: false,
+    forbidden: new Set(['zoe']) },
 ];
 const violations = [];
 for (const boundary of boundaries) for (const file of await sourceFiles(boundary.root)) {
@@ -26,7 +37,7 @@ for (const boundary of boundaries) for (const file of await sourceFiles(boundary
     const segments = specifier.split('/').filter(segment => segment && segment !== '.' && segment !== '..');
     const named = segments.find(segment => boundary.forbidden.has(segment));
     if (named) { violations.push(`${relative(repositoryRoot,file)}: imports forbidden boundary "${named}" via ${specifier}`); continue; }
-    if (specifier.startsWith('.')) {
+    if (boundary.forbidEscape && specifier.startsWith('.')) {
       const target = resolve(dirname(file), specifier);
       const rel = relative(boundary.root, target);
       if (rel === '..' || rel.startsWith('../')) violations.push(`${relative(repositoryRoot,file)}: escapes ${boundary.name} via ${specifier}`);
@@ -34,4 +45,4 @@ for (const boundary of boundaries) for (const file of await sourceFiles(boundary
   }
 }
 if (violations.length) { console.error(['Workspace boundary violations:', ...violations.map(v => `- ${v}`)].join('\n')); process.exitCode = 1; }
-else console.log('Listening engine and browser source boundary guards passed.');
+else console.log('Engine, browser source, instrument UI, Zoë, and Z.land boundary guards passed.');

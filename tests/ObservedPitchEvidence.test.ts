@@ -9,7 +9,7 @@ import {
 } from '../src/audio/melody-evidence/selectMelodyEvidence.ts';
 import type { MelodyEvidenceCandidate, MelodyRejectedCandidate } from '../src/audio/melody-evidence/types.ts';
 import type { AudioMap } from '../src/audio/types.ts';
-import { selectSignalTelemetry } from '../src/signal-console/signalTelemetry.ts';
+import { selectSignalTelemetry } from '../packages/listening-instrument-ui/src/signal-console/signalTelemetry.ts';
 
 const SAMPLE_RATE = 48_000;
 const tone = (frequency: number, seconds = 1, gain = .8) => Float32Array.from(
@@ -175,8 +175,8 @@ test('AudioMap replacement and SignalConsole expose Observed Pitch without chang
 });
 
 test('Observed Pitch presentation remains proportional evidence with secondary stable range language', () => {
-  const component = readFileSync(new URL('../src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
-  const styles = readFileSync(new URL('../src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
   assert.match(component, /item\.label === 'PITCH HZ' \|\| item\.label === 'OBSERVED'/);
   assert.match(component, /<PrimaryDomain name="OBSERVED PITCH">/);
   assert.match(component, /label="RANGE" value=\{primary\.observedPitch\.rangeStatus\}/);

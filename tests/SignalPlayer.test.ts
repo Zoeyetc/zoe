@@ -3,15 +3,15 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
-const player = read('../src/signal-player/SignalPlayer.tsx');
-const playback = read('../src/signal-player/SignalPlayback.tsx');
-const playerStyles = read('../src/signal-player/signalPlayer.css');
-const consoleComponent = read('../src/signal-console/SignalConsole.tsx');
-const consoleTelemetry = read('../src/signal-console/signalTelemetry.ts');
-const consoleTypes = read('../src/signal-console/types.ts');
-const consoleStyles = read('../src/signal-console/signalConsole.css');
-const experienceStyles = read('../src/experience/styles.css');
-const app = read('../src/experience/App.tsx');
+const player = read('../packages/listening-instrument-ui/src/signal-player/SignalPlayer.tsx');
+const playback = read('../packages/listening-instrument-ui/src/signal-player/SignalPlayback.tsx');
+const playerStyles = read('../packages/listening-instrument-ui/src/signal-player/signalPlayer.css');
+const consoleComponent = read('../packages/listening-instrument-ui/src/signal-console/SignalConsole.tsx');
+const consoleTelemetry = read('../packages/listening-instrument-ui/src/signal-console/signalTelemetry.ts');
+const consoleTypes = read('../packages/listening-instrument-ui/src/signal-console/types.ts');
+const consoleStyles = read('../packages/listening-instrument-ui/src/signal-console/signalConsole.css');
+const experienceStyles = read('../apps/zland/src/styles.css');
+const app = read('../apps/zoe/src/ZoeApp.tsx');
 
 test('SignalPlayer is importable without Experience, navigation, actors, or shared physics', () => {
   const standalone = player + playback + consoleComponent + consoleTelemetry + consoleTypes;
@@ -25,7 +25,7 @@ test('standalone props use neutral audio, control, and signal boundaries', () =>
   assert.match(player, /type SignalPlayerProps = Readonly<\{/);
   assert.match(player, /SignalConsoleObservation/);
   assert.match(player, /AudioPreparationState/);
-  assert.match(player, /ControlActions/);
+  assert.match(player, /InstrumentActions/);
   assert.doesNotMatch(player, /ExperienceState|ReturnType<.*createExperience|from ['"].*experience/);
 });
 
@@ -35,6 +35,27 @@ test('SignalConsole and SignalPlayer own their styles without Experience CSS', (
   assert.ok(consoleStyles.length > 0 && playerStyles.length > 0);
   assert.doesNotMatch(consoleStyles + playerStyles, /experience\/styles|--z-/);
   assert.doesNotMatch(experienceStyles, /\.signal-console|\.signal-stream|\.signal-telemetry|\.signal-phrase|\.signal-token|\.signal-capabilities|\.signal-player|\.signal-playback/);
+});
+
+test('validated DARK and PROPORTIONAL baseline has no study controls', () => {
+  assert.doesNotMatch(player + consoleComponent, /VisualMode|NumericMode|FieldMode|Development visual mode|Development numeric mode|Development field mode/);
+  assert.doesNotMatch(player, /data-signal-visual-mode|data-signal-field|SignalField/);
+  assert.equal((player.match(/<SignalPlayback/g) ?? []).length, 1);
+  assert.equal((player.match(/<SignalConsole/g) ?? []).length, 1);
+  const baseline = playerStyles.match(/\.signal-player \{([^}]*)\}/)?.[1] ?? '';
+  assert.match(baseline, /--signal-player-background: rgba\(13, 16, 14, \.95\)/);
+  assert.match(baseline, /--signal-theme-console-signal: #a8cbb1/);
+  assert.match(consoleStyles, /data-signal-role='signal'[^}]*proportional-nums/);
+  assert.match(consoleStyles, /data-signal-role='anchor'[^}]*tabular-nums/);
+  assert.match(consoleStyles, /data-typography='code'[^}]*font-family: var\(--signal-font-mono\)/s);
+  assert.match(consoleStyles, /data-typography='musical'[^}]*font-family: var\(--signal-font-sans\)/s);
+  assert.doesNotMatch(playerStyles + consoleStyles, /@keyframes|transition\s*:|animation\s*:|linear-gradient|radial-gradient|filter\s*:|backdrop-filter|text-shadow|box-shadow/);
+});
+
+test('rejected visual experiments are absent from the standalone product path', () => {
+  const standalone = player + playerStyles + consoleComponent + consoleStyles;
+  assert.doesNotMatch(standalone, /signal-field|signalField|WebGL|webgl|shader|luminance|evidence-opacity|<canvas/);
+  assert.doesNotMatch(standalone, /signal-visual-mode|signal-number-mode|value=["']light|value=["']tabular|Development (?:visual|numeric) mode/i);
 });
 
 test('SignalPlayback keeps one injected transport path and neutral presentation', () => {
@@ -76,13 +97,10 @@ test('performance transport states and structural focus cues use the shared fluo
   assert.doesNotMatch(playerStyles, /transition\s*:|animation\s*:|@keyframes/);
 });
 
-test('Experience host routes SignalConsole mode directly to standalone SignalPlayer', () => {
-  const branch = app.indexOf("if (mode === 'signal-console') return <SignalPlayer");
-  const shell = app.indexOf('<header className="experience-header">');
-  assert.ok(branch >= 0 && branch < shell);
-  assert.match(app, /observe=\{experience\.observeSignalConsole\}/);
-  assert.match(app, /onChooseAudio=\{chooseAudio\}/);
-  assert.match(app, /onUseFixture=\{useFixture\}/);
-  assert.match(app, /signalCompositionQuery === 'performance'/);
-  assert.equal((app.match(/<ControlSurface/g) ?? []).length, 1);
+test('Zoë owns the standalone SignalPlayer composition without Z.land runtime imports', () => {
+  assert.match(app, /<SignalPlayer/);
+  assert.match(app, /createListeningTimeline/);
+  assert.match(app, /createLiveAudioInputController/);
+  assert.match(app, /analyzePcmListeningAsync/);
+  assert.doesNotMatch(app, /AudioWorld|ZlandListeningAdapter|ZlandAuthoredOverlay|rides|PhysicsWorld|experience/);
 });

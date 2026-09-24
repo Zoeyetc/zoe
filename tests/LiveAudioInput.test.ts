@@ -181,10 +181,10 @@ test('permission denial remains explicit and never retries capture automatically
 });
 
 test('SignalPlayer exposes truthful compact live grammar without file transport controls', () => {
-  const playback = readFileSync(new URL('../src/signal-player/SignalPlayback.tsx', import.meta.url), 'utf8');
-  const player = readFileSync(new URL('../src/signal-player/SignalPlayer.tsx', import.meta.url), 'utf8');
-  const app = readFileSync(new URL('../src/experience/App.tsx', import.meta.url), 'utf8');
-  const telemetry = readFileSync(new URL('../src/signal-console/signalTelemetry.ts', import.meta.url), 'utf8');
+  const playback = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-player/SignalPlayback.tsx', import.meta.url), 'utf8');
+  const player = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-player/SignalPlayer.tsx', import.meta.url), 'utf8');
+  const app = readFileSync(new URL('../apps/zoe/src/ZoeApp.tsx', import.meta.url), 'utf8');
+  const telemetry = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalTelemetry.ts', import.meta.url), 'utf8');
   assert.match(playback, /audio\.input\(/);
   assert.match(playback, /\[LIVE\]/);
   assert.match(playback, /\[STOP\]/);
@@ -197,7 +197,7 @@ test('SignalPlayer exposes truthful compact live grammar without file transport 
   assert.doesNotMatch(playback, /SYSTEM AUDIO|Spotify|Apple Music/);
   assert.match(player, /liveInput: LiveInputState/);
   assert.match(app, /createLiveAudioInputController/);
-  assert.match(app, /liveInput\.stop\(\)\.then\(\(\) => audioPreparation\.prepare/);
+  assert.match(app, /live\.stop\(\)\.then\(async \(\) =>/);
   assert.match(telemetry, /UNAVAILABLE LIVE/);
   assert.match(telemetry, /WARMING UP/);
   assert.match(telemetry, /ROLLING 12\.0 S/);

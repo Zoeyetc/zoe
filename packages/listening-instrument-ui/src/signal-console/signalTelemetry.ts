@@ -1,14 +1,14 @@
 import type {
-  AudioAmplitudeRegion, AudioFrame, AudioMap, ChromaFrame, MelodyPitchFrame, SpectrumRegion,
-  StructureAnalysisFrame, TonalCenterFrame, TransportState,
-} from '../audio/types';
+  AudioAmplitudeRegion, InstrumentFrame, InstrumentListeningMap, ChromaFrame, MelodyPitchFrame, SpectrumRegion,
+  StructureAnalysisFrame, TonalCenterFrame, BrowserTransportState,
+} from '../contracts.ts';
 import type { SignalConsoleObservation } from './types';
-import type { LiveInputState, LiveListenerStatus } from '../audio/live/types';
+import type { LiveInputState, LiveListenerStatus } from '@computational-listening/audio-source-browser';
 import { melodyEvidenceIndexAt, selectMelodyEvidence,
-  selectMelodyEvidenceForTransport } from '../audio/melody-evidence/selectMelodyEvidence.ts';
+  selectMelodyEvidenceForTransport } from '@computational-listening/engine';
 import type {
   MelodyEvidenceCandidate, MelodyEvidenceObservation, ObservedPitchEvidence,
-} from '../audio/melody-evidence/types';
+} from '@computational-listening/engine';
 
 export type SignalField = Readonly<{
   label: string;
@@ -44,7 +44,7 @@ export type SignalTelemetry = Readonly<{
   mapRevision: number;
   mapId: string;
   ended: boolean;
-  transport: TransportState;
+  transport: BrowserTransportState;
   indexes: Readonly<Record<'amplitude' | 'spectrum' | 'pitch' | 'chroma' | 'tonal' | 'structure' | 'melodyEvidence', number>>;
   domains: readonly SignalDomain[];
   hearing: readonly HearingDomain[];
@@ -89,7 +89,7 @@ export type SignalTelemetry = Readonly<{
 const END_ABSOLUTE_TOLERANCE_SECONDS = 1e-6;
 const END_RELATIVE_TOLERANCE = 1e-6;
 
-export function isSignalTransportEnded(transport: TransportState) {
+export function isSignalTransportEnded(transport: BrowserTransportState) {
   const tolerance = Math.max(END_ABSOLUTE_TOLERANCE_SECONDS,
     Math.min(1e-3, Math.abs(transport.duration) * END_RELATIVE_TOLERANCE));
   return transport.time >= transport.duration - tolerance;
@@ -116,7 +116,7 @@ function priorIndexes(current: number, stride: number) {
     .filter(index => index >= 0);
 }
 
-function melodyResidue(map: AudioMap, current: MelodyEvidenceObservation | null): readonly ResidueSample[] {
+function melodyResidue(map: InstrumentListeningMap, current: MelodyEvidenceObservation | null): readonly ResidueSample[] {
   if (!map.melodyEvidence || !current) return [];
   const seen = new Set<number>();
   return Array.from({ length: TEMPORAL_RESIDUE_POLICY.sampleCount }, (_, offset) =>
@@ -134,7 +134,7 @@ function melodyResidue(map: AudioMap, current: MelodyEvidenceObservation | null)
     }));
 }
 
-function harmonyResidue(map: AudioMap, currentIndex: number): readonly ResidueSample[] {
+function harmonyResidue(map: InstrumentListeningMap, currentIndex: number): readonly ResidueSample[] {
   return priorIndexes(currentIndex, TEMPORAL_RESIDUE_POLICY.harmonyFrameStride)
     .flatMap(index => {
       const frame = at(map.harmonyAnalysis?.frames, index);
@@ -145,7 +145,7 @@ function harmonyResidue(map: AudioMap, currentIndex: number): readonly ResidueSa
     });
 }
 
-function tonalResidue(map: AudioMap, currentIndex: number): readonly ResidueSample[] {
+function tonalResidue(map: InstrumentListeningMap, currentIndex: number): readonly ResidueSample[] {
   return priorIndexes(currentIndex, TEMPORAL_RESIDUE_POLICY.tonalFrameStride)
     .flatMap(index => {
       const frame = at(map.tonalCenterAnalysis?.frames, index);
@@ -158,7 +158,7 @@ function tonalResidue(map: AudioMap, currentIndex: number): readonly ResidueSamp
 
 const gate = (reason: string, text: string): DecisionGate => ({ reason, text });
 
-function melodyGate(map: AudioMap, evidence: MelodyEvidenceObservation | null): DecisionGate | null {
+function melodyGate(map: InstrumentListeningMap, evidence: MelodyEvidenceObservation | null): DecisionGate | null {
   const timeline = map.melodyEvidence;
   if (!timeline) return map.melody?.length === 0
     ? gate('TRACK_NO_NOTES', 'no accepted note segments') : null;
@@ -188,7 +188,7 @@ function melodyGate(map: AudioMap, evidence: MelodyEvidenceObservation | null): 
   return null;
 }
 
-function harmonyGate(map: AudioMap, frame: ChromaFrame | null): DecisionGate | null {
+function harmonyGate(map: InstrumentListeningMap, frame: ChromaFrame | null): DecisionGate | null {
   const analysis = map.harmonyAnalysis;
   if (!analysis || !frame) return null;
   if (!frame.topCandidate) return gate('NO_CHORD_HYPOTHESIS', 'no chord hypothesis');
@@ -210,7 +210,7 @@ function median(values: readonly number[]) {
   return sorted.length % 2 ? sorted[middle] : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
 }
 
-function tonalGate(map: AudioMap, frame: TonalCenterFrame | null): DecisionGate | null {
+function tonalGate(map: InstrumentListeningMap, frame: TonalCenterFrame | null): DecisionGate | null {
   const analysis = map.tonalCenterAnalysis;
   if (!analysis || !frame) return null;
   if (!frame.topCandidate) return gate('NO_TONAL_HYPOTHESIS', 'no tonal hypothesis');
@@ -271,7 +271,7 @@ function retainedIndex<T>(items: readonly T[] | null | undefined, timeOf: (item:
   return index >= 0 ? index : items.length - 1;
 }
 
-function retainedIndexes(map: AudioMap, time: number, ended: boolean) {
+function retainedIndexes(map: InstrumentListeningMap, time: number, ended: boolean) {
   const analyzedDuration = Math.min(map.duration, map.analysis?.analyzedDuration ?? map.duration);
   const analysisFinalStart = map.analysis
     ? analyzedDuration - map.analysis.frameSize / map.analysis.sampleRate
@@ -304,7 +304,7 @@ export function signalPresentationKey(observation: SignalConsoleObservation) {
     indexes.melodyEvidence].join(':');
 }
 
-const sourceFields = (map: AudioMap, revision: number, live?: LiveInputState | null): readonly SignalField[] => [
+const sourceFields = (map: InstrumentListeningMap, revision: number, live?: LiveInputState | null): readonly SignalField[] => [
   anchor('KIND', map.source?.kind.toUpperCase() ?? 'FIXTURE'), anchor('REVISION', String(revision)),
   anchor('FILE', map.source?.filename ?? '—'), anchor('MAP', map.id),
   ...(live ? [anchor('INPUT DEVICE', live.deviceLabel ?? 'LABEL UNAVAILABLE'),
@@ -346,13 +346,13 @@ const tonalFields = (chroma: ChromaFrame | null, tonal: TonalCenterFrame | null)
   signal('KEY CANDIDATE', tonal?.topCandidate ? `${tonal.topCandidate.label} ${number(tonal.topScore)}` : '—'),
   signal('KEY CONF', number(tonal?.confidence)),
 ];
-const rhythmFields = (map: AudioMap): readonly SignalField[] => {
+const rhythmFields = (map: InstrumentListeningMap): readonly SignalField[] => {
   const rhythm = map.rhythmAnalysis;
   return [anchor('BPM', number(rhythm?.bpm, 2)), signal('CONF', number(rhythm?.confidence)),
     signal('GROOVE', number(rhythm?.groove)), signal('SWING', number(rhythm?.swing)),
     anchor('BEATS', rhythm ? String(rhythm.beats.length) : '—')];
 };
-const structureFields = (map: AudioMap, frame: StructureAnalysisFrame | null, index: number): readonly SignalField[] => {
+const structureFields = (map: InstrumentListeningMap, frame: StructureAnalysisFrame | null, index: number): readonly SignalField[] => {
   const analysis = map.structureAnalysis;
   return [signal('ENERGY', number(frame?.energy)), signal('ONSET DENSITY', number(frame?.onsetDensity)),
     signal('NOVELTY', number(index < 0 ? null : analysis?.novelty[index])),
@@ -369,7 +369,7 @@ function liveHearing(item: LiveListenerStatus): HearingStatus {
   return item.state;
 }
 
-function selectHearing(map: AudioMap, live?: LiveInputState | null): readonly HearingDomain[] {
+function selectHearing(map: InstrumentListeningMap, live?: LiveInputState | null): readonly HearingDomain[] {
   if (live) return [
     { id: 'RHYTHM', status: liveHearing(live.listeners.rhythm) },
     { id: 'MELODY', status: liveHearing(live.listeners.melody) },
@@ -406,7 +406,7 @@ const rejectedCandidateText = (candidate: MelodyEvidenceObservation['rejectedCan
     + ` · salience ${number(candidate.salience)} · score ${number(candidate.score)} · ${candidate.reason}`
   : '—';
 
-function selectMelodyInspect(map: AudioMap, evidence: MelodyEvidenceObservation | null,
+function selectMelodyInspect(map: InstrumentListeningMap, evidence: MelodyEvidenceObservation | null,
   rolling = false): MelodyInspectTelemetry {
   const timeline = map.melodyEvidence;
   const candidates = Array.from({ length: 5 }, (_, index) => ({
@@ -461,7 +461,7 @@ function selectMelodyInspect(map: AudioMap, evidence: MelodyEvidenceObservation 
   };
 }
 
-export function selectSignalInterpretationFields(frame: AudioFrame, ended: boolean): readonly SignalField[] {
+export function selectSignalInterpretationFields(frame: InstrumentFrame, ended: boolean): readonly SignalField[] {
   const snapshot = frame.snapshot;
   return [
     signal('NOTE', ended ? '—' : snapshot.melody.noteName ?? '—'),

@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@computational-listening/engine": "0.0.0"
+    "@computational-listening/engine": "0.0.0",
+    "@computational-listening/audio-source-browser": "0.0.0"
   },
   "peerDependencies": {
     "react": "^19.1.1",

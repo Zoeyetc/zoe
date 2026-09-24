@@ -12,10 +12,14 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:zoe": "vite --config apps/zoe/vite.config.ts",
+    "dev:zland": "vite --config apps/zland/vite.config.ts",
     "test": "node --test tests/*.test.ts",
     "typecheck": "tsc --noEmit && npm run typecheck --workspaces --if-present",
     "check:boundaries": "node scripts/check-workspace-boundaries.mjs",
     "build": "npm run typecheck && vite build",
+    "build:zoe": "npm run typecheck -w @computational-listening/zoe && vite build --config apps/zoe/vite.config.ts",
+    "build:zland": "npm run typecheck -w @zland/music-box-app && vite build --config apps/zland/vite.config.ts",
     "preview": "vite preview"
   },
   "dependencies": {

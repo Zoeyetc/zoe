@@ -1,4 +1,4 @@
-import type { AudioEvent, AudioFrame, PercussionKind } from '../audio/types';
+import type { InstrumentEvent, InstrumentFrame, PercussionKind } from '../contracts.ts';
 import type { DecisionGate, HearingDomain, HearingStatus, SignalField, SignalTelemetry } from './signalTelemetry';
 
 export type EventEmphasis = 'none' | 'recent' | 'current';
@@ -42,11 +42,11 @@ const number = (value: number | null | undefined, digits = 3) =>
 const hearing = (telemetry: SignalTelemetry, id: HearingDomain['id']) =>
   telemetry.hearing.find(domain => domain.id === id)?.status ?? 'UNAVAILABLE';
 
-function latestTimedEvent(events: readonly AudioEvent[], accepts: (event: AudioEvent) => boolean, time: number) {
+function latestTimedEvent(events: readonly InstrumentEvent[], accepts: (event: InstrumentEvent) => boolean, time: number) {
   return [...events].reverse().find(event => event.type !== 'seek' && event.time <= time && accepts(event)) ?? null;
 }
 
-function emphasisFor(event: AudioEvent | null, time: number): EventEmphasis {
+function emphasisFor(event: InstrumentEvent | null, time: number): EventEmphasis {
   if (!event || event.type === 'seek') return 'none';
   const age = time - event.time;
   if (age < 0 || age > 0.45) return 'none';
@@ -76,8 +76,8 @@ function displaySection(label: string | null) {
 
 /** Presentation-only projection. It combines retained evidence with the current
  * AudioWorld interpretation and existing timeline events without creating new musical truth. */
-export function selectPrimaryListeningView(telemetry: SignalTelemetry, frame: AudioFrame,
-  events: readonly AudioEvent[]): PrimaryListeningView {
+export function selectPrimaryListeningView(telemetry: SignalTelemetry, frame: InstrumentFrame,
+  events: readonly InstrumentEvent[]): PrimaryListeningView {
   const snapshot = frame.snapshot;
   const time = snapshot.transport.time;
   const noteEvent = latestTimedEvent(events, event => event.type === 'note-on', time);
@@ -98,7 +98,7 @@ export function selectPrimaryListeningView(telemetry: SignalTelemetry, frame: Au
       : snapshot.harmony.available ? 'NO ACTIVE CHORD' : 'UNAVAILABLE';
   const hit = percussionEvent && percussionEvent.type !== 'seek'
     && PERCUSSION_KINDS.has(percussionEvent.type as PercussionKind)
-    ? percussionEvent as Extract<AudioEvent, { type: PercussionKind }> : null;
+    ? percussionEvent as Extract<InstrumentEvent, { type: PercussionKind }> : null;
   const boundary = sectionEvent?.type === 'section-change' ? sectionEvent : null;
   const beatAge = beatEvent && beatEvent.type === 'beat' ? time - beatEvent.time : Number.POSITIVE_INFINITY;
 

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
-const css = readFileSync(new URL('../src/experience/styles.css', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../apps/zland/src/styles.css', import.meta.url), 'utf8');
 const park = readFileSync(new URL('../src/experience/park/ParkMap.tsx', import.meta.url), 'utf8');
 const train = readFileSync(new URL('../src/experience/park/ParkTrain.tsx', import.meta.url), 'utf8');
 const carousel = readFileSync(new URL('../src/rides/carousel/CarouselView.tsx', import.meta.url), 'utf8');
