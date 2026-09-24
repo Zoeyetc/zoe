@@ -28,13 +28,17 @@ function displayField(item: SignalField) {
     <span className="signal-value">{item.value}</span></>;
 }
 
-function PhraseGroups({ fields }: { fields: readonly SignalField[] }) {
+function PhraseGroups({ fields, musicalMetrics = [] }: {
+  fields: readonly SignalField[];
+  musicalMetrics?: readonly string[];
+}) {
   return <span className="signal-phrase-layout">{signalPhraseGroups(fields).map((group, groupIndex) =>
     <span className="signal-phrase-group" data-signal-group={groupIndex}
       data-signal-width={group.some(item => item.width === 'wide') ? 'wide' : 'standard'}
       key={group.map(item => item.label).join('-')}>
       {group.map((item, index) =>
         <span className="signal-token" data-signal-role={item.role}
+          data-typography={musicalMetrics.includes(item.label) ? 'musical' : 'code'}
           data-signal-metric={item.label.toLowerCase().replaceAll(' ', '-')}
           key={item.label}>
           {displayField(item)}{index < group.length - 1 ? <span className="signal-separator"> · </span> : null}
@@ -42,26 +46,28 @@ function PhraseGroups({ fields }: { fields: readonly SignalField[] }) {
     </span>)}</span>;
 }
 
-function TelemetryLine({ label, fields, layer, evidenceState }: {
+function TelemetryLine({ label, fields, layer, evidenceState, musicalMetrics }: {
   label: string;
   fields: readonly SignalField[];
   layer: 'analysis' | 'interpretation';
   evidenceState?: MelodyEvidenceVisualState;
+  musicalMetrics?: readonly string[];
 }) {
   return <div className="signal-telemetry-line" data-signal-domain={label.toLowerCase()} data-signal-layer={layer}
     data-melody-evidence-state={evidenceState}>
     <strong>{label.charAt(0) + label.slice(1).toLowerCase()}:</strong>
-    <PhraseGroups fields={fields} />
+    <PhraseGroups fields={fields} musicalMetrics={musicalMetrics} />
   </div>;
 }
 
-function PrimaryLine({ label, value, detail, level, emphasis = 'none', role = 'signal' }: {
+function PrimaryLine({ label, value, detail, level, emphasis = 'none', role = 'signal', typography = 'code' }: {
   label: string; value: string; detail?: string; level: VisualLevel; emphasis?: EventEmphasis;
   role?: 'signal' | 'anchor';
+  typography?: 'code' | 'musical';
 }) {
   return <div className="signal-primary-line" data-visual-level={level} data-event-emphasis={emphasis}>
     <span className="signal-primary-label">{label}</span>
-    <span className="signal-primary-value" data-signal-role={role}>{value}</span>
+    <span className="signal-primary-value" data-signal-role={role} data-typography={typography}>{value}</span>
     <span className="signal-primary-detail">{detail ?? '\u00a0'}</span>
   </div>;
 }
@@ -116,6 +122,7 @@ function MelodyInspect({ inspect, acceptedNote, acceptedConfidence, defaultOpen 
       <TelemetryLine label="Track" fields={inspect.track} layer="analysis"
         evidenceState={trackDecision === 'ACCEPTED' ? 'active' : trackDecision === 'REJECTED' ? 'rejected' : 'empty'} />
       <TelemetryLine label="Accepted" fields={accepted} layer="interpretation"
+        musicalMetrics={['NOTE']}
         evidenceState={acceptedNote !== '—' ? 'accepted' : 'empty'} />
     </div>
   </details>;
@@ -191,7 +198,8 @@ export function SignalConsole({ observe, interpretation, events, composition = '
           </PrimaryDomain>
           <PrimaryDomain name="OBSERVED PITCH">
             <PrimaryLine label="OBSERVED" value={primary.observedPitch.frequencyHz === '—'
-              ? '—' : `${primary.observedPitch.frequencyHz} Hz`} detail={primary.observedPitch.noteName} level={2} />
+              ? '—' : `${primary.observedPitch.frequencyHz} Hz`} detail={primary.observedPitch.noteName} level={2}
+              typography="musical" />
             <PrimaryLine label="RANGE" value={primary.observedPitch.rangeStatus}
               detail={`SCORE ${primary.observedPitch.score}`} level={1} role="anchor" />
           </PrimaryDomain>
@@ -202,7 +210,7 @@ export function SignalConsole({ observe, interpretation, events, composition = '
             <PrimaryDomain name="MELODY">
               <PrimaryLine label="MELODY" value={primary.melody.identity} detail={primary.melody.state}
                 level={primary.melody.state === 'ACCEPTED' ? 3 : primary.melody.state === 'UNAVAILABLE' ? 0 : 2}
-                emphasis={primary.melody.emphasis} />
+                emphasis={primary.melody.emphasis} typography="musical" />
             </PrimaryDomain>
             <PrimaryDomain name="HARMONY">
               <PrimaryLine label="CHROMA" value={primary.harmony.chroma} level={1} />
@@ -210,7 +218,7 @@ export function SignalConsole({ observe, interpretation, events, composition = '
                 detail={`CONF ${primary.harmony.frameConfidence}`} level={2} />
               <PrimaryLine label="CHORD" value={primary.harmony.chord} detail={primary.harmony.state}
                 level={primary.harmony.state === 'ACCEPTED' ? 3 : primary.harmony.state === 'UNAVAILABLE' ? 0 : 2}
-                emphasis={primary.harmony.emphasis} />
+                emphasis={primary.harmony.emphasis} typography="musical" />
             </PrimaryDomain>
           </div>
         </TemporalBand>
@@ -218,16 +226,16 @@ export function SignalConsole({ observe, interpretation, events, composition = '
         <TemporalBand scale="BEAT">
           <div className="signal-parallel-listeners">
             <PrimaryDomain name="RHYTHM">
-              <PrimaryLine label="TEMPO" value={primary.rhythm.bpm} level={3} role="anchor" />
+              <PrimaryLine label="TEMPO" value={primary.rhythm.bpm} level={3} role="anchor" typography="musical" />
               <PrimaryLine label="PHASE" value={primary.rhythm.phase}
                 detail={`GROOVE ${primary.rhythm.groove} · SWING ${primary.rhythm.swing}`} level={2} />
               <PrimaryLine label="EVENT" value={primary.rhythm.beat} level={2}
-                emphasis={primary.rhythm.emphasis} role="anchor" />
+                emphasis={primary.rhythm.emphasis} role="anchor" typography="musical" />
             </PrimaryDomain>
             <PrimaryDomain name="PERCUSSION">
               <PrimaryLine label="HIT" value={primary.percussion.hit}
                 detail={primary.percussion.state} level={primary.percussion.hit === '—' ? 0 : 3}
-                emphasis={primary.percussion.emphasis} />
+                emphasis={primary.percussion.emphasis} typography="musical" />
               <PrimaryLine label="STRENGTH" value={primary.percussion.strength}
                 detail={`ACTIVITY ${primary.percussion.activity}`} level={1} />
             </PrimaryDomain>
@@ -238,7 +246,7 @@ export function SignalConsole({ observe, interpretation, events, composition = '
           <PrimaryDomain name="TONAL CENTER" spacious>
             <PrimaryLine label="TONAL CENTER" value={primary.tonalCenter.identity}
               detail={primary.tonalCenter.state} level={primary.tonalCenter.identity === '—' ? 0 : 3}
-              emphasis={primary.tonalCenter.emphasis} role="anchor" />
+              emphasis={primary.tonalCenter.emphasis} role="anchor" typography="musical" />
             <PrimaryLine label="HYPOTHESIS" value={primary.tonalCenter.hypothesis}
               detail={`CONF ${primary.tonalCenter.hypothesisConfidence} · ACCEPTED ${primary.tonalCenter.confidence}`} level={1} />
           </PrimaryDomain>
@@ -248,7 +256,8 @@ export function SignalConsole({ observe, interpretation, events, composition = '
           <PrimaryDomain name="STRUCTURE" spacious>
             <PrimaryLine label="SECTION" value={primary.structure.identity}
               detail={`${primary.structure.progress} · ${primary.structure.state}`}
-              level={primary.structure.identity === '—' ? 0 : 3} emphasis={primary.structure.emphasis} role="anchor" />
+              level={primary.structure.identity === '—' ? 0 : 3} emphasis={primary.structure.emphasis}
+              role="anchor" typography="musical" />
             <PrimaryLine label="NOVELTY" value={primary.structure.novelty} level={1} />
             <PrimaryLine label="BOUNDARY" value={primary.structure.boundaryConfidence}
               level={primary.structure.emphasis === 'none' ? 0 : 4} emphasis={primary.structure.emphasis} />

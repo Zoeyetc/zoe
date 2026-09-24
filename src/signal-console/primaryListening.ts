@@ -1,5 +1,5 @@
 import type { AudioEvent, AudioFrame, PercussionKind } from '../audio/types';
-import type { HearingDomain, HearingStatus, SignalField, SignalTelemetry } from './signalTelemetry';
+import type { DecisionGate, HearingDomain, HearingStatus, SignalField, SignalTelemetry } from './signalTelemetry';
 
 export type EventEmphasis = 'none' | 'recent' | 'current';
 export type ListenerState = HearingStatus | 'ACCEPTED' | 'NO ACTIVE MELODY' | 'NO ACTIVE CHORD' | 'LISTENING';
@@ -9,10 +9,10 @@ export type PrimaryListeningView = Readonly<{
   signal: SignalTelemetry['primaryEvidence']['signal'];
   observedPitch: SignalTelemetry['primaryEvidence']['observedPitch'];
   uncertainty: SignalTelemetry['primaryEvidence']['uncertainty'];
-  melody: Readonly<{ identity: string; state: ListenerState; emphasis: EventEmphasis }>;
+  melody: Readonly<{ identity: string; state: ListenerState; emphasis: EventEmphasis; gate: DecisionGate | null }>;
   harmony: Readonly<{
     chroma: string; hypothesis: string; frameConfidence: string;
-    chord: string; state: ListenerState; emphasis: EventEmphasis;
+    chord: string; state: ListenerState; emphasis: EventEmphasis; gate: DecisionGate | null;
   }>;
   rhythm: Readonly<{
     bpm: string; phase: string; groove: string; swing: string; beat: string; emphasis: EventEmphasis;
@@ -23,7 +23,7 @@ export type PrimaryListeningView = Readonly<{
   }>;
   tonalCenter: Readonly<{
     identity: string; state: HearingStatus; confidence: string;
-    hypothesis: string; hypothesisConfidence: string; emphasis: EventEmphasis;
+    hypothesis: string; hypothesisConfidence: string; emphasis: EventEmphasis; gate: DecisionGate | null;
   }>;
   structure: Readonly<{
     identity: string; state: HearingStatus; progress: string; novelty: string;
@@ -110,11 +110,17 @@ export function selectPrimaryListeningView(telemetry: SignalTelemetry, frame: Au
     melody: {
       identity: snapshot.melody.noteName ?? '—', state: melodyState,
       emphasis: snapshot.melody.active ? emphasisFor(noteEvent, time) : 'none',
+      gate: snapshot.melody.active ? null : telemetry.primaryEvidence.gates.melody
+        ?? (snapshot.melody.available
+          ? { reason: 'BETWEEN_ACCEPTED_NOTES', text: 'between accepted notes' } : null),
     },
     harmony: {
       ...telemetry.primaryEvidence.harmony,
       chord: snapshot.harmony.chord ?? '—', state: harmonyState,
       emphasis: snapshot.harmony.active ? emphasisFor(chordEvent, time) : 'none',
+      gate: snapshot.harmony.active ? null : telemetry.primaryEvidence.gates.harmony
+        ?? (snapshot.harmony.available
+          ? { reason: 'BETWEEN_ACCEPTED_CHORDS', text: 'between accepted chords' } : null),
     },
     rhythm: {
       bpm: snapshot.rhythm.bpm === null ? '—' : `${snapshot.rhythm.bpm.toFixed(2)} BPM`,
@@ -137,6 +143,9 @@ export function selectPrimaryListeningView(telemetry: SignalTelemetry, frame: Au
       hypothesis: telemetry.primaryEvidence.tonalCenter.hypothesis.toUpperCase(),
       hypothesisConfidence: telemetry.primaryEvidence.tonalCenter.hypothesisConfidence,
       emphasis: snapshot.tonalCenter.available ? emphasisFor(tonalEvent, time) : 'none',
+      gate: snapshot.tonalCenter.label ? null : telemetry.primaryEvidence.gates.tonalCenter
+        ?? (snapshot.tonalCenter.available
+          ? { reason: 'BETWEEN_ACCEPTED_TONAL_REGIONS', text: 'between accepted tonal regions' } : null),
     },
     structure: {
       identity: displaySection(snapshot.structure.label), state: hearing(telemetry, 'STRUCTURE'),

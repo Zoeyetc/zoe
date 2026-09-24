@@ -98,6 +98,15 @@
   font-variant-numeric: proportional-nums lining-nums;
   font-feature-settings: 'pnum' 1, 'tnum' 0;
 }
+.signal-primary-value[data-typography='code'],
+.signal-token[data-typography='code'],
+.listening-field-identity[data-typography='code'],
+.listening-field-event[data-typography='code'],
+.listening-field-hypothesis[data-typography='code'] { font-family: var(--signal-font-mono); }
+.signal-primary-value[data-typography='musical'],
+.signal-token[data-typography='musical'],
+.listening-field-identity[data-typography='musical'],
+.listening-field-event[data-typography='musical'] { font-family: var(--signal-font-sans); }
 .signal-primary-value[data-signal-role='anchor'] {
   color: var(--signal-anchor);
   font-variant-numeric: tabular-nums lining-nums;
@@ -147,9 +156,9 @@
 .signal-telemetry-line > strong { color: var(--signal-label); font-weight: 800; }
 .signal-phrase-layout { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
 .signal-phrase-group { min-width: 0; white-space: nowrap; }
-.signal-token { font-family: var(--signal-font-sans); }
+.signal-token { font-family: var(--signal-font-mono); }
 .signal-token[data-signal-role='signal'] .signal-value { color: var(--signal-evidence-strong); font-variant-numeric: proportional-nums lining-nums; font-feature-settings: 'pnum' 1, 'tnum' 0; }
-.signal-token[data-signal-role='anchor'] .signal-value { color: var(--signal-anchor); font-family: var(--signal-font-mono); font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1; }
+.signal-token[data-signal-role='anchor'] .signal-value { color: var(--signal-anchor); font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1; }
 .signal-token[data-signal-role='anchor'][data-signal-metric='tonal-center'] .signal-value { display: inline-block; inline-size: 12ch; }
 .signal-token[data-signal-role='anchor'][data-signal-metric='section'] .signal-value { display: inline-block; inline-size: 8ch; }
 .signal-token[data-signal-role='anchor'][data-signal-metric='bpm'] .signal-value { display: inline-block; inline-size: 8ch; }
@@ -207,6 +216,11 @@
   --field-muted: #74847a;
 }
 .signal-listening-field[data-composition='performance'] {
+  --performance-pitch-height: 8.5rem;
+  --performance-signal-height: 3rem;
+  --performance-rhythm-height: 3.75rem;
+  --performance-residue-height: 4.75rem;
+  --performance-structure-height: 3.4rem;
   --field-cognition: var(--performance-cognition, #40584a);
   --field-cognition-quiet: var(--performance-cognition-quiet, #314238);
   --field-active: var(--performance-active, #62f296);
@@ -280,7 +294,7 @@
   font: 600 .6rem/1.35 var(--signal-font-mono);
 }
 .listening-field-models > div span { white-space: nowrap; }
-.listening-field-models > div strong { font-family: var(--signal-font-sans); }
+.listening-field-models > div strong { font-family: var(--signal-font-mono); }
 
 .listening-field-score {
   position: relative;
@@ -376,7 +390,7 @@
   align-content: start;
   min-width: 0;
   color: var(--field-cognition);
-  font: 520 .64rem/1.35 var(--signal-font-sans);
+  font: 520 .64rem/1.35 var(--signal-font-mono);
   font-variant-numeric: proportional-nums lining-nums;
   font-feature-settings: 'pnum' 1, 'tnum' 0;
 }
@@ -404,6 +418,42 @@
   letter-spacing: .06em;
   white-space: nowrap;
 }
+.listening-field-residue {
+  display: inline-grid;
+  grid-template-columns: repeat(3, 6.8rem);
+  min-width: 0;
+  margin-inline-start: .42rem;
+  color: var(--field-cognition-quiet);
+  font: 520 .48rem/1.35 var(--signal-font-mono);
+  letter-spacing: 0;
+  vertical-align: baseline;
+}
+.listening-field-residue small {
+  display: block;
+  min-width: 0;
+  padding-inline-start: .42rem;
+  white-space: nowrap;
+}
+.listening-field-residue [data-residue-age='1'] { opacity: .58; }
+.listening-field-residue [data-residue-age='2'] { opacity: .36; }
+.listening-field-residue [data-residue-age='3'] { opacity: .2; }
+.listening-field-gate {
+  flex-basis: 100%;
+  min-height: .8rem;
+  color: color-mix(in srgb, var(--signal-muted-text) 58%, transparent);
+  font: 560 .55rem/1.35 var(--signal-font-mono);
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+.listening-field-gate[data-gate-reason='none'] { visibility: hidden; }
+.listening-field-pulse { display: inline-flex; align-items: baseline; gap: .36rem; white-space: nowrap; }
+.listening-field-pulse i {
+  color: var(--field-active-strong);
+  font: 800 .62rem/1 var(--signal-font-mono);
+  opacity: 0;
+}
+.listening-field-pulse i[data-event-emphasis='recent'] { opacity: .42; }
+.listening-field-pulse i[data-event-emphasis='current'] { opacity: 1; }
 .listening-field-relationship > .listening-field-cognition--melody {
   grid-column: 1;
   grid-row: 2;
@@ -445,7 +495,7 @@
 }
 .signal-listening-field[data-composition='performance'] .listening-field-relationship {
   grid-template-rows: auto 1fr;
-  min-height: 7.25rem;
+  min-height: 6.75rem;
 }
 .signal-listening-field[data-composition='performance'] .listening-field-relationship > .listening-field-evidence { grid-row: 1; }
 .signal-listening-field[data-composition='performance'] .listening-field-relationship > .listening-field-interpretation { grid-row: 1 / 3; }
@@ -473,19 +523,81 @@
 .signal-listening-field[data-composition='performance'] .listening-field-cognition {
   font-family: var(--signal-font-mono);
 }
-.signal-listening-field[data-composition='performance'] .listening-field-signal { min-height: 3.75rem; }
-.signal-listening-field[data-composition='performance'] .listening-field-pitch { min-height: 9.25rem; }
-.signal-listening-field[data-composition='performance'] .listening-field-rhythm { min-height: 6rem; }
-.signal-listening-field[data-composition='performance'] .listening-field-harmony { min-height: 4.75rem; }
-.signal-listening-field[data-composition='performance'] .listening-field-tonal { min-height: 4.75rem; }
-.signal-listening-field[data-composition='performance'] .listening-field-structure { min-height: 4.5rem; }
-.signal-listening-field[data-composition='performance'] .listening-field-voice { padding-block: .68rem; }
+.signal-listening-field[data-composition='performance'] .listening-field-signal {
+  min-height: var(--performance-signal-height);
+}
+.signal-listening-field[data-composition='performance'] .listening-field-pitch {
+  min-height: var(--performance-pitch-height);
+}
+.signal-listening-field[data-composition='performance'] .listening-field-rhythm {
+  min-height: var(--performance-rhythm-height);
+}
+.signal-listening-field[data-composition='performance'] .listening-field-harmony,
+.signal-listening-field[data-composition='performance'] .listening-field-tonal {
+  min-height: var(--performance-residue-height);
+}
+.signal-listening-field[data-composition='performance'] .listening-field-structure {
+  min-height: var(--performance-structure-height);
+}
+.signal-listening-field[data-composition='performance'] .listening-field-voice { padding-block: .5rem; }
+.signal-listening-field[data-composition='performance'] .listening-field-voice + .listening-field-voice {
+  border-top-color: color-mix(in srgb, var(--signal-guide) 42%, transparent);
+}
+.signal-listening-field[data-composition='performance'] .listening-field-now-rule {
+  border-left-color: color-mix(in srgb, var(--signal-guide) 68%, transparent);
+}
+.signal-listening-field[data-composition='performance'] .listening-field-voice h4,
+.signal-listening-field[data-composition='performance'] .listening-field-models--performance h3,
+.signal-listening-field[data-composition='performance'] .listening-field-models--performance strong {
+  font-family: var(--signal-font-mono);
+}
+.signal-listening-field[data-composition='performance'] [data-field-form='rail'] {
+  align-items: center;
+}
+.signal-listening-field[data-composition='performance'] [data-field-form='rail'] h4 { margin-top: 0; }
+.signal-listening-field[data-composition='performance'] [data-field-form='rail'] .listening-field-evidence,
+.signal-listening-field[data-composition='performance'] [data-field-form='rail'] .listening-field-interpretation {
+  align-self: center;
+  flex-wrap: nowrap;
+}
+.signal-listening-field[data-composition='performance'] .listening-field-rhythm .listening-field-subject,
+.signal-listening-field[data-composition='performance'] .listening-field-structure .listening-field-subject {
+  display: none;
+}
+.signal-listening-field[data-composition='performance'] .listening-field-signal .listening-field-identity {
+  font-size: .9rem;
+  font-weight: 680;
+  line-height: 1.15;
+}
+.signal-listening-field[data-composition='performance'] .listening-field-signal-levels,
+.signal-listening-field[data-composition='performance'] .listening-field-spectrum {
+  gap: .3rem .9rem;
+}
+.signal-listening-field[data-composition='performance'] .listening-field-rhythm .listening-field-annotation,
+.signal-listening-field[data-composition='performance'] .listening-field-structure .listening-field-state,
+.signal-listening-field[data-composition='performance'] .listening-field-boundary {
+  font-size: .56rem;
+  letter-spacing: .035em;
+}
+.signal-listening-field[data-composition='performance'] .listening-field-candidate {
+  min-height: .82rem;
+  gap: .34rem;
+  line-height: 1.22;
+}
+.signal-listening-field[data-composition='performance'] .listening-field-cognition-margin {
+  min-height: .82rem;
+  line-height: 1.25;
+}
+.signal-listening-field[data-composition='performance'] .listening-field-residue {
+  line-height: 1.2;
+}
 .listening-field-models--performance {
   display: grid;
   grid-template-columns: var(--listening-field-label) minmax(0, 1fr);
   align-items: baseline;
   column-gap: var(--listening-field-gap);
-  padding-block: .42rem .58rem;
+  min-height: 1.8rem;
+  padding-block: .3rem .4rem;
 }
 .listening-field-models--performance h3 {
   margin: 0;
@@ -503,13 +615,13 @@
 .listening-field-models--performance > div span { display: inline-block; white-space: nowrap; }
 .listening-field-models--performance i { color: var(--signal-guide); font-style: normal; }
 .signal-console[data-composition='performance'] .signal-console-heading {
-  margin-bottom: .35rem;
-  padding-bottom: .28rem;
+  margin-bottom: .2rem;
+  padding-bottom: .2rem;
   border-bottom-color: var(--signal-guide);
 }
 .signal-console[data-composition='performance'] .signal-console-heading h2 {
   color: var(--signal-muted-text);
-  font: 750 .72rem/1.3 var(--signal-font-mono);
+  font: 750 .66rem/1.25 var(--signal-font-mono);
   letter-spacing: .08em;
 }
 .signal-console[data-composition='performance'] .signal-forensic-layers {
@@ -577,8 +689,14 @@
   .listening-field-voice[data-field-depth='foreground'] .listening-field-identity { font-size: 1.14rem; }
   .listening-field-structure .listening-field-identity { font-size: 1.25rem; }
   .listening-field-cognition--melody .listening-field-candidate:nth-child(3) { visibility: hidden; }
+  .listening-field-residue { grid-template-columns: repeat(2, 6.8rem); }
+  .listening-field-residue [data-residue-age='3'] { display: none; }
   .listening-field-models--performance > div { white-space: normal; }
   .listening-field-models--performance > div span { white-space: nowrap; }
+  .signal-listening-field[data-composition='performance'] .listening-field-voice { padding-block: .42rem; }
+  .signal-listening-field[data-composition='performance'] .listening-field-residue {
+    grid-template-columns: repeat(2, 6.4rem);
+  }
 }
 
 @media (max-width: 680px) {
@@ -600,4 +718,13 @@
   .listening-field-voice[data-field-depth='foreground'] .listening-field-identity { font-size: 1rem; }
   .listening-field-voice[data-field-depth='midground'] .listening-field-identity,
   .listening-field-voice[data-field-depth='midground'] .listening-field-event { font-size: .9rem; }
+  .listening-field-residue { grid-template-columns: 6.8rem; }
+  .listening-field-residue [data-residue-age='2'] { display: none; }
+  .signal-listening-field[data-composition='performance'] [data-field-form='rail'] .listening-field-evidence,
+  .signal-listening-field[data-composition='performance'] [data-field-form='rail'] .listening-field-interpretation {
+    flex-wrap: wrap;
+  }
+  .signal-listening-field[data-composition='performance'] .listening-field-rhythm .listening-field-annotation {
+    flex-basis: 100%;
+  }
 }

@@ -18,6 +18,14 @@ export type SignalField = Readonly<{
 export type SignalDomain = Readonly<{ id: string; layer: 'analysis'; fields: readonly SignalField[] }>;
 export type HearingStatus = 'STABLE' | 'UNCERTAIN' | 'SEARCHING' | 'UNAVAILABLE';
 export type HearingDomain = Readonly<{ id: 'RHYTHM' | 'MELODY' | 'HARMONY' | 'KEY' | 'STRUCTURE'; status: HearingStatus }>;
+export type ResidueCandidate = Readonly<{ identity: string; score: string }>;
+export type ResidueSample = Readonly<{
+  index: number;
+  time: number;
+  candidates: readonly ResidueCandidate[];
+  margin?: string;
+}>;
+export type DecisionGate = Readonly<{ reason: string; text: string }>;
 export type MelodyInspectTelemetry = Readonly<{
   available: boolean;
   frame: readonly SignalField[];
@@ -53,21 +61,25 @@ export type SignalTelemetry = Readonly<{
     uncertainty: Readonly<{
       melody: Readonly<{
         candidates: readonly Readonly<{ noteName: string; frequencyHz: string; score: string }>[];
+        history: readonly ResidueSample[];
         changed: boolean;
       }>;
       harmony: Readonly<{
         top: Readonly<{ identity: string; score: string }> | null;
         second: Readonly<{ identity: string; score: string }> | null;
         margin: string;
+        history: readonly ResidueSample[];
         changed: boolean;
       }>;
       tonalCenter: Readonly<{
         top: Readonly<{ identity: string; score: string }> | null;
         second: Readonly<{ identity: string; score: string }> | null;
         margin: string;
+        history: readonly ResidueSample[];
         changed: boolean;
       }>;
     }>;
+    gates: Readonly<Record<'melody' | 'harmony' | 'tonalCenter', DecisionGate | null>>;
     structure: Readonly<{ novelty: string; energy: string; onsetDensity: string }>;
   }>;
 }>;
@@ -89,6 +101,129 @@ const signal = (label: string, value: string, width?: 'wide'): SignalField =>
 const anchor = (label: string, value: string, width?: 'wide'): SignalField =>
   ({ label, value, role: 'anchor', width });
 const changed = (current: unknown, previous: unknown) => JSON.stringify(current) !== JSON.stringify(previous);
+
+export const TEMPORAL_RESIDUE_POLICY = Object.freeze({
+  sampleCount: 3,
+  melodyStepSeconds: 0.192,
+  harmonyFrameStride: 6,
+  tonalFrameStride: 1,
+});
+
+function priorIndexes(current: number, stride: number) {
+  return Array.from({ length: TEMPORAL_RESIDUE_POLICY.sampleCount }, (_, offset) => current - stride * (offset + 1))
+    .filter(index => index >= 0);
+}
+
+function melodyResidue(map: AudioMap, current: MelodyEvidenceObservation | null): readonly ResidueSample[] {
+  if (!map.melodyEvidence || !current) return [];
+  const seen = new Set<number>();
+  return Array.from({ length: TEMPORAL_RESIDUE_POLICY.sampleCount }, (_, offset) =>
+    selectMelodyEvidence(map.melodyEvidence!, Math.max(0,
+      current.time - TEMPORAL_RESIDUE_POLICY.melodyStepSeconds * (offset + 1))))
+    .filter((sample): sample is MelodyEvidenceObservation => Boolean(sample
+      && sample.frameIndex < current.frameIndex && !seen.has(sample.frameIndex) && seen.add(sample.frameIndex)))
+    .map(sample => ({
+      index: sample.frameIndex,
+      time: sample.time,
+      candidates: sample.candidates.slice(0, 3).map(candidate => ({
+        identity: candidate.noteName,
+        score: number(candidate.score),
+      })),
+    }));
+}
+
+function harmonyResidue(map: AudioMap, currentIndex: number): readonly ResidueSample[] {
+  return priorIndexes(currentIndex, TEMPORAL_RESIDUE_POLICY.harmonyFrameStride)
+    .flatMap(index => {
+      const frame = at(map.harmonyAnalysis?.frames, index);
+      return frame ? [{ index, time: frame.time,
+        candidates: [frame.topCandidate, frame.secondCandidate].flatMap(candidate => candidate
+          ? [{ identity: candidate.label, score: number(candidate.score) }] : []),
+        margin: number(frame.scoreMargin) }] : [];
+    });
+}
+
+function tonalResidue(map: AudioMap, currentIndex: number): readonly ResidueSample[] {
+  return priorIndexes(currentIndex, TEMPORAL_RESIDUE_POLICY.tonalFrameStride)
+    .flatMap(index => {
+      const frame = at(map.tonalCenterAnalysis?.frames, index);
+      return frame ? [{ index, time: frame.time,
+        candidates: [frame.topCandidate, frame.secondCandidate].flatMap(candidate => candidate
+          ? [{ identity: candidate.label, score: number(candidate.score) }] : []),
+        margin: number(frame.margin) }] : [];
+    });
+}
+
+const gate = (reason: string, text: string): DecisionGate => ({ reason, text });
+
+function melodyGate(map: AudioMap, evidence: MelodyEvidenceObservation | null): DecisionGate | null {
+  const timeline = map.melodyEvidence;
+  if (!timeline) return map.melody?.length === 0
+    ? gate('TRACK_NO_NOTES', 'no accepted note segments') : null;
+  if (evidence && !evidence.voiced) {
+    if (evidence.reason === 'LOW_RMS') return gate('LOW_RMS',
+      `rms ${number(evidence.rms, 4)} < required ${number(timeline.thresholds.minimumRms, 4)}`);
+    if (evidence.reason === 'LOW_CONFIDENCE') return gate('LOW_CONFIDENCE',
+      `confidence ${number(evidence.finalConfidence)} < required ${number(timeline.thresholds.voicingConfidence)}`);
+    if (evidence.reason === 'NO_USABLE_CANDIDATE') {
+      if (evidence.observedPitch.melodyRangeStatus === 'BELOW_MELODY_RANGE') return gate('BELOW_MELODY_RANGE',
+        'pitch below melody range');
+      if (evidence.observedPitch.melodyRangeStatus === 'ABOVE_MELODY_RANGE') return gate('ABOVE_MELODY_RANGE',
+        'pitch above melody range');
+      return gate('NO_USABLE_CANDIDATE', 'no usable pitch candidate');
+    }
+    if (evidence.reason === 'PATH_SELECTED_NULL') return gate('PATH_SELECTED_NULL', 'path selected no pitch');
+  }
+  if (!timeline.track.available) {
+    if (timeline.track.reasons.includes('TRACK_LOW_CONFIDENCE')) return gate('TRACK_LOW_CONFIDENCE',
+      `track confidence ${number(timeline.track.confidence)} < required ${number(timeline.thresholds.trackConfidence)}`);
+    if (timeline.track.reasons.includes('TRACK_LOW_USABLE_DURATION')) return gate('TRACK_LOW_USABLE_DURATION',
+      `usable ${number(timeline.track.usableDuration)} s < required ${number(timeline.thresholds.minimumUsableDuration)} s`);
+    if (timeline.track.reasons.includes('TRACK_LOW_VOICED_RATIO')) return gate('TRACK_LOW_VOICED_RATIO',
+      `voiced ratio ${number(timeline.track.voicedFrameRatio)} < required ${number(timeline.thresholds.minimumVoicedFrameRatio)}`);
+    if (timeline.track.reasons.includes('TRACK_NO_NOTES')) return gate('TRACK_NO_NOTES', 'no accepted note segments');
+  }
+  return null;
+}
+
+function harmonyGate(map: AudioMap, frame: ChromaFrame | null): DecisionGate | null {
+  const analysis = map.harmonyAnalysis;
+  if (!analysis || !frame) return null;
+  if (!frame.topCandidate) return gate('NO_CHORD_HYPOTHESIS', 'no chord hypothesis');
+  if (frame.confidence < analysis.metadata.frameConfidenceThreshold) return gate('LOW_FRAME_CONFIDENCE',
+    `confidence ${number(frame.confidence)} < required ${number(analysis.metadata.frameConfidenceThreshold)}`);
+  if (!frame.chord) return gate('UNSTABLE_CHORD_RUN', 'hypothesis removed by stability gate');
+  if (!analysis.available && analysis.confidence < analysis.metadata.availabilityThreshold) {
+    return gate('LOW_TRACK_CONFIDENCE',
+      `track confidence ${number(analysis.confidence)} < required ${number(analysis.metadata.availabilityThreshold)}`);
+  }
+  if (!analysis.available) return gate('NO_USABLE_CHORD_TIMELINE', 'no usable chord timeline');
+  return null;
+}
+
+function median(values: readonly number[]) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+}
+
+function tonalGate(map: AudioMap, frame: TonalCenterFrame | null): DecisionGate | null {
+  const analysis = map.tonalCenterAnalysis;
+  if (!analysis || !frame) return null;
+  if (!frame.topCandidate) return gate('NO_TONAL_HYPOTHESIS', 'no tonal hypothesis');
+  if (!map.harmonyAnalysis?.available) return gate('HARMONY_UNAVAILABLE', 'harmony foundation unavailable');
+  if (map.duration < analysis.metadata.minimumUsableDuration) return gate('LOW_DURATION',
+    `duration ${number(map.duration)} s < required ${number(analysis.metadata.minimumUsableDuration)} s`);
+  const coverage = median(analysis.frames.map(item => item.usableCoverage));
+  if (coverage < 0.35) return gate('LOW_TONAL_COVERAGE', 'insufficient tonal coverage');
+  const frameStability = median(analysis.frames.map(item => item.confidence));
+  if (frameStability < 0.5) return gate('LOW_FRAME_STABILITY', 'tonal evidence not stable enough');
+  if (analysis.confidence < analysis.metadata.availabilityThreshold) return gate('LOW_TRACK_CONFIDENCE',
+    `track confidence ${number(analysis.confidence)} < required ${number(analysis.metadata.availabilityThreshold)}`);
+  if (!analysis.available) return gate('NO_STABLE_TONAL_TIMELINE', 'no stable tonal timeline');
+  return null;
+}
 
 export function signalPhraseGroups(fields: readonly SignalField[]): readonly (readonly SignalField[])[] {
   const groups: SignalField[][] = [];
@@ -365,6 +500,7 @@ export function selectSignalTelemetry(observation: SignalConsoleObservation): Si
             frequencyHz: number(candidate.pitchHz, 2),
             score: number(candidate.score),
           })),
+          history: melodyResidue(map, melodyEvidence),
           changed: changed(melodyEvidence?.candidates.slice(0, 3),
             previousMelodyEvidence?.candidates.slice(0, 3)),
         },
@@ -374,6 +510,7 @@ export function selectSignalTelemetry(observation: SignalConsoleObservation): Si
           second: chroma?.secondCandidate
             ? { identity: chroma.secondCandidate.label, score: number(chroma.secondCandidate.score) } : null,
           margin: number(chroma?.scoreMargin),
+          history: harmonyResidue(map, indexes.chroma),
           changed: changed(chroma && [chroma.topCandidate, chroma.secondCandidate, chroma.scoreMargin],
             previousChroma && [previousChroma.topCandidate, previousChroma.secondCandidate, previousChroma.scoreMargin]),
         },
@@ -383,10 +520,16 @@ export function selectSignalTelemetry(observation: SignalConsoleObservation): Si
           second: tonal?.secondCandidate
             ? { identity: tonal.secondCandidate.label, score: number(tonal.secondScore) } : null,
           margin: number(tonal?.margin),
+          history: tonalResidue(map, indexes.tonal),
           changed: changed(tonal && [tonal.topCandidate, tonal.secondCandidate, tonal.topScore,
             tonal.secondScore, tonal.margin], previousTonal && [previousTonal.topCandidate,
             previousTonal.secondCandidate, previousTonal.topScore, previousTonal.secondScore, previousTonal.margin]),
         },
+      },
+      gates: {
+        melody: melodyGate(map, melodyEvidence),
+        harmony: harmonyGate(map, chroma),
+        tonalCenter: tonalGate(map, tonal),
       },
       structure: {
         novelty: number(indexes.structure < 0 ? null : map.structureAnalysis?.novelty[indexes.structure]),
