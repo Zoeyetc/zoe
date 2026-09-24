@@ -5,6 +5,12 @@
   --signal-player-secondary: #74716b;
   --signal-player-border: #c9c5bc;
   --signal-player-muted: #69665f;
+  --performance-cognition: #40584a;
+  --performance-cognition-quiet: #314238;
+  --performance-active: #62f296;
+  --performance-active-strong: #91ffb8;
+  --performance-foreground: #edf8f0;
+  --performance-accepted: #f8fff9;
   --signal-player-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   box-sizing: border-box;
   width: 100%;
@@ -33,3 +39,149 @@
 .signal-playback-position { display: block; width: 100%; margin-bottom: .35rem; font-size: .8rem; }
 .signal-playback-range { display: block; width: 100%; }
 .signal-player :focus-visible { outline: 3px solid var(--signal-player-secondary); outline-offset: 3px; }
+
+.signal-sr-only,
+.signal-load-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.signal-playback--compact {
+  margin: 0 0 .75rem;
+  padding: .5rem 0 .7rem;
+  border: 0;
+  border-bottom: 1px solid var(--signal-player-border);
+  background: transparent;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+.signal-playback-command {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  gap: .45rem 1.2rem;
+}
+.signal-load-command {
+  min-width: 0;
+  color: var(--signal-player-muted);
+  font-size: .72rem;
+  line-height: 1.4;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.signal-load-command strong {
+  display: inline-block;
+  max-width: min(42vw, 42rem);
+  overflow: hidden;
+  color: var(--signal-player-structure);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+.signal-load-command:hover,
+.signal-playback-command:has(.signal-load-input:focus-visible) .signal-load-command {
+  color: var(--performance-active);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: .22rem;
+}
+.signal-playback--compact .signal-playback-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: .2rem .65rem;
+  margin: 0;
+}
+.signal-playback--compact button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--signal-player-secondary);
+  font: 750 .68rem/1.4 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  cursor: pointer;
+}
+.signal-playback--compact button:hover,
+.signal-playback--compact button:focus-visible {
+  color: var(--performance-active);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: .22rem;
+}
+.signal-playback--compact button:active { color: var(--performance-active-strong); font-weight: 900; }
+.signal-playback--compact button:disabled { cursor: default; opacity: .26; text-decoration: none; }
+.signal-progress-command {
+  position: relative;
+  display: grid;
+  grid-template-columns: 5.5rem minmax(8rem, 1fr) 5.5rem;
+  align-items: center;
+  gap: .75rem;
+  margin-top: .42rem;
+  min-height: 1.2rem;
+  color: var(--signal-player-muted);
+  font-size: .66rem;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.signal-progress-command output:last-of-type { text-align: right; }
+.signal-progress-track {
+  position: relative;
+  height: 1px;
+  background: var(--signal-player-border);
+}
+.signal-progress-played {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--signal-player-secondary);
+}
+.signal-progress-playhead {
+  position: absolute;
+  top: 50%;
+  width: .52rem;
+  height: .52rem;
+  border: 1px solid var(--signal-player-background);
+  border-radius: 50%;
+  background: var(--signal-player-secondary);
+  translate: -50% -50%;
+}
+.signal-playback--compact[data-transport-state='playing'] .signal-progress-played,
+.signal-playback--compact[data-transport-state='playing'] .signal-progress-playhead {
+  background: var(--performance-active);
+}
+.signal-playback--compact[data-transport-state='playing'] .signal-progress-command { color: var(--performance-active); }
+.signal-playback--compact[data-transport-state='paused'] .signal-progress-played,
+.signal-playback--compact[data-transport-state='paused'] .signal-progress-playhead {
+  background: color-mix(in srgb, var(--performance-active) 42%, var(--signal-player-secondary));
+}
+.signal-playback--compact[data-transport-state='ended'] .signal-progress-command { opacity: .56; }
+.signal-playback--compact .signal-playback-range--compact {
+  position: absolute;
+  z-index: 2;
+  inset: 0 auto 0 6.25rem;
+  width: calc(100% - 12.5rem);
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+}
+.signal-progress-command:hover .signal-progress-track,
+.signal-progress-command:has(.signal-playback-range--compact:focus-visible) .signal-progress-track {
+  height: 3px;
+  outline: 1px solid var(--performance-active);
+  outline-offset: 3px;
+}
+.signal-progress-command:hover .signal-progress-played,
+.signal-progress-command:hover .signal-progress-playhead,
+.signal-progress-command:has(.signal-playback-range--compact:focus-visible) .signal-progress-played,
+.signal-progress-command:has(.signal-playback-range--compact:focus-visible) .signal-progress-playhead {
+  background: var(--performance-active-strong);
+}
+
+@media (max-width: 680px) {
+  .signal-playback-command { align-items: flex-start; flex-direction: column; gap: .32rem; }
+  .signal-load-command strong { max-width: 72vw; }
+  .signal-progress-command { grid-template-columns: 4.8rem minmax(5rem, 1fr) 4.8rem; gap: .45rem; }
+  .signal-playback--compact .signal-playback-range--compact { left: 5.25rem; width: calc(100% - 10.5rem); }
+}

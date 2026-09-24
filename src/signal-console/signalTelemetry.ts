@@ -3,7 +3,8 @@ import type {
   StructureAnalysisFrame, TonalCenterFrame, TransportState,
 } from '../audio/types';
 import type { SignalConsoleObservation } from './types';
-import { melodyEvidenceIndexAt, selectMelodyEvidenceForTransport } from '../audio/melody-evidence/selectMelodyEvidence.ts';
+import { melodyEvidenceIndexAt, selectMelodyEvidence,
+  selectMelodyEvidenceForTransport } from '../audio/melody-evidence/selectMelodyEvidence.ts';
 import type {
   MelodyEvidenceCandidate, MelodyEvidenceObservation, ObservedPitchEvidence,
 } from '../audio/melody-evidence/types';
@@ -38,6 +39,37 @@ export type SignalTelemetry = Readonly<{
   domains: readonly SignalDomain[];
   hearing: readonly HearingDomain[];
   melodyInspect: MelodyInspectTelemetry;
+  primaryEvidence: Readonly<{
+    sourceSystem: readonly SignalField[];
+    signal: Readonly<{
+      level: string; transient: string; low: string; mid: string; high: string;
+      brightness: string; spectralChange: string;
+    }>;
+    observedPitch: Readonly<{
+      frequencyHz: string; noteName: string; score: string; rangeStatus: string;
+    }>;
+    harmony: Readonly<{ chroma: string; hypothesis: string; frameConfidence: string }>;
+    tonalCenter: Readonly<{ hypothesis: string; hypothesisConfidence: string }>;
+    uncertainty: Readonly<{
+      melody: Readonly<{
+        candidates: readonly Readonly<{ noteName: string; frequencyHz: string; score: string }>[];
+        changed: boolean;
+      }>;
+      harmony: Readonly<{
+        top: Readonly<{ identity: string; score: string }> | null;
+        second: Readonly<{ identity: string; score: string }> | null;
+        margin: string;
+        changed: boolean;
+      }>;
+      tonalCenter: Readonly<{
+        top: Readonly<{ identity: string; score: string }> | null;
+        second: Readonly<{ identity: string; score: string }> | null;
+        margin: string;
+        changed: boolean;
+      }>;
+    }>;
+    structure: Readonly<{ novelty: string; energy: string; onsetDensity: string }>;
+  }>;
 }>;
 
 const END_ABSOLUTE_TOLERANCE_SECONDS = 1e-6;
@@ -56,6 +88,7 @@ const signal = (label: string, value: string, width?: 'wide'): SignalField =>
   ({ label, value, role: 'signal', width });
 const anchor = (label: string, value: string, width?: 'wide'): SignalField =>
   ({ label, value, role: 'anchor', width });
+const changed = (current: unknown, previous: unknown) => JSON.stringify(current) !== JSON.stringify(previous);
 
 export function signalPhraseGroups(fields: readonly SignalField[]): readonly (readonly SignalField[])[] {
   const groups: SignalField[][] = [];
@@ -295,11 +328,71 @@ export function selectSignalTelemetry(observation: SignalConsoleObservation): Si
   const structure = at(map.structureAnalysis?.frames, indexes.structure);
   const melodyEvidence = observation.melodyEvidence
     ?? selectMelodyEvidenceForTransport(map.melodyEvidence, transport);
+  const previousMelodyEvidence = melodyEvidence && melodyEvidence.frameIndex > 0
+    ? selectMelodyEvidence(map.melodyEvidence, melodyEvidence.time - 1e-6) : melodyEvidence;
+  const previousChroma = at(map.harmonyAnalysis?.frames, indexes.chroma - 1);
+  const previousTonal = at(map.tonalCenterAnalysis?.frames, indexes.tonal - 1);
+  const observedPitch = melodyEvidence?.observedPitch ?? null;
   const signature = signalPresentationKey(observation);
   return {
     signature, mapRevision, mapId: map.id, ended, transport, indexes,
     hearing: selectHearing(map),
     melodyInspect: selectMelodyInspect(map, melodyEvidence),
+    primaryEvidence: {
+      sourceSystem: sourceFields(map, mapRevision),
+      signal: {
+        level: number(amplitude?.rms[0]), transient: number(amplitude?.onsetStrength[0]),
+        low: number(spectrum?.low[0]), mid: number(spectrum?.mid[0]), high: number(spectrum?.high[0]),
+        brightness: number(spectrum?.brightness[0]), spectralChange: number(spectrum?.texture[0]),
+      },
+      observedPitch: {
+        frequencyHz: number(observedPitch?.frequencyHz, 2), noteName: observedPitch?.noteName ?? '—',
+        score: number(observedPitch?.score),
+        rangeStatus: observedPitch?.melodyRangeStatus.replaceAll('_', ' ') ?? 'UNAVAILABLE',
+      },
+      harmony: {
+        chroma: chroma?.chroma.map(value => number(value, 2)).join(' ') ?? '—',
+        hypothesis: chroma?.topCandidate?.label ?? '—',
+        frameConfidence: number(chroma?.confidence),
+      },
+      tonalCenter: {
+        hypothesis: tonal?.topCandidate?.label ?? '—', hypothesisConfidence: number(tonal?.confidence),
+      },
+      uncertainty: {
+        melody: {
+          candidates: (melodyEvidence?.candidates ?? []).slice(0, 3).map(candidate => ({
+            noteName: candidate.noteName,
+            frequencyHz: number(candidate.pitchHz, 2),
+            score: number(candidate.score),
+          })),
+          changed: changed(melodyEvidence?.candidates.slice(0, 3),
+            previousMelodyEvidence?.candidates.slice(0, 3)),
+        },
+        harmony: {
+          top: chroma?.topCandidate
+            ? { identity: chroma.topCandidate.label, score: number(chroma.topCandidate.score) } : null,
+          second: chroma?.secondCandidate
+            ? { identity: chroma.secondCandidate.label, score: number(chroma.secondCandidate.score) } : null,
+          margin: number(chroma?.scoreMargin),
+          changed: changed(chroma && [chroma.topCandidate, chroma.secondCandidate, chroma.scoreMargin],
+            previousChroma && [previousChroma.topCandidate, previousChroma.secondCandidate, previousChroma.scoreMargin]),
+        },
+        tonalCenter: {
+          top: tonal?.topCandidate
+            ? { identity: tonal.topCandidate.label, score: number(tonal.topScore) } : null,
+          second: tonal?.secondCandidate
+            ? { identity: tonal.secondCandidate.label, score: number(tonal.secondScore) } : null,
+          margin: number(tonal?.margin),
+          changed: changed(tonal && [tonal.topCandidate, tonal.secondCandidate, tonal.topScore,
+            tonal.secondScore, tonal.margin], previousTonal && [previousTonal.topCandidate,
+            previousTonal.secondCandidate, previousTonal.topScore, previousTonal.secondScore, previousTonal.margin]),
+        },
+      },
+      structure: {
+        novelty: number(indexes.structure < 0 ? null : map.structureAnalysis?.novelty[indexes.structure]),
+        energy: number(structure?.energy), onsetDensity: number(structure?.onsetDensity),
+      },
+    },
     domains: [
       { id: 'SOURCE', layer: 'analysis', fields: sourceFields(map, mapRevision) },
       { id: 'LEVEL', layer: 'analysis', fields: levelFields(amplitude) },

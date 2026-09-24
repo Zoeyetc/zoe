@@ -24,6 +24,12 @@ export function App() {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     || new URLSearchParams(window.location.search).has('reduce-motion');
   const mode = resolveExperienceMode(window.location.search);
+  const signalCompositionQuery = new URLSearchParams(window.location.search).get('signal-composition');
+  const signalComposition = signalCompositionQuery === 'performance'
+    ? 'performance' as const
+    : signalCompositionQuery === 'uncertainty'
+    ? 'listening-field-uncertainty' as const
+    : signalCompositionQuery === 'field' ? 'listening-field' as const : 'temporal-score' as const;
   const showPhysicsDebug = physicsDebugVisible(window.location.search);
   const dropTowerQaMap = resolveDropTowerQaAudioMap(new URLSearchParams(window.location.search).get('drop-tower-qa'));
   const [experience] = useState(() => createExperience(
@@ -130,6 +136,7 @@ export function App() {
     observe={experience.observeSignalConsole}
     interpretation={state.frame}
     events={state.recentEvents}
+    composition={signalComposition}
   />;
 
   return <main className={`experience experience--${mode}`}>

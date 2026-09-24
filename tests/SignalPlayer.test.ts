@@ -46,6 +46,36 @@ test('SignalPlayback keeps one injected transport path and neutral presentation'
   assert.doesNotMatch(playback, /Carousel|FerrisWheel|PirateShip|BumperCars|DropTower|RollerCoaster|Park/);
 });
 
+test('performance playback keeps semantic controls inside one compact command surface', () => {
+  assert.match(player, /compact=\{composition === 'performance'\}/);
+  assert.match(playback, /signal-playback--compact/);
+  assert.match(playback, /audio\.load\(/);
+  assert.match(playback, /type="file"/);
+  assert.match(playback, /aria-label=\{`Load audio file; current source/);
+  for (const action of ['\[PLAY\]', '\[PAUSE\]', '\[RESTART\]']) assert.match(playback, new RegExp(action));
+  assert.match(playback, /aria-label="Playback controls"/);
+  assert.match(playback, /signal-sr-only.*role="status"/s);
+});
+
+test('performance progress derives from injected transport and preserves native keyboard seeking', () => {
+  assert.match(playback, /transport\.time \/ transport\.duration/);
+  assert.match(playback, /inlineSize: `\$\{progress \* 100\}%`/);
+  assert.match(playback, /insetInlineStart: `\$\{progress \* 100\}%`/);
+  assert.match(playback, /type="range"/);
+  assert.match(playback, /onChange=\{event => actions\.seek\(Number\(event\.target\.value\)\)\}/);
+  assert.doesNotMatch(playback, /setInterval|requestAnimationFrame|waveform/i);
+});
+
+test('performance transport states and structural focus cues use the shared fluorescent family', () => {
+  for (const state of ['playing', 'paused', 'ended']) assert.match(playerStyles, new RegExp(`data-transport-state='${state}'`));
+  assert.match(playerStyles, /--performance-active: #62f296/);
+  assert.match(playerStyles, /--performance-active-strong: #91ffb8/);
+  assert.match(playerStyles, /:focus-visible/);
+  assert.match(playerStyles, /text-decoration: underline/);
+  assert.match(playerStyles, /outline: 1px solid var\(--performance-active\)/);
+  assert.doesNotMatch(playerStyles, /transition\s*:|animation\s*:|@keyframes/);
+});
+
 test('Experience host routes SignalConsole mode directly to standalone SignalPlayer', () => {
   const branch = app.indexOf("if (mode === 'signal-console') return <SignalPlayer");
   const shell = app.indexOf('<header className="experience-header">');
@@ -53,5 +83,6 @@ test('Experience host routes SignalConsole mode directly to standalone SignalPla
   assert.match(app, /observe=\{experience\.observeSignalConsole\}/);
   assert.match(app, /onChooseAudio=\{chooseAudio\}/);
   assert.match(app, /onUseFixture=\{useFixture\}/);
+  assert.match(app, /signalCompositionQuery === 'performance'/);
   assert.equal((app.match(/<ControlSurface/g) ?? []).length, 1);
 });

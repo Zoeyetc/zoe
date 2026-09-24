@@ -178,8 +178,11 @@ test('Observed Pitch presentation remains proportional evidence with secondary s
   const component = readFileSync(new URL('../src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
   const styles = readFileSync(new URL('../src/signal-console/signalConsole.css', import.meta.url), 'utf8');
   assert.match(component, /item\.label === 'PITCH HZ' \|\| item\.label === 'OBSERVED'/);
-  assert.match(styles, /data-signal-domain='pitch'.*data-signal-metric='melody-range-status'/s);
-  assert.doesNotMatch(styles, /data-signal-domain='pitch'[^}]*color:\s*(red|#f00|#ff0000)/i);
+  assert.match(component, /<PrimaryDomain name="OBSERVED PITCH">/);
+  assert.match(component, /label="RANGE" value=\{primary\.observedPitch\.rangeStatus\}/);
+  assert.match(styles, /\.signal-primary-value \{[^}]*proportional-nums/s);
+  assert.match(styles, /data-primary-domain='observed-pitch'[^}]*font-size: 1\.35rem/s);
+  assert.doesNotMatch(styles, /data-primary-domain='observed-pitch'[^}]*color:\s*(red|#f00|#ff0000)/i);
   assert.doesNotMatch(styles, /transition\s*:|animation\s*:|@keyframes/);
 });
 

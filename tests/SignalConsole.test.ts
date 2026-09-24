@@ -4,8 +4,10 @@ import { readFileSync } from 'node:fs';
 import type { AudioMap } from '../src/audio/types.ts';
 import { lookupSnapshot } from '../src/audio/AudioWorld.ts';
 import { selectSignalInterpretationFields, selectSignalTelemetry, signalPhraseGroups } from '../src/signal-console/signalTelemetry.ts';
+import { listeningFieldBeatEmphasis, selectPrimaryListeningView } from '../src/signal-console/primaryListening.ts';
 import type { SignalConsoleObservation } from '../src/signal-console/types.ts';
 import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
+import { selectMelodyEvidenceForTransport } from '../src/audio/melody-evidence/selectMelodyEvidence.ts';
 
 function map(id = 'signal-map', rms: readonly [number, number] = [.284, .291]): AudioMap {
   return {
@@ -298,12 +300,15 @@ test('SignalConsole acceptance uses continuous proportional phrases inside fixed
   assert.match(styles, /\[data-signal-role='signal'\] \.signal-value \{[^}]*proportional-nums/);
   assert.match(styles, /\[data-signal-role='anchor'\] \.signal-value \{[^}]*tabular-nums/);
   assert.doesNotMatch(styles, /\.signal-token\[data-signal-role='signal'\][^}]*transition/);
-  assert.doesNotMatch(component + styles, /signal-console-grid|signal-field-row|signal-field-group/);
+  assert.doesNotMatch(component + styles, /signal-console-grid|listening-field-row|listening-field-group/);
   assert.doesNotMatch(component, /RETAINED PRE-GATE EVIDENCE|ACCEPTED MUSICAL TRUTH|EVENT-DRIVEN|Retained analysis frames/);
   assert.match(component, /<details className="signal-inspect"/);
-  assert.doesNotMatch(component, /<details[^>]*open/);
+  assert.match(component, /open=\{defaultOpen \|\| undefined\}/);
+  assert.match(component, /open=\{composition === 'performance' \|\| undefined\}/);
+  assert.doesNotMatch(component, /data-signal-domain="source-system"[^>]*open=/);
   assert.match(component, /MELODY \/ INSPECT/);
-  assert.match(component, /<HearingSummary/);
+  assert.match(component, /LISTENING MODELS/);
+  assert.doesNotMatch(component, />HEARING</);
   assert.match(component, /label="Rejected pre-filter"/);
   assert.match(component, /label="Generation"/);
   assert.match(component, /inspect\.rejectedCandidates\.map/);
@@ -317,7 +322,7 @@ test('validated numeric baseline keeps proportional signals and stable anchors',
   assert.doesNotMatch(component, /NumericMode|Development numeric mode|signal-number-mode/);
   assert.match(styles, /data-signal-role='signal'[^}]*proportional-nums/);
   assert.match(styles, /data-signal-role='anchor'[^}]*tabular-nums/);
-  assert.match(styles, /data-signal-metric='state'[^}]*inline-size: 7ch/);
+  assert.match(styles, /signal-transport-values strong[^}]*inline-size: 7ch/);
   assert.match(styles, /data-signal-metric='tonal-center'[^}]*inline-size: 12ch/);
   assert.match(styles, /data-signal-metric='section'[^}]*inline-size: 8ch/);
   assert.match(styles, /data-signal-metric='bpm'[^}]*inline-size: 8ch/);
@@ -355,9 +360,242 @@ test('SignalConsole uses one presentation loop and contains no ride or PhysicsWo
   const selector = readFileSync(new URL('../src/signal-console/signalTelemetry.ts', import.meta.url), 'utf8');
   assert.equal((component.match(/requestAnimationFrame/g) ?? []).length, 2);
   assert.doesNotMatch(component + selector, /setInterval|Carousel|FerrisWheel|PirateShip|BumperCars|DropTower|RollerCoaster|FreeBodies|PhysicsWorld|\.\.\/rides|\.\.\/physics/);
-  assert.match(component, /data-signal-layer="interpretation"/);
-  assert.match(component, /layer=\{domain\.layer\}/);
+  assert.match(component, /selectPrimaryListeningView\(telemetry, interpretation, events\)/);
+  assert.match(component, /data-time-scale=/);
   assert.match(component, /data-signal-layer=\{layer\}/);
+});
+
+test('primary listening projection preserves model logic and separates evidence from accepted interpretation', () => {
+  const telemetry = selectSignalTelemetry(observation(map(), .2));
+  const snapshot = lookupSnapshot(map(), { time: .2, duration: 2, playing: true });
+  const frame = { snapshot: {
+    ...snapshot,
+    melody: { ...snapshot.melody, available: true, active: true, noteName: 'C#3' },
+    harmony: { ...snapshot.harmony, available: true, active: true, chord: 'A minor', confidence: .81 },
+    percussion: { ...snapshot.percussion, available: true, activity: .64 },
+    tonalCenter: { ...snapshot.tonalCenter, available: true, label: 'A minor', confidence: .72 },
+    structure: { ...snapshot.structure, available: true, label: 'section-3', sectionProgress: .64 },
+  }, events: [] };
+  const projected = selectPrimaryListeningView({ ...telemetry, primaryEvidence: {
+    ...telemetry.primaryEvidence,
+    harmony: { chroma: '.10 .00 .00 .00 .30 .00 .00 .20 .00 .40 .00 .00',
+      hypothesis: 'A minor', frameConfidence: '.620' },
+  } }, frame, [
+    { type: 'note-on', time: .1, note: { id: 'n', start: .1, end: 1, midi: 49, noteName: 'C#3', intensity: .8 } },
+    { type: 'snare', time: .1, id: 'snare', strength: .82, confidence: .7,
+      hit: { id: 'snare', time: .1, type: 'snare', strength: .82 } },
+    { type: 'beat', time: .1, id: 'beat', index: 4, strength: .8 },
+    { type: 'chord-change', time: .1, harmony: { id: 'h', start: .1, end: 1,
+      chord: 'A minor', rootPitchClass: 9, pitchClasses: [9, 0, 4], confidence: .81 } },
+  ]);
+  assert.deepEqual(projected.listeningModels, telemetry.hearing);
+  assert.equal(projected.melody.identity, 'C#3');
+  assert.equal(projected.melody.state, 'ACCEPTED');
+  assert.equal(projected.harmony.hypothesis, 'A minor');
+  assert.equal(projected.harmony.chord, 'A minor');
+  assert.equal(projected.harmony.state, 'ACCEPTED');
+  assert.equal(projected.percussion.hit, 'SNARE');
+  assert.equal(projected.percussion.strength, '0.820');
+  assert.equal(projected.structure.identity, 'SECTION 03');
+});
+
+test('below-range observed pitch remains primary evidence while Melody reports searching', () => {
+  const telemetry = selectSignalTelemetry(observation(map(), .2));
+  const projected = selectPrimaryListeningView({ ...telemetry, primaryEvidence: {
+    ...telemetry.primaryEvidence,
+    observedPitch: { frequencyHz: '79.73', noteName: 'D#2', score: '.714', rangeStatus: 'BELOW MELODY RANGE' },
+  } }, { snapshot: lookupSnapshot({ ...map(), capabilities: { ...map().capabilities, melody: false }, melody: null } as AudioMap,
+    { time: .2, duration: 2, playing: true }), events: [] }, []);
+  assert.equal(projected.observedPitch.frequencyHz, '79.73');
+  assert.equal(projected.observedPitch.rangeStatus, 'BELOW MELODY RANGE');
+  assert.equal(projected.melody.state, 'SEARCHING');
+});
+
+test('event emphasis is a deterministic projection of authoritative event age', () => {
+  const audioMap = map();
+  const event = { type: 'beat' as const, time: .1, id: 'beat', index: 1, strength: .8 };
+  const atTime = (time: number) => {
+    const telemetry = selectSignalTelemetry(observation(audioMap, time));
+    return selectPrimaryListeningView(telemetry,
+      { snapshot: lookupSnapshot(audioMap, { time, duration: 2, playing: true }), events: [] }, [event]).rhythm.emphasis;
+  };
+  assert.equal(atTime(.2), 'current');
+  assert.equal(atTime(.4), 'recent');
+  assert.equal(atTime(.6), 'none');
+});
+
+test('Listening Field beat emphasis returns to baseline within each beat interval', () => {
+  const bpm = 146.5;
+  const interval = 60 / bpm;
+  assert.equal(listeningFieldBeatEmphasis(.05, bpm), 'current');
+  assert.equal(listeningFieldBeatEmphasis(.2, bpm), 'recent');
+  assert.equal(listeningFieldBeatEmphasis(interval * .76, bpm), 'none');
+  assert.equal(listeningFieldBeatEmphasis(interval - .001, bpm), 'none');
+  assert.equal(listeningFieldBeatEmphasis(.2, null), 'none');
+});
+
+test('temporal score composition keeps primary order, forensic disclosures, and fixed placeholders', () => {
+  const component = readFileSync(new URL('../src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const ordered = ['scale="FAST"', 'scale="SHORT"', 'scale="BEAT"', 'scale="SLOW"', 'scale="SECTION"'];
+  ordered.reduce((position, marker) => {
+    const next = component.indexOf(marker);
+    assert.ok(next > position, `${marker} must follow the previous temporal band`);
+    return next;
+  }, -1);
+  assert.match(component, /name="PERCUSSION"/);
+  assert.match(component, /label="HYPOTHESIS"/);
+  assert.match(component, /label="CHORD"/);
+  assert.doesNotMatch(component.slice(component.indexOf('signal-temporal-score'), component.indexOf('signal-forensic-layers')), /MELODY FRAME|barPhase|SOURCE/);
+  assert.match(component, /<summary>RECENT EVENTS<\/summary>/);
+  assert.match(component, /<summary>SOURCE \/ SYSTEM<\/summary>/);
+  assert.match(styles, /\.signal-primary-line \{[^}]*min-height: 1\.8rem/s);
+  assert.match(styles, /\.signal-console section \{[^}]*background: transparent/s);
+  assert.match(styles, /data-event-emphasis='current'/);
+  assert.doesNotMatch(styles, /transition\s*:|animation\s*:|@keyframes/);
+});
+
+test('Listening Field reuses the primary listening projection through a presentation-only variant', () => {
+  const component = readFileSync(new URL('../src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const fieldComponent = readFileSync(new URL('../src/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
+  const player = readFileSync(new URL('../src/signal-player/SignalPlayer.tsx', import.meta.url), 'utf8');
+  const host = readFileSync(new URL('../src/experience/App.tsx', import.meta.url), 'utf8');
+  assert.equal((component.match(/selectPrimaryListeningView\(/g) ?? []).length, 1);
+  assert.match(component, /composition = 'temporal-score'/);
+  assert.match(component, /<ListeningField primary=\{primary\}/);
+  assert.match(player, /composition\?: SignalComposition/);
+  assert.match(player, /composition=\{composition\}/);
+  assert.match(host, /signal-composition/);
+  assert.match(host, /'listening-field-uncertainty' as const/);
+  assert.match(host, /'listening-field' as const/);
+  assert.match(host, /'temporal-score' as const/);
+  assert.match(host, /'performance' as const/);
+  assert.doesNotMatch(fieldComponent, /AudioMap|AudioWorld|selectSignalTelemetry|requestAnimationFrame|setInterval/);
+});
+
+test('Performance Surface keeps permanent model orientation and opens performance layers by default', () => {
+  const component = readFileSync(new URL('../src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const fieldComponent = readFileSync(new URL('../src/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
+  assert.match(component, /composition === 'performance'/);
+  assert.match(component, /defaultOpen=\{composition === 'performance'\}/);
+  assert.match(component, /open=\{composition === 'performance' \|\| undefined\}/);
+  assert.match(component, /<summary>SOURCE \/ SYSTEM<\/summary>/);
+  assert.doesNotMatch(component, /data-signal-domain="source-system"[^>]*open=/);
+  assert.match(fieldComponent, /listening-field-models--performance/);
+  assert.match(fieldComponent, /<section[^>]*aria-label="Listening models"/s);
+  assert.match(fieldComponent, /performance \? null : <div className="listening-field-transport"/);
+});
+
+test('Performance Surface uses unequal field heights and keeps uncertainty evidence production-backed', () => {
+  const styles = readFileSync(new URL('../src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  assert.match(styles, /data-composition='performance'[^}]*\.listening-field-signal \{ min-height: 3\.75rem/s);
+  assert.match(styles, /data-composition='performance'[^}]*\.listening-field-pitch \{ min-height: 9\.25rem/s);
+  assert.match(styles, /data-composition='performance'[^}]*\.listening-field-rhythm \{ min-height: 6rem/s);
+  assert.match(styles, /data-composition='performance'[^}]*\.listening-field-harmony \{ min-height: 4\.75rem/s);
+  assert.match(styles, /data-composition='performance'[^}]*\.listening-field-tonal \{ min-height: 4\.75rem/s);
+  assert.match(styles, /data-composition='performance'[^}]*\.listening-field-structure \{ min-height: 4\.5rem/s);
+  assert.match(styles, /grid-template-columns: minmax\(0, 2\.15fr\) minmax\(15rem, \.85fr\)/);
+  assert.match(styles, /@media \(max-width: 900px\)[\s\S]*signal-forensic-layers \{ grid-template-columns: minmax\(0, 1fr\)/);
+  assert.doesNotMatch(styles, /transition\s*:|animation\s*:|@keyframes/);
+});
+
+test('Uncertainty Field projects retained Melody candidates without changing their production order', () => {
+  const sampleRate = 48_000;
+  const tone = Float32Array.from({ length: sampleRate }, (_, index) =>
+    .66 * Math.sin(2 * Math.PI * 220 * index / sampleRate)
+    + .24 * Math.sin(2 * Math.PI * 440 * index / sampleRate));
+  const audioMap = analyzePcmAudio({ sampleRate, channels: [tone] }, {
+    id: 'uncertainty-melody', filename: 'uncertainty.wav', mimeType: 'audio/wav',
+  });
+  const transport = { time: .4, duration: audioMap.duration, playing: true };
+  const retained = selectMelodyEvidenceForTransport(audioMap.melodyEvidence, transport);
+  const projected = selectSignalTelemetry({ audioMap, mapRevision: 1, transport })
+    .primaryEvidence.uncertainty.melody.candidates;
+  assert.ok((retained?.candidates.length ?? 0) > 0);
+  assert.ok(projected.length <= 3);
+  assert.deepEqual(projected.map(candidate => candidate.noteName),
+    retained?.candidates.slice(0, 3).map(candidate => candidate.noteName));
+  assert.deepEqual(projected.map(candidate => candidate.frequencyHz),
+    retained?.candidates.slice(0, 3).map(candidate => candidate.pitchHz.toFixed(2)));
+  assert.deepEqual(projected.map(candidate => candidate.score),
+    retained?.candidates.slice(0, 3).map(candidate => candidate.score.toFixed(3)));
+});
+
+test('Uncertainty Field projects retained Harmony and Tonal top, second, and margin evidence', () => {
+  const audioMap = map();
+  const chord = (label: string, rootPitchClass: number, score: number) => ({
+    label, rootPitchClass, quality: 'minor' as const,
+    pitchClasses: [rootPitchClass, (rootPitchClass + 3) % 12, (rootPitchClass + 7) % 12], score,
+  });
+  const tonal = (label: string, rootPitchClass: number, score: number) => ({
+    label, rootPitchClass, mode: 'minor' as const, score,
+    profileScore: score, tonicSupport: score, chordSupport: score,
+  });
+  const enriched = { ...audioMap,
+    harmonyAnalysis: { ...audioMap.harmonyAnalysis!, frames: audioMap.harmonyAnalysis!.frames.map((frame, index) =>
+      index === 0 ? { ...frame, topCandidate: chord('G major', 7, .24),
+        secondCandidate: chord('G# minor', 8, .22), scoreMargin: .02 } : frame) },
+    tonalCenterAnalysis: { ...audioMap.tonalCenterAnalysis!, frames: audioMap.tonalCenterAnalysis!.frames.map((frame, index) =>
+      index === 0 ? { ...frame, topCandidate: tonal('C minor', 0, .58),
+        secondCandidate: tonal('G minor', 7, .51), topScore: .58, secondScore: .51, margin: .07 } : frame) },
+  } as AudioMap;
+  const uncertainty = selectSignalTelemetry(observation(enriched, .1)).primaryEvidence.uncertainty;
+  assert.deepEqual(uncertainty.harmony, {
+    top: { identity: 'G major', score: '0.240' },
+    second: { identity: 'G# minor', score: '0.220' }, margin: '0.020', changed: true,
+  });
+  assert.deepEqual(uncertainty.tonalCenter, {
+    top: { identity: 'C minor', score: '0.580' },
+    second: { identity: 'G minor', score: '0.510' }, margin: '0.070', changed: true,
+  });
+});
+
+test('Uncertainty Field keeps cognition geometry across accepted states and adds no animation clock', () => {
+  const component = readFileSync(new URL('../src/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  assert.match(component, /Array\.from\(\{ length: cap \}/);
+  assert.match(component, /accepted \|\| !active \? 'settled'/);
+  assert.match(component, /transport\.playing && !ended && primary\.uncertainty\.melody\.changed/);
+  assert.match(component, /primary\.uncertainty\.harmony\.changed/);
+  assert.match(component, /primary\.uncertainty\.tonalCenter\.changed/);
+  assert.match(component, /data-composition=\{performance \? 'performance' : uncertainty \? 'listening-field-uncertainty' : 'listening-field'\}/);
+  assert.match(styles, /--field-cognition: #40584a/);
+  assert.match(styles, /--field-active: #62f296/);
+  assert.match(styles, /--field-foreground: #edf8f0/);
+  assert.match(styles, /data-cognition-activity='active'/);
+  assert.match(styles, /data-cognition-activity='settled'/);
+  assert.match(styles, /nth-child\(3\) \{ visibility: hidden; \}/);
+  assert.doesNotMatch(component + styles, /setInterval|setTimeout|@keyframes|animation\s*:|transition\s*:/);
+  assert.doesNotMatch(styles, /data-cognition-activity[^}]*display:\s*none/);
+});
+
+test('Listening Field removes time blocks and peripheral metrics from its primary field', () => {
+  const component = readFileSync(new URL('../src/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
+  for (const voice of ['SIGNAL', 'OBSERVED PITCH / MELODY', 'RHYTHM / PERCUSSION', 'HARMONY',
+    'TONAL CENTER', 'STRUCTURE']) assert.match(component, new RegExp(`name="${voice}"`));
+  assert.equal((component.match(/listening-field-now-rule/g) ?? []).length, 1);
+  assert.doesNotMatch(component, /FAST|SHORT|BEAT" detail|SLOW|SECTION" detail/);
+  assert.doesNotMatch(component, /\.chroma|\.brightness|\.spectralChange|\.phase|\.activity|\.novelty/);
+  assert.doesNotMatch(component, /periodicity|salience|threshold|FFT|hop/i);
+  assert.doesNotMatch(component, /hypothesisConfidence|tonalCenter\.confidence/);
+  assert.match(component, /data-field-alignment=\{pitchAligned \? 'aligned' : 'separated'\}/);
+  assert.match(component, /primary\.observedPitch\.rangeStatus/);
+  assert.match(component, /primary\.rhythm\.listeningFieldEmphasis/);
+  assert.match(component, /primary\.harmony\.hypothesis/);
+  assert.match(component, /primary\.harmony\.chord/);
+});
+
+test('Listening Field CSS preserves one responsive field, fixed depth rows, and scroll anchoring', () => {
+  const styles = readFileSync(new URL('../src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  assert.match(styles, /\.listening-field-score \{[^}]*display: grid/s);
+  assert.match(styles, /\.listening-field-now-rule \{[^}]*grid-row: 1 \/ 7/s);
+  assert.match(styles, /\.listening-field-voice \{[^}]*grid-template-columns: subgrid/s);
+  assert.match(styles, /\.listening-field-pitch \{[^}]*min-height: 7\.5rem/);
+  assert.match(styles, /\.listening-field-structure \{[^}]*min-height: 8rem/);
+  assert.match(styles, /@media \(max-width: 800px\)/);
+  assert.match(styles, /\.signal-forensic-layers \{[^}]*overflow-anchor: none/s);
+  assert.match(styles, /\.signal-inspect-stream \{[^}]*overflow-anchor: none/s);
+  assert.doesNotMatch(styles, /transition\s*:|animation\s*:|@keyframes/);
 });
 
 test('experience exposes only a typed read-only observation seam for SignalConsole', () => {
