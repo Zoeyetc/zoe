@@ -18,6 +18,8 @@ import { createAttentionController, type AttentionState } from './attention';
 import { createAudioPreparationController, FIXTURE_PREPARATION_STATE, type AudioPreparationState } from '../audio/AudioPreparationController';
 import { resolveDropTowerQaAudioMap } from '../audio/DropTowerQaAudioMap';
 import { SignalPlayer } from '../signal-player/SignalPlayer';
+import { createLiveAudioInputController } from '../audio/live/LiveAudioInputController';
+import { INITIAL_LIVE_INPUT_STATE, type LiveInputState } from '../audio/live/types';
 
 export function App() {
   const physicsStageRef = useRef<HTMLDivElement>(null);
@@ -40,12 +42,23 @@ export function App() {
   const [preparation, setPreparation] = useState<AudioPreparationState>(() => ({
     ...FIXTURE_PREPARATION_STATE, duration: dropTowerQaMap?.duration ?? 24,
   }));
+  const [liveInputState, setLiveInputState] = useState<LiveInputState>(INITIAL_LIVE_INPUT_STATE);
   const [audioPreparation] = useState(() => createAudioPreparationController(next => {
     setPreparation(next);
     experience.setAudioPreparationState(next);
   }));
   const [attention] = useState(() => createAttentionController(() => performance.now() / 1000, reduceMotion));
   const [state, setState] = useState(() => experience.read());
+  const [liveInput] = useState(() => createLiveAudioInputController({
+    onState(next) {
+      setLiveInputState(next);
+      experience.updateLiveInputState(next);
+    },
+    onAnalysis(update) {
+      experience.updateLiveInput(update);
+      setState(experience.read());
+    },
+  }));
   const [attentionState, setAttentionState] = useState<AttentionState>(() => attention.read());
   const focusActor = useCallback((actorId: Parameters<typeof attention.focus>[0]) => {
     setAttentionState(attention.focus(actorId));
@@ -66,17 +79,33 @@ export function App() {
     }, next.frame.snapshot.transport.time));
   }, [attention, experience, mode]);
   const chooseAudio = useCallback((file: File) => {
-    void audioPreparation.prepare(file).then(prepared => {
+    void liveInput.stop().then(() => audioPreparation.prepare(file)).then(prepared => {
       if (!prepared) return;
       experience.activateRealAudio(prepared);
       commitState(experience.read(), true);
     });
-  }, [audioPreparation, commitState, experience]);
+  }, [audioPreparation, commitState, experience, liveInput]);
   const useFixture = useCallback(() => {
-    audioPreparation.useFixture();
-    experience.activateFixture();
-    commitState(experience.read(), true);
-  }, [audioPreparation, commitState, experience]);
+    void liveInput.stop().then(() => {
+      audioPreparation.useFixture(); experience.activateFixture(); commitState(experience.read(), true);
+    });
+  }, [audioPreparation, commitState, experience, liveInput]);
+  const startLive = useCallback((deviceId: string | null) => {
+    void liveInput.start(deviceId).then(() => {
+      if (liveInput.read().status !== 'LIVE') return;
+      experience.startLiveInput(liveInput.readTransport, liveInput.read());
+      commitState(experience.read(), true);
+    });
+  }, [commitState, experience, liveInput]);
+  const stopLive = useCallback(() => {
+    void liveInput.stop().then(() => {
+      experience.stopLiveInput(liveInput.read()); commitState(experience.read(), true);
+    });
+  }, [commitState, experience, liveInput]);
+  const selectLiveInput = useCallback((deviceId: string) => startLive(deviceId || null), [startLive]);
+  useEffect(() => {
+    if (mode === 'signal-console') void liveInput.refreshDevices();
+  }, [liveInput, mode]);
   useEffect(() => {
     // Low-rate instrumentation refresh, not a transport or simulation clock.
     const timer = window.setInterval(() => {
@@ -91,10 +120,10 @@ export function App() {
     if (mode === 'park') experience.updateContentLayout(PARK_CONTENT_BOUNDS);
   }, [experience, mode]);
   useEffect(() => {
-    const dispose = () => { audioPreparation.dispose(); experience.dispose(); };
+    const dispose = () => { audioPreparation.dispose(); void liveInput.dispose(); experience.dispose(); };
     window.addEventListener('pagehide', dispose, { once: true });
     return () => window.removeEventListener('pagehide', dispose);
-  }, [audioPreparation, experience]);
+  }, [audioPreparation, experience, liveInput]);
 
   const workbench = <>
     <CarouselView state={state.carousel} />
@@ -133,6 +162,10 @@ export function App() {
     actions={controlActions}
     onChooseAudio={chooseAudio}
     onUseFixture={useFixture}
+    liveInput={liveInputState}
+    onStartLive={startLive}
+    onStopLive={stopLive}
+    onSelectLiveInput={selectLiveInput}
     observe={experience.observeSignalConsole}
     interpretation={state.frame}
     events={state.recentEvents}

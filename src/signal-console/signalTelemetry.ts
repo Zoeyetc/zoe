@@ -3,6 +3,7 @@ import type {
   StructureAnalysisFrame, TonalCenterFrame, TransportState,
 } from '../audio/types';
 import type { SignalConsoleObservation } from './types';
+import type { LiveInputState, LiveListenerStatus } from '../audio/live/types';
 import { melodyEvidenceIndexAt, selectMelodyEvidence,
   selectMelodyEvidenceForTransport } from '../audio/melody-evidence/selectMelodyEvidence.ts';
 import type {
@@ -16,7 +17,8 @@ export type SignalField = Readonly<{
   width?: 'wide';
 }>;
 export type SignalDomain = Readonly<{ id: string; layer: 'analysis'; fields: readonly SignalField[] }>;
-export type HearingStatus = 'STABLE' | 'UNCERTAIN' | 'SEARCHING' | 'UNAVAILABLE';
+export type HearingStatus = 'STABLE' | 'UNCERTAIN' | 'SEARCHING' | 'UNAVAILABLE'
+  | 'LIVE' | 'UNAVAILABLE LIVE' | `WARMING UP ${string}`;
 export type HearingDomain = Readonly<{ id: 'RHYTHM' | 'MELODY' | 'HARMONY' | 'KEY' | 'STRUCTURE'; status: HearingStatus }>;
 export type ResidueCandidate = Readonly<{ identity: string; score: string }>;
 export type ResidueSample = Readonly<{
@@ -302,9 +304,16 @@ export function signalPresentationKey(observation: SignalConsoleObservation) {
     indexes.melodyEvidence].join(':');
 }
 
-const sourceFields = (map: AudioMap, revision: number): readonly SignalField[] => [
+const sourceFields = (map: AudioMap, revision: number, live?: LiveInputState | null): readonly SignalField[] => [
   anchor('KIND', map.source?.kind.toUpperCase() ?? 'FIXTURE'), anchor('REVISION', String(revision)),
   anchor('FILE', map.source?.filename ?? '—'), anchor('MAP', map.id),
+  ...(live ? [anchor('INPUT DEVICE', live.deviceLabel ?? 'LABEL UNAVAILABLE'),
+    anchor('CAPTURE', live.status), anchor('CHANNELS', live.channelCount === null ? '—' : String(live.channelCount)),
+    anchor('BASE LATENCY', live.baseLatency === null ? '—' : `${number(live.baseLatency * 1000, 1)} ms`),
+    anchor('ANALYSIS LATENCY', live.lastAnalysisLatency === null ? '—' : `${number(live.lastAnalysisLatency * 1000, 1)} ms`),
+    anchor('PCM MEMORY', `${live.rollingPcmBytes} bytes`),
+    anchor('EVIDENCE MEMORY', `${live.retainedEvidenceBytes} bytes`),
+    anchor('DROPPED', String(live.droppedAnalysisRequests))] : []),
   anchor('SAMPLE RATE', map.analysis ? `${map.analysis.sampleRate} Hz` : '—'),
   anchor('HOP', map.analysis ? `${map.analysis.hopSize} samples` : '—'),
 ];
@@ -354,7 +363,20 @@ const structureFields = (map: AudioMap, frame: StructureAnalysisFrame | null, in
 
 /** Exact v0.1 status mapping: accepted capability = STABLE; rejected retained
  * hypotheses = UNCERTAIN; retained search evidence = SEARCHING; otherwise UNAVAILABLE. */
-function selectHearing(map: AudioMap): readonly HearingDomain[] {
+function liveHearing(item: LiveListenerStatus): HearingStatus {
+  if (item.state === 'WARMING_UP') return `WARMING UP ${Math.min(item.elapsed, item.required).toFixed(1)}/${item.required.toFixed(1)}s`;
+  if (item.state === 'UNAVAILABLE_LIVE') return 'UNAVAILABLE LIVE';
+  return item.state;
+}
+
+function selectHearing(map: AudioMap, live?: LiveInputState | null): readonly HearingDomain[] {
+  if (live) return [
+    { id: 'RHYTHM', status: liveHearing(live.listeners.rhythm) },
+    { id: 'MELODY', status: liveHearing(live.listeners.melody) },
+    { id: 'HARMONY', status: liveHearing(live.listeners.harmony) },
+    { id: 'KEY', status: liveHearing(live.listeners.tonalCenter) },
+    { id: 'STRUCTURE', status: liveHearing(live.listeners.structure) },
+  ];
   const rhythmEvidence = Boolean(map.rhythmAnalysis?.tempoCandidates?.length || map.rhythmAnalysis?.beats?.length);
   const melodyEvidence = map.melodyEvidence;
   const harmonyEvidence = map.harmonyAnalysis?.frames.some(frame => frame.topCandidate !== null) ?? false;
@@ -384,7 +406,8 @@ const rejectedCandidateText = (candidate: MelodyEvidenceObservation['rejectedCan
     + ` · salience ${number(candidate.salience)} · score ${number(candidate.score)} · ${candidate.reason}`
   : '—';
 
-function selectMelodyInspect(map: AudioMap, evidence: MelodyEvidenceObservation | null): MelodyInspectTelemetry {
+function selectMelodyInspect(map: AudioMap, evidence: MelodyEvidenceObservation | null,
+  rolling = false): MelodyInspectTelemetry {
   const timeline = map.melodyEvidence;
   const candidates = Array.from({ length: 5 }, (_, index) => ({
     id: `CANDIDATE ${index + 1}`,
@@ -425,7 +448,8 @@ function selectMelodyInspect(map: AudioMap, evidence: MelodyEvidenceObservation 
       anchor('RESULT', evidence ? evidence.voiced ? 'ACCEPTED' : 'REJECTED' : '—'),
       anchor('STAGE', evidence?.stage.toUpperCase() ?? '—'), anchor('REASON', evidence?.reason ?? '—'),
       signal('SALIENCE', number(evidence?.finalSalience))],
-    track: [signal('CONFIDENCE', number(timeline?.track.confidence)),
+    track: [...(rolling ? [anchor('SCOPE', 'ROLLING 12.0 S')] : []),
+      signal('CONFIDENCE', number(timeline?.track.confidence)),
       anchor('REQUIRED', number(timeline?.thresholds.trackConfidence)),
       signal('VOICED RATIO', number(timeline?.track.voicedFrameRatio)),
       signal('USABLE', timeline ? `${number(timeline.track.usableDuration)} s` : '—'),
@@ -471,10 +495,10 @@ export function selectSignalTelemetry(observation: SignalConsoleObservation): Si
   const signature = signalPresentationKey(observation);
   return {
     signature, mapRevision, mapId: map.id, ended, transport, indexes,
-    hearing: selectHearing(map),
-    melodyInspect: selectMelodyInspect(map, melodyEvidence),
+    hearing: selectHearing(map, observation.live),
+    melodyInspect: selectMelodyInspect(map, melodyEvidence, Boolean(observation.live)),
     primaryEvidence: {
-      sourceSystem: sourceFields(map, mapRevision),
+      sourceSystem: sourceFields(map, mapRevision, observation.live),
       signal: {
         level: number(amplitude?.rms[0]), transient: number(amplitude?.onsetStrength[0]),
         low: number(spectrum?.low[0]), mid: number(spectrum?.mid[0]), high: number(spectrum?.high[0]),
@@ -537,7 +561,7 @@ export function selectSignalTelemetry(observation: SignalConsoleObservation): Si
       },
     },
     domains: [
-      { id: 'SOURCE', layer: 'analysis', fields: sourceFields(map, mapRevision) },
+      { id: 'SOURCE', layer: 'analysis', fields: sourceFields(map, mapRevision, observation.live) },
       { id: 'LEVEL', layer: 'analysis', fields: levelFields(amplitude) },
       { id: 'TRANSIENT', layer: 'analysis', fields: transientFields(amplitude) },
       { id: 'SPECTRUM', layer: 'analysis', fields: spectrumFields(spectrum) },

@@ -849,7 +849,7 @@ test('experience exposes only a typed read-only observation seam for SignalConso
   const types = readFileSync(new URL('../src/signal-console/types.ts', import.meta.url), 'utf8');
   assert.match(types, /type SignalConsoleObservation = Readonly<\{/);
   assert.match(source, /observeSignalConsole: \(\): SignalConsoleObservation/);
-  assert.match(source, /const transport = clock\.read\(\)/);
+  assert.match(source, /const transport = liveTransport \? liveTransport\(\) : clock\.read\(\)/);
   assert.match(source, /melodyEvidence: selectMelodyEvidenceForTransport\(activeMap\.melodyEvidence, transport\)/);
   assert.match(source, /audioMap: activeMap/);
 });

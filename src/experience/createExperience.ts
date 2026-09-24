@@ -1,6 +1,6 @@
 import { createPreviewAudioClock, type AudioClock } from '../audio/AudioClock';
 import { milestoneSevenAAudioMap } from '../audio/AudioMap';
-import { createAudioWorld } from '../audio/AudioWorld';
+import { createAudioWorld, lookupSnapshot } from '../audio/AudioWorld';
 import type { ControlActions } from '../control/types';
 import { createPhysicsWorld } from '../physics/PhysicsWorld';
 import { createAnchoredContentParticipant, type WorldBounds } from '../physics/AnchoredContentParticipant';
@@ -29,6 +29,8 @@ import type { AudioMap } from '../audio/types';
 import { createParkPulse, PARK_PULSE_SOURCE_ID } from '../physics/ParkPulse';
 import type { SignalConsoleObservation } from '../signal-console/types';
 import { selectMelodyEvidenceForTransport } from '../audio/melody-evidence/selectMelodyEvidence.ts';
+import { LIVE_INPUT_WINDOW_SECONDS, type LiveAnalysisUpdate, type LiveInputState } from '../audio/live/types';
+import type { TransportState } from '../audio/types';
 
 /** Composition only: systems keep their own state and ownership. */
 export function createExperience(now: () => number, reducedMotion = false, fixtureMap: AudioMap = milestoneSevenAAudioMap) {
@@ -72,9 +74,12 @@ export function createExperience(now: () => number, reducedMotion = false, fixtu
   let frame = world.read(clock.read());
   let recentEvents = frame.events;
   let previousSimulationTime = now();
+  let liveTransport: (() => TransportState) | null = null;
+  let liveState: LiveInputState | null = null;
 
   const read = () => {
-    frame = world.read(clock.read());
+    if (liveTransport) frame = { snapshot: lookupSnapshot(activeMap, liveTransport()), events: [] };
+    else frame = world.read(clock.read());
     const simulationTime = now();
     const dt = simulationTime - previousSimulationTime;
     previousSimulationTime = simulationTime;
@@ -179,12 +184,13 @@ export function createExperience(now: () => number, reducedMotion = false, fixtu
   return {
     read, actions,
     observeSignalConsole: (): SignalConsoleObservation => {
-      const transport = clock.read();
+      const transport = liveTransport ? liveTransport() : clock.read();
       return {
         mapRevision,
         transport,
         audioMap: activeMap,
         melodyEvidence: selectMelodyEvidenceForTransport(activeMap.melodyEvidence, transport),
+        live: liveState,
       };
     },
     setAudioPreparationState: (next: AudioPreparationState) => { preparation = next; },
@@ -192,6 +198,7 @@ export function createExperience(now: () => number, reducedMotion = false, fixtu
       const nextRollerCoasterTrack = createRollerCoasterTrack(prepared.map, planRollerCoasterTrack);
       const nextRollerCoaster = createRollerCoasterSimulation({ reducedMotion, route: nextRollerCoasterTrack.map.route });
       stopClock();
+      liveTransport = null; liveState = null;
       activeMap = prepared.map;
       mapRevision += 1;
       rollerCoasterTrack = nextRollerCoasterTrack;
@@ -208,6 +215,7 @@ export function createExperience(now: () => number, reducedMotion = false, fixtu
     },
     activateFixture() {
       stopClock();
+      liveTransport = null; liveState = null;
       activeMap = fixtureMap;
       mapRevision += 1;
       rollerCoasterTrack = createRollerCoasterTrack(activeMap, planRollerCoasterTrack);
@@ -218,6 +226,39 @@ export function createExperience(now: () => number, reducedMotion = false, fixtu
       preparation = { sourceMode: 'fixture', filename: null, duration: activeMap.duration,
         decodeState: 'idle', analysisState: 'idle', error: null, requestId: preparation.requestId };
       synchronizeNewSource();
+    },
+    startLiveInput(readTransport: () => TransportState, state: LiveInputState) {
+      stopClock(); liveTransport = readTransport; liveState = state; recentEvents = [];
+      const transport = readTransport();
+      activeMap = {
+        version: 1, id: `live-input-warmup-${mapRevision + 1}`,
+        duration: Math.max(1, transport.time + LIVE_INPUT_WINDOW_SECONDS),
+        capabilities: { melody: false, rhythm: false, percussion: false, harmony: false,
+          tonalCenter: false, structure: false, spectrum: false },
+        melody: null, percussion: null, rhythm: null, harmony: null, structure: null, drops: null,
+        spectrum: [], amplitude: [],
+        source: { kind: 'live-input', filename: null, mimeType: 'audio/x-live-input',
+          deviceId: state.selectedDeviceId, deviceLabel: state.deviceLabel },
+      };
+      mapRevision += 1; frame = { snapshot: lookupSnapshot(activeMap, transport), events: [] };
+      previousSimulationTime = now();
+    },
+    updateLiveInput(update: LiveAnalysisUpdate) {
+      if (!liveTransport) return;
+      activeMap = update.map; liveState = update.state; mapRevision += 1;
+      frame = { snapshot: lookupSnapshot(activeMap, liveTransport()), events: update.events };
+      if (update.events.length) recentEvents = [...recentEvents, ...update.events].slice(-8);
+    },
+    updateLiveInputState(state: LiveInputState) {
+      if (!liveTransport) return;
+      const previous = liveState;
+      const preserveListeners = previous && (state.status === 'STOPPED' || state.status === 'DEVICE_LOST');
+      liveState = preserveListeners ? { ...state, listeners: previous.listeners } : state;
+    },
+    stopLiveInput(state: LiveInputState) {
+      const listeners = liveState?.listeners ?? state.listeners;
+      liveState = { ...state, listeners };
+      if (liveTransport) frame = { snapshot: lookupSnapshot(activeMap, liveTransport()), events: [] };
     },
     updateContentLayout: (bounds: WorldBounds) => content.updateLayout(bounds),
     dispose: () => {
