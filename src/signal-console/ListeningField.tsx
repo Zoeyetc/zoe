@@ -8,6 +8,7 @@ type ListeningFieldProps = Readonly<{
   ended: boolean;
   uncertainty?: boolean;
   performance?: boolean;
+  showModels?: boolean;
   transportTimeRef: RefObject<HTMLOutputElement | null>;
 }>;
 
@@ -103,7 +104,7 @@ function Identity({ children, typography, emphasis = 'none', anchor = false }: {
 }
 
 export function ListeningField({ primary, transport, ended, uncertainty = false, performance = false,
-  transportTimeRef }: ListeningFieldProps) {
+  showModels = true, transportTimeRef }: ListeningFieldProps) {
   const pitchAligned = primary.melody.state === 'ACCEPTED'
     && primary.observedPitch.noteName !== '—'
     && primary.melody.identity === primary.observedPitch.noteName;
@@ -131,7 +132,7 @@ export function ListeningField({ primary, transport, ended, uncertainty = false,
         / {transport.duration.toFixed(3)} <strong>{ended ? 'ENDED' : transport.playing ? 'PLAYING' : 'PAUSED'}</strong>
       </span>
     </div>}
-    <ModelIndex models={primary.listeningModels} performance={performance} />
+    {showModels ? <ModelIndex models={primary.listeningModels} performance={performance} /> : null}
     <div className="listening-field-score">
       <span className="listening-field-now-rule" aria-hidden="true" />
 

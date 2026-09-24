@@ -313,7 +313,7 @@ test('SignalConsole uses semantic typography inside fixed phrase-group boundarie
   assert.doesNotMatch(component, />HEARING</);
   assert.match(component, /label="Rejected pre-filter"/);
   assert.match(component, /label="Generation"/);
-  assert.match(component, /inspect\.rejectedCandidates\.map/);
+  assert.match(component, /rejectedCandidates\.map/);
   assert.match(readFileSync(new URL('../src/signal-console/signalTelemetry.ts', import.meta.url), 'utf8'),
     /candidate\.reason/);
 });
@@ -469,7 +469,7 @@ test('temporal score composition keeps primary order, forensic disclosures, and 
   assert.match(component, /name="PERCUSSION"/);
   assert.match(component, /label="HYPOTHESIS"/);
   assert.match(component, /label="CHORD"/);
-  assert.doesNotMatch(component.slice(component.indexOf('signal-temporal-score'), component.indexOf('signal-forensic-layers')), /MELODY FRAME|barPhase|SOURCE/);
+  assert.doesNotMatch(component.slice(component.indexOf('signal-temporal-score'), component.indexOf('signal-performance-band')), /MELODY FRAME|barPhase|SOURCE/);
   assert.match(component, /<summary>RECENT EVENTS<\/summary>/);
   assert.match(component, /<summary>SOURCE \/ SYSTEM<\/summary>/);
   assert.match(styles, /\.signal-primary-line \{[^}]*min-height: 1\.8rem/s);
@@ -504,21 +504,60 @@ test('Performance Surface keeps permanent model orientation and opens performanc
   assert.match(component, /open=\{composition === 'performance' \|\| undefined\}/);
   assert.match(component, /<summary>SOURCE \/ SYSTEM<\/summary>/);
   assert.doesNotMatch(component, /data-signal-domain="source-system"[^>]*open=/);
-  assert.match(fieldComponent, /listening-field-models--performance/);
-  assert.match(fieldComponent, /<section[^>]*aria-label="Listening models"/s);
+  assert.match(component, /signal-console-heading--performance/);
+  assert.match(component, /signal-performance-models" aria-label="Listening models"/);
+  assert.match(fieldComponent, /showModels \? <ModelIndex/);
+  assert.match(component, /showModels=\{composition !== 'performance'\}/);
   assert.match(fieldComponent, /performance \? null : <div className="listening-field-transport"/);
 });
 
 test('Performance Surface uses unequal field heights and keeps uncertainty evidence production-backed', () => {
   const styles = readFileSync(new URL('../src/signal-console/signalConsole.css', import.meta.url), 'utf8');
-  assert.match(styles, /--performance-pitch-height: 8\.5rem/);
+  assert.match(styles, /--performance-pitch-height: 9\.25rem/);
   assert.match(styles, /--performance-signal-height: 3rem/);
-  assert.match(styles, /--performance-rhythm-height: 3\.75rem/);
+  assert.match(styles, /--performance-rhythm-height: 3\.5rem/);
   assert.match(styles, /--performance-residue-height: 4\.75rem/);
-  assert.match(styles, /--performance-structure-height: 3\.4rem/);
-  assert.match(styles, /grid-template-columns: minmax\(0, 2\.15fr\) minmax\(15rem, \.85fr\)/);
-  assert.match(styles, /@media \(max-width: 900px\)[\s\S]*signal-forensic-layers \{ grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(styles, /--performance-structure-height: 3\.2rem/);
+  assert.match(styles, /grid-template-columns: minmax\(0, 2\.65fr\) minmax\(14rem, 1fr\)/);
+  assert.match(styles, /@media \(max-width: 900px\)[\s\S]*signal-performance-band \{[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
   assert.doesNotMatch(styles, /transition\s*:|animation\s*:|@keyframes/);
+});
+
+test('Single-viewport performance format keeps core truth in one bounded desktop band', () => {
+  const component = readFileSync(new URL('../src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const player = readFileSync(new URL('../src/signal-player/SignalPlayer.tsx', import.meta.url), 'utf8');
+  const playerStyles = readFileSync(new URL('../src/signal-player/signalPlayer.css', import.meta.url), 'utf8');
+  assert.match(component, /data-inspect-format=\{performance \? 'performance' : 'forensic'\}/);
+  assert.match(component, /performance\s*\? inspect\.rejectedCandidates\.filter/);
+  assert.match(component, /\{ label: 'COUNT', value: `\$\{rejectedTotal\}\/\$\{rejectedCapacity\}`/);
+  assert.match(component, /Number\.isFinite\(rejectedTotalValue\) \? rejectedTotalValue : filledRejectedCount/);
+  assert.match(component, /String\(inspect\.rejectedCandidates\.length\)/);
+  for (const [key, label] of [['frame', 'FRAME'], ['generation', 'GEN'], ['rejected', 'REJ'],
+    ['path', 'PATH'], ['decision', 'DEC'], ['track', 'TRACK'], ['accepted', 'NOTE']]) {
+    assert.match(component, new RegExp(`${key}: '${label}'`));
+  }
+  assert.match(component, /events\.slice\(-8\)\.reverse\(\)/);
+  assert.match(component, /inspect\.candidates\.map\(\(candidate, index\)/);
+  for (const family of ['inspect.frame', 'inspect.generation', 'inspect.path', 'inspect.decision', 'inspect.track']) {
+    assert.match(component, new RegExp(`fields=\\{${family.replace('.', '\\.')}`));
+  }
+  assert.match(component, /fields=\{accepted\}/);
+  assert.match(component, /<div className="signal-performance-band">/);
+  assert.match(component, /<footer className="signal-system-footer">/);
+  assert.ok(component.indexOf('<div className="signal-performance-band">')
+    < component.indexOf('<footer className="signal-system-footer">'));
+  assert.doesNotMatch(component, /data-signal-domain="source-system"[^>]*open=/);
+  assert.match(styles, /min-height: clamp\(13rem, 23vh, 14rem\)/);
+  assert.match(styles, /data-inspect-format='performance'[\s\S]*grid-template-columns: 3\.25rem minmax\(0, 1fr\)/);
+  assert.match(styles, /--performance-pitch-height: 9\.25rem/);
+  assert.match(styles, /--performance-signal-height: 3rem/);
+  assert.match(styles, /--performance-rhythm-height: 3\.5rem/);
+  assert.match(styles, /--performance-structure-height: 3\.2rem/);
+  assert.match(styles, /\.listening-field-harmony,[\s\S]*\.listening-field-tonal[\s\S]*--performance-residue-height/);
+  assert.match(player, /data-composition=\{composition\}/);
+  assert.match(playerStyles, /signal-player\[data-composition='performance'\] \{ padding-block: 1rem; \}/);
+  assert.doesNotMatch(playerStyles, /signal-playback--compact \{[^}]*border-bottom/s);
 });
 
 test('Performance density pass uses truthful system rails and keeps Pitch Melody expressive', () => {
@@ -628,7 +667,7 @@ test('Listening Field CSS preserves one responsive field, fixed depth rows, and 
   assert.match(styles, /\.listening-field-pitch \{[^}]*min-height: 7\.5rem/);
   assert.match(styles, /\.listening-field-structure \{[^}]*min-height: 8rem/);
   assert.match(styles, /@media \(max-width: 800px\)/);
-  assert.match(styles, /\.signal-forensic-layers \{[^}]*overflow-anchor: none/s);
+  assert.match(styles, /\.signal-performance-band \{[^}]*overflow-anchor: none/s);
   assert.match(styles, /\.signal-inspect-stream \{[^}]*overflow-anchor: none/s);
   assert.doesNotMatch(styles, /transition\s*:|animation\s*:|@keyframes/);
 });

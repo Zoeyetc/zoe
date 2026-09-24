@@ -139,7 +139,8 @@
   text-overflow: clip;
 }
 
-.signal-forensic-layers { margin-top: .35rem; overflow-anchor: none; }
+.signal-performance-band { margin-top: .35rem; overflow-anchor: none; }
+.signal-system-footer { margin-top: .25rem; overflow-anchor: none; }
 .signal-inspect {
   --signal-inspect-accepted: var(--signal-structure-primary);
   --signal-inspect-active: color-mix(in srgb, var(--signal-structure-primary) 76%, var(--signal-evidence-strong));
@@ -216,11 +217,11 @@
   --field-muted: #74847a;
 }
 .signal-listening-field[data-composition='performance'] {
-  --performance-pitch-height: 8.5rem;
+  --performance-pitch-height: 9.25rem;
   --performance-signal-height: 3rem;
-  --performance-rhythm-height: 3.75rem;
+  --performance-rhythm-height: 3.5rem;
   --performance-residue-height: 4.75rem;
-  --performance-structure-height: 3.4rem;
+  --performance-structure-height: 3.2rem;
   --field-cognition: var(--performance-cognition, #40584a);
   --field-cognition-quiet: var(--performance-cognition-quiet, #314238);
   --field-active: var(--performance-active, #62f296);
@@ -615,8 +616,12 @@
 .listening-field-models--performance > div span { display: inline-block; white-space: nowrap; }
 .listening-field-models--performance i { color: var(--signal-guide); font-style: normal; }
 .signal-console[data-composition='performance'] .signal-console-heading {
-  margin-bottom: .2rem;
-  padding-bottom: .2rem;
+  display: grid;
+  grid-template-columns: var(--listening-field-label) minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: var(--listening-field-gap);
+  margin-bottom: 0;
+  padding: .22rem 0 .32rem;
   border-bottom-color: var(--signal-guide);
 }
 .signal-console[data-composition='performance'] .signal-console-heading h2 {
@@ -624,14 +629,27 @@
   font: 750 .66rem/1.25 var(--signal-font-mono);
   letter-spacing: .08em;
 }
-.signal-console[data-composition='performance'] .signal-forensic-layers {
+.signal-performance-models {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .08rem .35rem;
+  min-width: 0;
+  color: var(--signal-muted-text);
+  font: 600 .58rem/1.25 var(--signal-font-mono);
+}
+.signal-performance-models span { white-space: nowrap; }
+.signal-performance-models strong { color: var(--signal-label); }
+.signal-performance-models i { color: var(--signal-guide); font-style: normal; }
+.signal-console[data-composition='performance'] .signal-performance-band {
   display: grid;
-  grid-template-columns: minmax(0, 2.15fr) minmax(15rem, .85fr);
-  align-items: start;
-  gap: 0 2rem;
-  margin-top: .8rem;
+  grid-template-columns: minmax(0, 2.65fr) minmax(14rem, 1fr);
+  align-items: stretch;
+  gap: 0 1.5rem;
+  min-height: clamp(13rem, 23vh, 14rem);
+  margin-top: .35rem;
 }
 .signal-console[data-composition='performance'] .signal-inspect {
+  padding-block: .36rem;
   border-top-color: color-mix(in srgb, var(--signal-guide) 74%, transparent);
 }
 .signal-console .signal-inspect:not([open]) > :not(summary) { display: none; }
@@ -644,8 +662,47 @@
 .signal-console[data-composition='performance'] .signal-inspect[data-signal-domain='recent-events'] {
   grid-column: 2;
 }
-.signal-console[data-composition='performance'] .signal-inspect[data-signal-domain='source-system'] {
-  grid-column: 1 / -1;
+.signal-console[data-composition='performance'] .signal-inspect[data-inspect-format='performance'] .signal-inspect-stream {
+  display: grid;
+  gap: 0;
+  margin-top: .3rem;
+}
+.signal-console[data-composition='performance'] .signal-inspect[data-inspect-format='performance'] .signal-telemetry-line {
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  min-height: .82rem;
+  margin: .035rem 0;
+  font: 560 .58rem/1.16 var(--signal-font-mono);
+}
+.signal-console[data-composition='performance'] .signal-inspect[data-inspect-format='performance'] .signal-telemetry-line > strong {
+  font: 800 .57rem/1.16 var(--signal-font-mono);
+  letter-spacing: .045em;
+}
+.signal-console[data-composition='performance'] .signal-inspect[data-inspect-format='performance'] .signal-phrase-layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 .52rem;
+}
+.signal-console[data-composition='performance'] .signal-inspect[data-inspect-format='performance'] .signal-phrase-group {
+  display: inline-block;
+}
+.signal-console[data-composition='performance'] .signal-inspect[data-inspect-format='performance'] .signal-token[data-signal-metric='note'] .signal-value,
+.signal-console[data-composition='performance'] .signal-inspect[data-inspect-format='performance'] .signal-token[data-signal-metric='result'] .signal-value,
+.signal-console[data-composition='performance'] .signal-inspect[data-inspect-format='performance'] .signal-token[data-signal-metric='stage'] .signal-value,
+.signal-console[data-composition='performance'] .signal-inspect[data-inspect-format='performance'] .signal-token[data-signal-metric='reason'] .signal-value {
+  inline-size: auto;
+}
+.signal-console[data-composition='performance'] .signal-inspect[data-signal-domain='recent-events'] .signal-event-log {
+  gap: .06rem;
+  margin-top: .32rem;
+}
+.signal-console[data-composition='performance'] .signal-inspect[data-signal-domain='recent-events'] .signal-event-log li {
+  font-size: .62rem;
+  line-height: 1.28;
+}
+.signal-console[data-composition='performance'] .signal-system-footer .signal-inspect {
+  padding-block: .32rem;
+  border-top-color: color-mix(in srgb, var(--signal-guide) 45%, transparent);
 }
 .signal-console[data-composition='performance'] [data-melody-evidence-state='candidate'],
 .signal-console[data-composition='performance'] [data-melody-evidence-state='active'] {
@@ -671,7 +728,10 @@
 
 @media (max-width: 900px) {
   .signal-parallel-listeners { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
-  .signal-console[data-composition='performance'] .signal-forensic-layers { grid-template-columns: minmax(0, 1fr); }
+  .signal-console[data-composition='performance'] .signal-performance-band {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
   .signal-console[data-composition='performance'] .signal-inspect[data-signal-domain] { grid-column: 1; }
 }
 
@@ -693,6 +753,10 @@
   .listening-field-residue [data-residue-age='3'] { display: none; }
   .listening-field-models--performance > div { white-space: normal; }
   .listening-field-models--performance > div span { white-space: nowrap; }
+  .signal-console[data-composition='performance'] .signal-console-heading {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    column-gap: .72rem;
+  }
   .signal-listening-field[data-composition='performance'] .listening-field-voice { padding-block: .42rem; }
   .signal-listening-field[data-composition='performance'] .listening-field-residue {
     grid-template-columns: repeat(2, 6.4rem);
@@ -709,6 +773,10 @@
   .signal-listening-field {
     --listening-field-label: 5.3rem;
     --listening-field-gap: .48rem;
+  }
+  .signal-console[data-composition='performance'] .signal-console-heading {
+    grid-template-columns: 5.3rem minmax(0, 1fr);
+    column-gap: .48rem;
   }
   .listening-field-transport { grid-template-columns: 5.3rem minmax(0, 1fr) 1px minmax(0, 1.08fr); column-gap: .48rem; }
   .listening-field-transport-context { gap: .35rem; }

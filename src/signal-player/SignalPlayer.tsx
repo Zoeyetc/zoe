@@ -21,7 +21,7 @@ export type SignalPlayerProps = Readonly<{
 
 export function SignalPlayer({ title, transport, preparation, actions, onChooseAudio, onUseFixture,
   observe, interpretation, events, composition }: SignalPlayerProps) {
-  return <main className="signal-player" aria-label={title ?? 'Signal player'}>
+  return <main className="signal-player" aria-label={title ?? 'Signal player'} data-composition={composition}>
     {title ? <header className="signal-player-heading"><h1>{title}</h1></header> : null}
     <SignalPlayback transport={transport} preparation={preparation} actions={actions}
       onChooseAudio={onChooseAudio} onUseFixture={onUseFixture} compact={composition === 'performance'} />

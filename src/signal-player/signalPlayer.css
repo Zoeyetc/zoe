@@ -22,6 +22,7 @@
   font-family: var(--signal-player-font);
 }
 .signal-player *, .signal-player *::before, .signal-player *::after { box-sizing: border-box; }
+.signal-player[data-composition='performance'] { padding-block: 1rem; }
 .signal-player-heading { margin-bottom: 1rem; }
 .signal-player-heading h1 { margin: 0; font-size: 1.4rem; }
 .signal-playback { margin: 0 0 1.5rem; padding: 1.1rem 1.2rem; border: 1px solid var(--signal-player-border); background: var(--signal-player-surface); }
@@ -52,10 +53,9 @@
   border: 0;
 }
 .signal-playback--compact {
-  margin: 0 0 .75rem;
-  padding: .5rem 0 .7rem;
+  margin: 0 0 .35rem;
+  padding: .35rem 0 .5rem;
   border: 0;
-  border-bottom: 1px solid var(--signal-player-border);
   background: transparent;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
