@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { RollingPcmBuffer } from '../src/audio/live/RollingPcmBuffer.ts';
-import { createLiveAudioClock } from '../src/audio/live/LiveAudioClock.ts';
-import { createLiveRollingAnalyzer } from '../src/audio/live/LiveRollingAnalyzer.ts';
-import { createLiveAudioInputController } from '../src/audio/live/LiveAudioInputController.ts';
-import { LIVE_EVENT_BUFFER_CAP, LIVE_INPUT_WINDOW_SECONDS } from '../src/audio/live/types.ts';
+import { RollingPcmBuffer } from '@computational-listening/engine';
+import {
+  createLiveAudioClock, createLiveAudioInputController, createLiveRollingAnalyzer,
+  LIVE_EVENT_BUFFER_CAP, LIVE_INPUT_WINDOW_SECONDS,
+} from '@computational-listening/audio-source-browser';
 
 test('rolling PCM uses arithmetic-mean channels and remains strictly bounded', () => {
   const buffer = new RollingPcmBuffer(10, 1);
@@ -47,7 +47,7 @@ test('deterministic injected PCM produces bounded rolling evidence without live 
   });
   analyzer.push([pcm]);
   const result = await update;
-  assert.equal(result.map.source?.kind, 'live-input');
+  assert.equal(result.source.kind, 'live-input');
   assert.equal(result.map.structureAnalysis, null);
   assert.equal(result.map.capabilities.structure, false);
   assert.equal(result.state.listeners.structure.state, 'UNAVAILABLE_LIVE');
@@ -142,10 +142,11 @@ test('permission lifecycle, device replacement, stop, and device loss clean up c
   const listenersBeforeLoss = { ...controller.read().listeners,
     rhythm: { state: 'SEARCHING' as const, elapsed: 5, required: 4 } };
   emitAnalysis?.({
-    map: { version: 1, id: 'live', duration: 5,
+    sessionId: '2', source: { kind: 'live-input', filename: null, mimeType: 'audio/x-live-input' },
+    map: { version: 1, duration: 5,
       capabilities: { melody: false, rhythm: false, percussion: false, harmony: false,
         tonalCenter: false, structure: false, spectrum: true },
-      melody: null, percussion: null, rhythm: null, harmony: null, structure: null, drops: null,
+      melody: null, percussion: null, rhythm: null, harmony: null,
       spectrum: [], amplitude: [] },
     transport: { time: 5, duration: 6, playing: true }, events: [],
     state: { ...controller.read(), listeners: listenersBeforeLoss },
@@ -190,7 +191,7 @@ test('SignalPlayer exposes truthful compact live grammar without file transport 
   assert.match(playback, /liveMode \? <button[\s\S]*\[STOP\][\s\S]*: <>[\s\S]*\[PLAY\][\s\S]*\[PAUSE\][\s\S]*\[RESTART\]/);
   assert.match(playback, /aria-label="Input device"/);
   assert.match(playback, /aria-label="Live session time"/);
-  const worklet = readFileSync(new URL('../src/audio/live/livePcmWorklet.ts', import.meta.url), 'utf8');
+  const worklet = readFileSync(new URL('../packages/audio-source-browser/src/live/livePcmWorklet.ts', import.meta.url), 'utf8');
   assert.match(worklet, /this\.inFlight = true/);
   assert.match(worklet, /type === 'consumed'/);
   assert.doesNotMatch(playback, /SYSTEM AUDIO|Spotify|Apple Music/);

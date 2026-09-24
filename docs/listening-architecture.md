@@ -81,3 +81,30 @@ host map identity, and seek notification remain behind
 temporary legacy facade over these two boundaries and is scheduled for deletion
 or reduction after Z.land consumers migrate. The standalone Instrument must
 consume the engine timeline contract directly rather than importing AudioWorld.
+
+## Batch C browser source boundary
+
+`@computational-listening/audio-source-browser` owns finite-file decoding and
+Web Audio playback, browser transport clocks, live capture authorization,
+device enumeration and replacement, AudioWorklet capture, browser latency, and
+source/session metadata. It delivers PCM and generic `ListeningMap` updates; it
+does not own musical interpretation.
+
+The engine-owned `RollingListeningSession` owns the source-independent 12-second
+PCM window, repeated analysis cadence, one-running-plus-one-newest backpressure,
+retained generic events, and bounded diagnostics. It has no MediaStream,
+AudioContext, device, permission, or browser dependency.
+
+Temporary root compatibility paths scheduled for Batch E deletion:
+
+- `src/audio/AudioPlaybackTransport.ts`
+- `src/audio/AudioSourceLoader.ts`
+- `src/audio/live/LiveAudioClock.ts`
+- `src/audio/live/LiveAudioInputController.ts`
+- `src/audio/live/LiveRollingAnalyzer.ts`
+- `src/audio/live/RollingPcmBuffer.ts`
+- `src/audio/live/livePcmWorklet.ts`
+- `src/audio/live/types.ts`
+
+`AudioPreparationController` remains host orchestration during migration. It
+combines browser decoding with engine analysis and legacy host map composition.

@@ -52,3 +52,15 @@ export * from './melody-evidence/selectMelodyEvidence.ts';
 export { collectListeningEvents, createListeningTimeline, lookupListeningSnapshot } from './ListeningTimeline.ts';
 export type { ListeningEventCollectionOptions, ListeningTimeline } from './ListeningTimeline.ts';
 export type { ListeningEvent, ListeningFrame, ListeningMapIdentity, ListeningSnapshot } from './listeningTimelineTypes.ts';
+export { RollingPcmBuffer } from './streaming/RollingPcmBuffer.ts';
+export {
+  createRollingListeningSession,
+  ROLLING_LISTENING_CADENCE_SECONDS,
+  ROLLING_LISTENING_EVENT_CAP,
+  ROLLING_LISTENING_WINDOW_SECONDS,
+} from './streaming/RollingListeningSession.ts';
+export type {
+  RollingListeningDiagnostics,
+  RollingListeningSessionOptions,
+  RollingListeningUpdate,
+} from './streaming/RollingListeningSession.ts';

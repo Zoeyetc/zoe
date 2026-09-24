@@ -1,2 +1,12 @@
 export { pcmFromAudioBuffer } from './audioBuffer.ts';
+export { decodeLocalAudioFile } from './file/AudioSourceLoader.ts';
+export { createAudioBufferPlaybackTransport } from './file/AudioPlaybackTransport.ts';
+export type { AudioPlaybackDiagnostics, AudioPlaybackTransport } from './file/AudioPlaybackTransport.ts';
+export { createLiveAudioClock } from './live/LiveAudioClock.ts';
+export { createLiveAudioInputController } from './live/LiveAudioInputController.ts';
+export { createLiveRollingAnalyzer } from './live/LiveRollingAnalyzer.ts';
+export type { LiveRollingAnalyzerOptions } from './live/LiveRollingAnalyzer.ts';
+export { createLivePcmWorkletUrl, LIVE_PCM_PROCESSOR_NAME } from './live/livePcmWorklet.ts';
+export * from './live/types.ts';
+export type { BrowserAudioClock, BrowserTransportState } from './transportTypes.ts';
 export type { AudioSourceMetadata } from './types.ts';

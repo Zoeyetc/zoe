@@ -26,6 +26,7 @@ import { PARK_BUMPER_CARS_BOUNDS, PARK_ROLLER_COASTER_BOUNDS } from './park/conf
 import { createAudioBufferPlaybackTransport, type AudioPlaybackTransport } from '../audio/AudioPlaybackTransport';
 import type { AudioPreparationState, PreparedRealAudio } from '../audio/AudioPreparationController';
 import type { AudioMap } from '../audio/types';
+import { composeLegacyAudioMap } from '../audio/composeLegacyAudioMap.ts';
 import { createParkPulse, PARK_PULSE_SOURCE_ID } from '../physics/ParkPulse';
 import type { SignalConsoleObservation } from '../signal-console/types';
 import { selectMelodyEvidenceForTransport } from '../audio/melody-evidence/selectMelodyEvidence.ts';
@@ -245,7 +246,10 @@ export function createExperience(now: () => number, reducedMotion = false, fixtu
     },
     updateLiveInput(update: LiveAnalysisUpdate) {
       if (!liveTransport) return;
-      activeMap = update.map; liveState = update.state; mapRevision += 1;
+      activeMap = composeLegacyAudioMap(update.map, {
+        id: `live-input-${update.sessionId}`, source: update.source,
+      }, { structure: null, drops: null });
+      liveState = update.state; mapRevision += 1;
       frame = { snapshot: lookupSnapshot(activeMap, liveTransport()), events: update.events };
       if (update.events.length) recentEvents = [...recentEvents, ...update.events].slice(-8);
     },
