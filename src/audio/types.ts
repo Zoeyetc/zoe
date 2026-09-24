@@ -1,4 +1,20 @@
 import type { MelodyEvidenceTimeline } from './melody-evidence/types';
+import type {
+  MelodyNote,
+  MelodySource,
+  ScaleDegreeEvidence,
+  TonalCenterSegment,
+  TonalMode,
+} from '@computational-listening/engine';
+
+export type {
+  MelodySource,
+  MelodyNote,
+  ScaleDegree,
+  ScaleDegreeEvidence,
+  TonalMode,
+  TonalCenterSegment,
+} from '@computational-listening/engine';
 
 export type TransportState = Readonly<{
   time: number; // seconds
@@ -8,39 +24,6 @@ export type TransportState = Readonly<{
 
 export type MusicalDomain = 'melody' | 'rhythm' | 'percussion' | 'harmony' | 'tonalCenter' | 'structure' | 'spectrum';
 export type MusicalCapabilities = Readonly<Record<MusicalDomain, boolean>>;
-
-export type MelodySource = 'midi' | 'isolated-stem' | 'predominant-analysis' | 'authored' | 'unavailable';
-
-export type MelodyNote = Readonly<{
-  id: string;
-  start: number; // seconds, inclusive
-  end: number; // seconds, exclusive
-  midi: number;
-  pitchHz?: number;
-  noteName?: string;
-  intensity: number; // 0..1
-  confidence?: number; // 0..1; authored notes may omit analysis confidence
-  source?: MelodySource;
-}>;
-
-export type ScaleDegree = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
-
-/** Derived tonal relation. Absolute note fields remain the authoritative evidence. */
-export type ScaleDegreeEvidence = Readonly<{
-  available: boolean;
-  inScale: boolean;
-  degree: ScaleDegree | null;
-  displayDegree: string | null;
-  tonicPitchClass: number | null;
-  mode: TonalMode | null;
-  absoluteMidi: number | null;
-  absoluteNoteName: string | null;
-  relativeSemitones: number | null;
-  referenceTonicMidi: number | null;
-  octaveRelation: number | null;
-  chromaticOffset: number | null;
-  confidence: number;
-}>;
 
 export type MelodyPitchFrame = Readonly<{
   time: number;
@@ -225,8 +208,6 @@ export type HarmonyAnalysis = Readonly<{
   }>;
 }>;
 
-export type TonalMode = 'major' | 'minor';
-
 export type TonalCenterCandidate = Readonly<{
   label: string;
   rootPitchClass: number;
@@ -249,18 +230,6 @@ export type TonalCenterFrame = Readonly<{
   secondScore: number;
   margin: number;
   usableCoverage: number;
-}>;
-
-export type TonalCenterSegment = Readonly<{
-  id: string;
-  start: number;
-  end: number;
-  rootPitchClass: number;
-  mode: TonalMode;
-  label: string;
-  confidence: number;
-  circleOfFifthsIndex: number;
-  distanceFromPrevious: number | null;
 }>;
 
 export type TonalCenterAnalysis = Readonly<{
