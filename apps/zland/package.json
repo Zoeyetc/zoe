@@ -1,0 +1,13 @@
+{
+  "name": "@zland/music-box-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@computational-listening/audio-source-browser": "0.0.0",
+    "@computational-listening/engine": "0.0.0"
+  }
+}

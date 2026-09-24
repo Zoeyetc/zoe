@@ -1,0 +1,15 @@
+{
+  "name": "@computational-listening/audio-source-browser",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@computational-listening/engine": "0.0.0"
+  }
+}
