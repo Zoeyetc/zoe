@@ -1,4 +1,12 @@
-import type { AudioMap, AudioAnalysisMetadata, SpectrumRegion, AudioAmplitudeRegion, RhythmSection } from '../types';
+import type {
+  AudioAmplitudeRegion,
+  AudioAnalysisMetadata,
+  ListeningMap,
+  RhythmSection,
+  SpectrumRegion,
+} from '@computational-listening/engine';
+import type { AudioMap } from '../types';
+import { composeLegacyAudioMap } from '../composeLegacyAudioMap.ts';
 import { analyzeRhythm } from './RhythmAnalysis.ts';
 import { analyzeMelodyWithEvidence } from './MelodyAnalysis.ts';
 import { analyzeHarmony } from './HarmonyAnalysis.ts';
@@ -183,7 +191,7 @@ function* frameGenerator(mono: Float32Array, sampleRate: number): Generator<RawF
     previousMagnitude = magnitude;
   }
 }
-function finalize(frames: RawFrame[], mono: Float32Array, pcm: PcmAudio, source: AnalysisSource): AudioMap {
+function finalize(frames: RawFrame[], mono: Float32Array, pcm: PcmAudio): ListeningMap {
   const duration = Math.min(...pcm.channels.map(channel => channel.length)) / pcm.sampleRate;
   const rmsReference = percentile95(frames.map(frame => frame.rms));
   const bandReference = percentile95(frames.flatMap(frame => [frame.low, frame.mid, frame.high]));
@@ -266,7 +274,7 @@ function finalize(frames: RawFrame[], mono: Float32Array, pcm: PcmAudio, source:
     normalization: { strategy: 'p95-reference', rmsReference, bandReference, textureReference },
   };
   return {
-    version: 1, id: `real-audio-${source.id}`, duration,
+    version: 1, duration,
     capabilities: { melody: melodyAnalysis.available, rhythm: rhythmAnalysis.available,
       percussion: percussionAnalysis.available,
       harmony: harmonyAnalysis.available, tonalCenter: tonalCenterAnalysis.available,
@@ -274,9 +282,9 @@ function finalize(frames: RawFrame[], mono: Float32Array, pcm: PcmAudio, source:
     melody, melodyAnalysis, melodyEvidence: melodyResult.evidence,
     percussion: percussionAnalysis.available ? percussionAnalysis.events : null,
     percussionAnalysis, rhythm, rhythmAnalysis,
-    harmony, harmonyAnalysis, tonalCenterAnalysis, structureAnalysis, structure: null, drops: null,
+    harmony, harmonyAnalysis, tonalCenterAnalysis, structureAnalysis,
     spectrum, amplitude,
-    source: { kind: 'real-audio', filename: source.filename, mimeType: source.mimeType }, analysis: metadata,
+    analysis: metadata,
   };
 }
 
@@ -285,13 +293,13 @@ function validatePcm(pcm: PcmAudio) {
   if (!Number.isFinite(pcm.sampleRate) || pcm.sampleRate <= 0) throw new Error('Invalid sample rate');
 }
 
-export function analyzePcmAudio(pcm: PcmAudio, source: AnalysisSource): AudioMap {
+export function analyzePcmListening(pcm: PcmAudio): ListeningMap {
   validatePcm(pcm);
   const mono = downmixToMono(pcm.channels);
-  return finalize([...frameGenerator(mono, pcm.sampleRate)], mono, pcm, source);
+  return finalize([...frameGenerator(mono, pcm.sampleRate)], mono, pcm);
 }
 
-export async function analyzePcmAudioAsync(pcm: PcmAudio, source: AnalysisSource): Promise<AudioMap> {
+export async function analyzePcmListeningAsync(pcm: PcmAudio): Promise<ListeningMap> {
   validatePcm(pcm);
   const mono = downmixToMono(pcm.channels);
   const frames: RawFrame[] = [];
@@ -301,7 +309,23 @@ export async function analyzePcmAudioAsync(pcm: PcmAudio, source: AnalysisSource
     index += 1;
     if (index % 24 === 0) await new Promise<void>(resolve => setTimeout(resolve, 0));
   }
-  return finalize(frames, mono, pcm, source);
+  return finalize(frames, mono, pcm);
+}
+
+const composeAnalyzedAudioMap = (listening: ListeningMap, source: AnalysisSource): AudioMap =>
+  composeLegacyAudioMap(listening, {
+    id: `real-audio-${source.id}`,
+    source: { kind: 'real-audio', filename: source.filename, mimeType: source.mimeType },
+  }, { structure: null, drops: null });
+
+/** Temporary compatibility API for existing root AudioMap consumers. */
+export function analyzePcmAudio(pcm: PcmAudio, source: AnalysisSource): AudioMap {
+  return composeAnalyzedAudioMap(analyzePcmListening(pcm), source);
+}
+
+/** Temporary compatibility API for existing root AudioMap consumers. */
+export async function analyzePcmAudioAsync(pcm: PcmAudio, source: AnalysisSource): Promise<AudioMap> {
+  return composeAnalyzedAudioMap(await analyzePcmListeningAsync(pcm), source);
 }
 
 export function pcmFromAudioBuffer(buffer: AudioBuffer): PcmAudio {

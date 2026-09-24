@@ -7,6 +7,7 @@ const engineRoot = resolve(repositoryRoot, 'packages/listening-engine');
 const sourceExtensions = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 const forbiddenSegments = new Set([
   'apps', 'rides', 'physics', 'signal-console', 'signal-player', 'experience',
+  'audio-source-browser', 'zland',
 ]);
 const importPattern = /(?:import|export)\s+(?:type\s+)?(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]|(?:import|require)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
 
@@ -27,6 +28,10 @@ function forbiddenReason(file, specifier) {
 
   if (specifier.startsWith('.')) {
     const target = resolve(dirname(file), specifier);
+    const targetFromEngine = relative(engineRoot, target);
+    if (targetFromEngine === '..' || targetFromEngine.startsWith('../')) {
+      return 'escapes the listening-engine package boundary';
+    }
     const targetFromRepository = relative(repositoryRoot, target).split('/');
     const escapedBoundary = targetFromRepository.find(segment => forbiddenSegments.has(segment));
     if (escapedBoundary) return `reaches forbidden boundary "${escapedBoundary}"`;
