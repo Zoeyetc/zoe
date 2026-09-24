@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
-import { classifyPercussion } from '../src/audio/analysis/PercussionAnalysis.ts';
+import { classifyPercussion } from '@computational-listening/engine';
 import type { PercussionDescriptors, PercussionKind } from '../src/audio/types.ts';
 import {
   ambiguousClap, denseHats, fourOnFloorHats, isolatedClosedHat, isolatedKick,

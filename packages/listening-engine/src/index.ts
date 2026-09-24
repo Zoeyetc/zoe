@@ -37,3 +37,15 @@ export type {
   ListeningMap,
 } from './types.ts';
 export * from './melody-evidence/types.ts';
+
+export * from './scaleDegree.ts';
+export { MELODY_ANALYSIS, analyzeMelody, analyzeMelodyWithEvidence } from './analysis/MelodyAnalysis.ts';
+export type { MelodyAnalysisInput, MelodyAnalysisWithEvidence } from './analysis/MelodyAnalysis.ts';
+export * from './analysis/HarmonyAnalysis.ts';
+export * from './analysis/RhythmAnalysis.ts';
+export * from './analysis/PercussionAnalysis.ts';
+export * from './analysis/TonalCenterAnalysis.ts';
+export * from './analysis/StructureAnalysis.ts';
+export * from './analysis/AudioAnalysis.ts';
+export * from './melody-evidence/compactTimeline.ts';
+export * from './melody-evidence/selectMelodyEvidence.ts';

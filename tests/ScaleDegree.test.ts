@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { deriveScaleDegreeEvidence, selectReferenceTonicMidi, TONAL_CONFIDENCE_THRESHOLD } from '../src/audio/ScaleDegree.ts';
+import { deriveScaleDegreeEvidence, selectReferenceTonicMidi, TONAL_CONFIDENCE_THRESHOLD } from '@computational-listening/engine';
 import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
 import { milestoneOneAudioMap } from '../src/audio/AudioMap.ts';
 import type { AudioMap, MelodyNote, TonalCenterAnalysis, TonalCenterSegment, TonalMode } from '../src/audio/types.ts';

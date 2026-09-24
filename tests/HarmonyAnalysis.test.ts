@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzeHarmony } from '../src/audio/analysis/HarmonyAnalysis.ts';
+import { analyzeHarmony } from '@computational-listening/engine';
 import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
 import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
 import { toFerrisWheelInput } from '../src/rides/ferris-wheel/adapter.ts';

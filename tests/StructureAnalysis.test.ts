@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { milestoneOneAudioMap } from '../src/audio/AudioMap.ts';
 import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
-import { analyzeStructure, type StructureSourceFrame } from '../src/audio/analysis/StructureAnalysis.ts';
+import { analyzeStructure, type StructureSourceFrame } from '@computational-listening/engine';
 import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
 import { toDropTowerInput } from '../src/rides/drop-tower/adapter.ts';
 import { toRollerCoasterInput } from '../src/rides/roller-coaster/adapter.ts';

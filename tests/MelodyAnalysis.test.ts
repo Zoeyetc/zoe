@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzeMelody } from '../src/audio/analysis/MelodyAnalysis.ts';
+import { analyzeMelody } from '@computational-listening/engine';
 import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
 import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
 import { toCarouselInput } from '../src/rides/carousel/adapter.ts';

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { analyzePcmAudio } from '../src/audio/analysis/AudioAnalysis.ts';
-import { analyzeRhythm, type RhythmEnvelopeFrame } from '../src/audio/analysis/RhythmAnalysis.ts';
+import { analyzeRhythm, type RhythmEnvelopeFrame } from '@computational-listening/engine';
 import { createPreviewAudioClock } from '../src/audio/AudioClock.ts';
 import { createAudioWorld, lookupSnapshot } from '../src/audio/AudioWorld.ts';
 import { toBumperCarsInput } from '../src/rides/bumper-cars/adapter.ts';

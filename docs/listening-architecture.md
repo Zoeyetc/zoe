@@ -46,3 +46,25 @@ Browser/file/device identity belongs to `audio-source-browser`. Authored build,
 tension, phrase, and drop annotations belong to Z.land. The legacy `AudioMap`
 composition must be deleted in the final cleanup batch after its consumers move
 to the explicit contracts.
+
+## Batch A temporary analysis compatibility paths
+
+The pure analysis implementation now belongs to `@computational-listening/engine`.
+These root paths are compatibility-only and must be deleted after remaining root
+consumers import the engine and diagnostics package boundaries directly:
+
+- `src/audio/ScaleDegree.ts`
+- `src/audio/analysis/AudioAnalysis.ts` (retain only legacy `AudioMap` composition until its consumers migrate)
+- `src/audio/analysis/MelodyAnalysis.ts`
+- `src/audio/analysis/HarmonyAnalysis.ts`
+- `src/audio/analysis/RhythmAnalysis.ts`
+- `src/audio/analysis/PercussionAnalysis.ts`
+- `src/audio/analysis/TonalCenterAnalysis.ts`
+- `src/audio/analysis/StructureAnalysis.ts`
+- `src/audio/melody-evidence/compactTimeline.ts`
+- `src/audio/melody-evidence/selectMelodyEvidence.ts`
+- `src/audio/melody-evidence/dpDiagnostics.ts`
+
+Browser `AudioBuffer` conversion belongs to
+`@computational-listening/audio-source-browser`. Legacy host identity and Z.land
+authored overlays remain outside the engine.

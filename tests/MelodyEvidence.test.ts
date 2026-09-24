@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   analyzeMelody, analyzeMelodyWithEvidence, MELODY_ANALYSIS,
-} from '../src/audio/analysis/MelodyAnalysis.ts';
+} from '@computational-listening/engine';
 import {
   melodyEvidenceIndexAt, selectMelodyEvidence,
-} from '../src/audio/melody-evidence/selectMelodyEvidence.ts';
+} from '@computational-listening/engine';
 import {
   createCompactMelodyEvidenceTimeline, retainMelodyRejectedCandidate,
-} from '../src/audio/melody-evidence/compactTimeline.ts';
+} from '@computational-listening/engine';
 import { MELODY_REJECTED_CANDIDATE_CAP } from '../src/audio/melody-evidence/types.ts';
 
 const SAMPLE_RATE = 48_000;
