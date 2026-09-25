@@ -1,5 +1,6 @@
 import type { InstrumentEvent, InstrumentFrame, PercussionKind } from '../contracts.ts';
 import type { DecisionGate, HearingDomain, HearingStatus, SignalField, SignalTelemetry } from './signalTelemetry';
+import type { BassPresentation } from './bassPresentation.ts';
 
 export type EventEmphasis = 'none' | 'recent' | 'current';
 export type ListenerState = HearingStatus | 'ACCEPTED' | 'NO ACTIVE MELODY' | 'NO ACTIVE CHORD' | 'LISTENING';
@@ -10,6 +11,7 @@ export type PrimaryListeningView = Readonly<{
   observedPitch: SignalTelemetry['primaryEvidence']['observedPitch'];
   uncertainty: SignalTelemetry['primaryEvidence']['uncertainty'];
   melody: Readonly<{ identity: string; state: ListenerState; emphasis: EventEmphasis; gate: DecisionGate | null }>;
+  bass: BassPresentation;
   harmony: Readonly<{
     chroma: string; hypothesis: string; frameConfidence: string;
     chord: string; state: ListenerState; emphasis: EventEmphasis; gate: DecisionGate | null;
@@ -114,6 +116,7 @@ export function selectPrimaryListeningView(telemetry: SignalTelemetry, frame: In
         ?? (snapshot.melody.available
           ? { reason: 'BETWEEN_ACCEPTED_NOTES', text: 'between accepted notes' } : null),
     },
+    bass: telemetry.bass,
     harmony: {
       ...telemetry.primaryEvidence.harmony,
       chord: snapshot.harmony.chord ?? '—', state: harmonyState,

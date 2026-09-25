@@ -168,6 +168,12 @@ export function ListeningField({ primary, transport, ended, uncertainty = false,
             <GateLine gate={primary.melody.gate} enabled={performance} />
           </div>
         </div>
+        <div className="listening-field-bass" data-bass-state={primary.bass.state}>
+          <span className="listening-field-subject">BASS</span>
+          <Identity typography="musical">{primary.bass.noteName}</Identity>
+          <span className="listening-field-annotation">{primary.bass.frequencyHz === '—'
+            ? primary.bass.state.replaceAll('_', ' ') : `${primary.bass.frequencyHz} Hz`}</span>
+        </div>
       </Voice>
 
       <Voice name="RHYTHM / PERCUSSION" depth="midground" className="listening-field-rhythm">

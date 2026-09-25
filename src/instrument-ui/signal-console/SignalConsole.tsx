@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { midiToNoteName } from '@zoeyetc/computational-listening-engine';
 import type { InstrumentEvent, InstrumentFrame } from '../contracts.ts';
 import { selectPrimaryListeningView, type EventEmphasis } from './primaryListening';
 import { selectSignalTelemetry, signalPhraseGroups, signalPresentationKey,
   type MelodyInspectTelemetry, type SignalField } from './signalTelemetry';
 import type { SignalConsoleObservation } from './types';
 import { ListeningField } from './ListeningField';
+import type { BassPresentation } from './bassPresentation.ts';
 import './signalConsole.css';
 
 export type SignalComposition = 'temporal-score' | 'listening-field' | 'listening-field-uncertainty' | 'performance';
@@ -148,6 +150,35 @@ function MelodyInspect({ inspect, acceptedNote, acceptedConfidence, defaultOpen 
       <TelemetryLine label="Accepted" displayLabel={labels.accepted} fields={accepted} layer="interpretation"
         musicalMetrics={['NOTE']}
         evidenceState={acceptedNote !== '—' ? 'accepted' : 'empty'} />
+    </div>
+  </details>;
+}
+
+function BassInspect({ bass }: { bass: BassPresentation }) {
+  const frame = bass.frame;
+  return <details className="signal-inspect" data-signal-domain="bass-inspect">
+    <summary>BASS / INSPECT</summary>
+    <div className="signal-inspect-stream">
+      <TelemetryLine label="Decision" fields={[
+        { label: 'RESULT', value: bass.state, role: 'anchor' },
+        { label: 'NOTE', value: bass.noteName, role: 'anchor' },
+        { label: 'PITCH HZ', value: bass.frequencyHz, role: 'signal' },
+        { label: 'CANDIDATE SCORE', value: bass.score, role: 'signal' },
+        { label: 'CONFIDENCE', value: bass.confidence, role: 'signal' },
+      ]} layer="analysis" evidenceState={bass.state === 'SELECTED' ? 'active' : 'rejected'} />
+      <TelemetryLine label="Path" fields={[
+        { label: 'SELECTED INDEX', value: frame?.selectedCandidateIndex === null || !frame ? '—'
+          : String(frame.selectedCandidateIndex), role: 'signal' },
+        { label: 'FRAME TIME', value: frame ? frame.time.toFixed(3) : '—', role: 'signal' },
+        { label: 'REASON', value: frame?.reason ?? bass.state, role: 'anchor' },
+      ]} layer="analysis" evidenceState={frame?.selectedCandidateIndex === null || !frame ? 'empty' : 'active'} />
+      {frame?.candidates.map((candidate, index) => <TelemetryLine key={index}
+        label={`Candidate ${index + 1}`} fields={[
+          { label: 'NOTE', value: midiToNoteName(Math.round(candidate.midiFloat)), role: 'signal' },
+          { label: 'PITCH HZ', value: candidate.pitchHz.toFixed(2), role: 'signal' },
+          { label: 'SCORE', value: candidate.score.toFixed(3), role: 'signal' },
+          { label: 'SOURCE', value: candidate.source.replaceAll('-', ' '), role: 'signal' },
+        ]} layer="analysis" evidenceState={index === frame.selectedCandidateIndex ? 'active' : 'candidate'} />)}
     </div>
   </details>;
 }
@@ -315,6 +346,7 @@ export function SignalConsole({ observe, interpretation, events, composition = '
           acceptedNote={telemetry.ended ? '—' : snapshot.melody.noteName ?? '—'}
           acceptedConfidence={telemetry.ended ? '—' : snapshot.melody.confidence.toFixed(3)}
           defaultOpen={composition === 'performance'} performance={composition === 'performance'} />
+        <BassInspect bass={telemetry.bass} />
         <details className="signal-inspect" data-signal-domain="recent-events"
           open={composition === 'performance' || undefined}>
           <summary>RECENT EVENTS</summary>

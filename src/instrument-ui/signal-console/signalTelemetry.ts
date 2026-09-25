@@ -3,6 +3,7 @@ import type {
   StructureAnalysisFrame, TonalCenterFrame, BrowserTransportState,
 } from '../contracts.ts';
 import type { SignalConsoleObservation } from './types';
+import { selectBassPresentation, type BassPresentation } from './bassPresentation.ts';
 import type { LiveInputState, LiveListenerStatus } from '../../audio-source-browser/index.ts';
 import { melodyEvidenceIndexAt, selectMelodyEvidence,
   selectMelodyEvidenceForTransport } from '@zoeyetc/computational-listening-engine';
@@ -49,6 +50,7 @@ export type SignalTelemetry = Readonly<{
   domains: readonly SignalDomain[];
   hearing: readonly HearingDomain[];
   melodyInspect: MelodyInspectTelemetry;
+  bass: BassPresentation;
   primaryEvidence: Readonly<{
     sourceSystem: readonly SignalField[];
     signal: Readonly<{
@@ -301,7 +303,8 @@ export function signalPresentationKey(observation: SignalConsoleObservation) {
   const indexes = retainedIndexes(map, transport.time, ended);
   return [mapRevision, map.id, transport.duration, transport.playing ? 1 : 0, ended ? 1 : 0,
     indexes.amplitude, indexes.spectrum, indexes.pitch, indexes.chroma, indexes.tonal, indexes.structure,
-    indexes.melodyEvidence].join(':');
+    indexes.melodyEvidence, observation.bassSnapshot?.time ?? 'no-bass',
+    observation.bassSnapshot?.reason ?? 'no-bass'].join(':');
 }
 
 const sourceFields = (map: InstrumentListeningMap, revision: number, live?: LiveInputState | null): readonly SignalField[] => [
@@ -497,6 +500,7 @@ export function selectSignalTelemetry(observation: SignalConsoleObservation): Si
     signature, mapRevision, mapId: map.id, ended, transport, indexes,
     hearing: selectHearing(map, observation.live),
     melodyInspect: selectMelodyInspect(map, melodyEvidence, Boolean(observation.live)),
+    bass: selectBassPresentation(observation.bassSnapshot, observation.bassEvidence),
     primaryEvidence: {
       sourceSystem: sourceFields(map, mapRevision, observation.live),
       signal: {
