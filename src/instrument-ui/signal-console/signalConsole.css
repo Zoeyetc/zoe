@@ -199,6 +199,47 @@
 }
 .signal-event-log { display: grid; gap: .1rem; margin: .55rem 0 0; padding: 0; list-style: none; }
 .signal-event-log li, .signal-capabilities { color: var(--signal-event); font: 600 .66rem/1.35 var(--signal-font-mono); font-variant-numeric: tabular-nums; }
+.signal-inspect[data-signal-domain='bass-inspect'] { min-width: 0; }
+.signal-bass-inspect-group {
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  align-items: baseline;
+  min-height: .82rem;
+  min-width: 0;
+  margin: .035rem 0;
+  font: 560 .58rem/1.16 var(--signal-font-mono);
+}
+.signal-bass-inspect-group > strong {
+  font: 800 .57rem/1.16 var(--signal-font-mono);
+  letter-spacing: .045em;
+}
+.signal-inspect[data-signal-domain='bass-inspect'] .signal-phrase-layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  min-width: 0;
+  gap: 0 .48rem;
+}
+.signal-bass-inspect-group .signal-token {
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+.signal-bass-inspect-group .signal-value {
+  color: var(--signal-inspect-rejected);
+  font-weight: 560;
+  overflow-wrap: anywhere;
+}
+.signal-bass-inspect-group .signal-token[data-bass-active='true'] .signal-value {
+  color: var(--performance-active, var(--signal-inspect-active));
+  font-weight: 700;
+}
+.signal-inspect[data-signal-domain='bass-inspect'] [data-bass-state='UNAVAILABLE'] .signal-value,
+.signal-inspect[data-signal-domain='bass-inspect'] [data-bass-state='OUTSIDE_EVIDENCE'] .signal-value {
+  color: var(--signal-inspect-empty);
+}
 .signal-capabilities { margin: .35rem 0 0 7.25rem; white-space: nowrap; }
 
 .signal-listening-field {

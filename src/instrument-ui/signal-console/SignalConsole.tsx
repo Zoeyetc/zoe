@@ -154,31 +154,45 @@ function MelodyInspect({ inspect, acceptedNote, acceptedConfidence, defaultOpen 
   </details>;
 }
 
-function BassInspect({ bass }: { bass: BassPresentation }) {
+function BassInspect({ bass, performance }: { bass: BassPresentation; performance: boolean }) {
   const frame = bass.frame;
-  return <details className="signal-inspect" data-signal-domain="bass-inspect">
+  const selected = bass.state === 'SELECTED';
+  const group = (label: string, fields: readonly Readonly<{ label: string; value: string; active?: boolean }>[]) =>
+    <div className="signal-telemetry-line signal-bass-inspect-group" key={label}>
+      <strong>{label}</strong>
+      <span className="signal-phrase-layout">{fields.map((field, index) =>
+        <span className="signal-token" data-bass-active={field.active === true} key={field.label}>
+          <span className="signal-metric">{field.label.toLowerCase()}</span>{' '}
+          <span className="signal-value">{field.value}</span>
+          {index < fields.length - 1 ? <span className="signal-separator"> · </span> : null}
+        </span>)}</span>
+    </div>;
+  return <details className="signal-inspect" data-signal-domain="bass-inspect"
+    data-inspect-format={performance ? 'performance' : 'forensic'}>
     <summary>BASS / INSPECT</summary>
-    <div className="signal-inspect-stream">
-      <TelemetryLine label="Decision" fields={[
-        { label: 'RESULT', value: bass.state, role: 'anchor' },
-        { label: 'NOTE', value: bass.noteName, role: 'anchor' },
-        { label: 'PITCH HZ', value: bass.frequencyHz, role: 'signal' },
-        { label: 'CANDIDATE SCORE', value: bass.score, role: 'signal' },
-        { label: 'CONFIDENCE', value: bass.confidence, role: 'signal' },
-      ]} layer="analysis" evidenceState={bass.state === 'SELECTED' ? 'active' : 'rejected'} />
-      <TelemetryLine label="Path" fields={[
+    <div className="signal-inspect-stream" data-bass-state={bass.state}>
+      {group('DEC', [
+        { label: 'RESULT', value: bass.state, active: selected },
+        { label: 'NOTE', value: bass.noteName, active: selected },
+        { label: 'PITCH HZ', value: bass.frequencyHz, active: selected },
+        { label: 'CANDIDATE SCORE', value: bass.score, active: selected },
+        { label: 'CONFIDENCE', value: bass.confidence },
+      ])}
+      {group('PATH', [
         { label: 'SELECTED INDEX', value: frame?.selectedCandidateIndex === null || !frame ? '—'
-          : String(frame.selectedCandidateIndex), role: 'signal' },
-        { label: 'FRAME TIME', value: frame ? frame.time.toFixed(3) : '—', role: 'signal' },
-        { label: 'REASON', value: frame?.reason ?? bass.state, role: 'anchor' },
-      ]} layer="analysis" evidenceState={frame?.selectedCandidateIndex === null || !frame ? 'empty' : 'active'} />
-      {frame?.candidates.map((candidate, index) => <TelemetryLine key={index}
-        label={`Candidate ${index + 1}`} fields={[
-          { label: 'NOTE', value: midiToNoteName(Math.round(candidate.midiFloat)), role: 'signal' },
-          { label: 'PITCH HZ', value: candidate.pitchHz.toFixed(2), role: 'signal' },
-          { label: 'SCORE', value: candidate.score.toFixed(3), role: 'signal' },
-          { label: 'SOURCE', value: candidate.source.replaceAll('-', ' '), role: 'signal' },
-        ]} layer="analysis" evidenceState={index === frame.selectedCandidateIndex ? 'active' : 'candidate'} />)}
+          : String(frame.selectedCandidateIndex), active: selected },
+        { label: 'FRAME TIME', value: frame ? frame.time.toFixed(3) : '—' },
+        { label: 'REASON', value: frame?.reason ?? bass.state, active: selected && frame?.reason === 'SELECTED' },
+      ])}
+      {frame?.candidates.map((candidate, index) => group(`C${index + 1}`, [
+        { label: 'NOTE', value: midiToNoteName(Math.round(candidate.midiFloat)),
+          active: selected && index === frame.selectedCandidateIndex },
+        { label: 'PITCH HZ', value: candidate.pitchHz.toFixed(2),
+          active: selected && index === frame.selectedCandidateIndex },
+        { label: 'SCORE', value: candidate.score.toFixed(3),
+          active: selected && index === frame.selectedCandidateIndex },
+        { label: 'SOURCE', value: candidate.source.replaceAll('-', ' ') },
+      ]))}
     </div>
   </details>;
 }
@@ -349,7 +363,7 @@ export function SignalConsole({ observe, interpretation, events, composition = '
           acceptedNote={telemetry.ended ? '—' : snapshot.melody.noteName ?? '—'}
           acceptedConfidence={telemetry.ended ? '—' : snapshot.melody.confidence.toFixed(3)}
           defaultOpen={composition === 'performance'} performance={composition === 'performance'} />
-        <BassInspect bass={telemetry.bass} />
+        <BassInspect bass={telemetry.bass} performance={composition === 'performance'} />
         <details className="signal-inspect" data-signal-domain="recent-events"
           open={composition === 'performance' || undefined}>
           <summary>RECENT EVENTS</summary>

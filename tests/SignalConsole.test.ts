@@ -550,6 +550,8 @@ test('Single-viewport performance format keeps core truth in one bounded desktop
   assert.match(component, /Array\.from\(\{ length: 8 \}, \(_, index\) => recentEvents\[index\] \?\? null\)/);
   assert.match(component, /<li key=\{index\} data-event-empty=\{event === null\}/);
   assert.match(styles, /grid-template-rows: repeat\(8, \.82rem\)/);
+  assert.match(styles, /\.signal-bass-inspect-group \.signal-token \{[\s\S]*overflow-wrap: anywhere/);
+  assert.match(styles, /\.signal-bass-inspect-group \.signal-token\[data-bass-active='true'\] \.signal-value/);
   assert.match(styles, /data-inspect-format='performance'[\s\S]*grid-template-columns: 3\.25rem minmax\(0, 1fr\)/);
   assert.match(styles, /--performance-pitch-height: 9\.25rem/);
   assert.match(styles, /--performance-signal-height: 3rem/);
