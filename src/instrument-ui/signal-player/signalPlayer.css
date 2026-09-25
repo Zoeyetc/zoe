@@ -271,6 +271,7 @@
 @media (max-width: 680px) {
   .signal-playback--compact { display: block; }
   .signal-playback-command { align-items: flex-start; flex-direction: column; gap: .32rem; }
+  .signal-playback--compact .signal-playback-actions { flex-wrap: wrap; }
   .signal-playback-listening { align-items: flex-start; }
   .signal-playback-timeline { margin-bottom: .42rem; }
   .signal-load-command strong { max-width: 72vw; }

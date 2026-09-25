@@ -812,6 +812,16 @@
 }
 
 @media (max-width: 680px) {
+  .signal-console[data-composition='performance'] .signal-performance-band {
+    block-size: 19rem;
+    grid-template-rows: minmax(0, 1fr) 4rem;
+    overflow: hidden;
+  }
+  .signal-console[data-composition='performance'] .signal-performance-band > .signal-inspect {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
   .signal-listening-models, .signal-temporal-band { grid-template-columns: minmax(0, 1fr); gap: .55rem; }
   .signal-time-scale { display: flex; gap: .6rem; align-items: baseline; }
   .signal-time-scale span { margin: 0; }
