@@ -1,4 +1,4 @@
-import type { PcmAudio } from '../listening-engine/index.ts';
+import type { PcmAudio } from '@computational-listening/engine';
 
 export function pcmFromAudioBuffer(buffer: AudioBuffer): PcmAudio {
   return {

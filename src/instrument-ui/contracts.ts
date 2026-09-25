@@ -1,5 +1,5 @@
 import type { AudioSourceMetadata, BrowserTransportState, LiveInputState } from '../audio-source-browser/index.ts';
-import type { ListeningEvent, ListeningMap, ListeningSnapshot, MelodyEvidenceObservation } from '../listening-engine/index.ts';
+import type { ListeningEvent, ListeningMap, ListeningSnapshot, MelodyEvidenceObservation } from '@computational-listening/engine';
 
 export type InstrumentListeningMap = ListeningMap & Readonly<{ id: string; source?: AudioSourceMetadata }>;
 export type InstrumentSnapshot = ListeningSnapshot & Readonly<{ mapId: string; transport: BrowserTransportState }>;
@@ -17,4 +17,4 @@ export type SignalConsoleObservation = Readonly<{
 }>;
 
 export type { BrowserTransportState, LiveInputState } from '../audio-source-browser/index.ts';
-export type { AudioAmplitudeRegion, ChromaFrame, MelodyPitchFrame, PercussionKind, SpectrumRegion, StructureAnalysisFrame, TonalCenterFrame } from '../listening-engine/index.ts';
+export type { AudioAmplitudeRegion, ChromaFrame, MelodyPitchFrame, PercussionKind, SpectrumRegion, StructureAnalysisFrame, TonalCenterFrame } from '@computational-listening/engine';

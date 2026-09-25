@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { RollingPcmBuffer } from '../src/listening-engine/index.ts';
+import { RollingPcmBuffer } from '@computational-listening/engine';
 import {
   createLiveAudioClock, createLiveAudioInputController, createLiveRollingAnalyzer,
   LIVE_EVENT_BUFFER_CAP, LIVE_INPUT_WINDOW_SECONDS,

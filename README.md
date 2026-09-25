@@ -21,8 +21,8 @@ instrument UI displays it. The browser transport is the authoritative clock.
 ## Architecture
 
 - `src/ZoeApp.tsx`: product composition and source switching.
-- `src/listening-engine/`: browser-independent analysis, retained listening
-  results, generic timelines, and diagnostics.
+- `@computational-listening/engine`: independently versioned analysis, retained
+  listening results, generic timelines, and diagnostics.
 - `src/audio-source-browser/`: file decoding, playback, live capture, browser
   clocks, and bounded rolling input.
 - `src/instrument-ui/`: SignalPlayer and SignalConsole presentation.
@@ -46,3 +46,5 @@ Vercel can import this repository as a Vite project using the repository root
 (`/`), `npm run build`, and `dist`. No root-directory override is needed.
 The browser requests microphone access only when the user starts live input;
 hosting must use HTTPS for live capture.
+
+For local development, check out `computational-listening-engine` beside this repository and run `npm install && npm run build` there before installing Zoë. The `file:` dependency is temporary until the engine package is published.

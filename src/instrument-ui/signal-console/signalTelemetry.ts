@@ -5,10 +5,10 @@ import type {
 import type { SignalConsoleObservation } from './types';
 import type { LiveInputState, LiveListenerStatus } from '../../audio-source-browser/index.ts';
 import { melodyEvidenceIndexAt, selectMelodyEvidence,
-  selectMelodyEvidenceForTransport } from '../../listening-engine/index.ts';
+  selectMelodyEvidenceForTransport } from '@computational-listening/engine';
 import type {
   MelodyEvidenceCandidate, MelodyEvidenceObservation, ObservedPitchEvidence,
-} from '../../listening-engine/index.ts';
+} from '@computational-listening/engine';
 
 export type SignalField = Readonly<{
   label: string;

@@ -6,7 +6,7 @@ import {
 } from './audio-source-browser/index.ts';
 import {
   analyzePcmListeningAsync, createListeningTimeline, lookupListeningSnapshot, selectMelodyEvidenceForTransport,
-} from './listening-engine/index.ts';
+} from '@computational-listening/engine';
 import {
   SignalPlayer,
   type AudioPreparationState, type InstrumentEvent, type InstrumentFrame, type InstrumentListeningMap,

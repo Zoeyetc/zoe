@@ -1,4 +1,4 @@
-import type { ListeningEvent, ListeningMap } from '../../listening-engine/index.ts';
+import type { ListeningEvent, ListeningMap } from '@computational-listening/engine';
 import type { AudioSourceMetadata } from '../types.ts';
 import type { BrowserTransportState } from '../transportTypes.ts';
 
