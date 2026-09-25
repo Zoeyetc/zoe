@@ -7,6 +7,7 @@ import { MotionMode as Mode } from './MotionMode.ts';
 import { motionModeRenderers, type MotionRenderer } from './motionModeRenderers.ts';
 import { initialInstrumentMotion, stepInstrumentMotion } from './instrumentMotion.ts';
 import { initialMaterialMotion, stepMaterialMotion } from './materialMotion.ts';
+import { initialFieldMotion, stepFieldMotion } from './fieldMotion.ts';
 import './motionStudy.css';
 
 type MotionLayerProps = Readonly<{
@@ -65,6 +66,7 @@ export function MotionLayer({ rootRef, mode, observe, events }: MotionLayerProps
     let activity = 0;
     let instrumentMotion = initialInstrumentMotion;
     let materialMotion = initialMaterialMotion;
+    let fieldMotion = initialFieldMotion;
     let sampleStart = 0;
     let sampleFrames = 0;
     let cpuTotal = 0;
@@ -81,6 +83,9 @@ export function MotionLayer({ rootRef, mode, observe, events }: MotionLayerProps
       } else if (mode === Mode.Material) {
         materialMotion = stepMaterialMotion(materialMotion, sample, dt);
         activity = materialMotion.activity;
+      } else if (mode === Mode.Field) {
+        fieldMotion = stepFieldMotion(fieldMotion, sample, dt);
+        activity = fieldMotion.confidence;
       } else {
         const seconds = renderer.smoothingSeconds;
         activity += (target - activity) * (1 - Math.exp(-dt / seconds));

@@ -39,6 +39,6 @@ function studyRenderer(variant: MotionStudyVariant): MotionRendererDefinition {
 export const motionModeRenderers: Readonly<Record<MotionMode, MotionRendererDefinition>> = {
   [MotionMode.Instrument]: studyRenderer('a'),
   [MotionMode.Material]: studyRenderer('a'),
-  [MotionMode.Field]: studyRenderer('c'),
+  [MotionMode.Field]: studyRenderer('a'),
   [MotionMode.Observatory]: studyRenderer('a'), // Placeholder until Observatory has its own renderer.
 };
