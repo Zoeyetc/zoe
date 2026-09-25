@@ -8,6 +8,7 @@ import { motionModeRenderers, type MotionRenderer } from './motionModeRenderers.
 import { initialInstrumentMotion, stepInstrumentMotion } from './instrumentMotion.ts';
 import { initialMaterialMotion, stepMaterialMotion } from './materialMotion.ts';
 import { initialFieldMotion, stepFieldMotion } from './fieldMotion.ts';
+import { initialObservatoryMotion, stepObservatoryMotion } from './observatoryMotion.ts';
 import './motionStudy.css';
 
 type MotionLayerProps = Readonly<{
@@ -67,6 +68,7 @@ export function MotionLayer({ rootRef, mode, observe, events }: MotionLayerProps
     let instrumentMotion = initialInstrumentMotion;
     let materialMotion = initialMaterialMotion;
     let fieldMotion = initialFieldMotion;
+    let observatoryMotion = initialObservatoryMotion;
     let sampleStart = 0;
     let sampleFrames = 0;
     let cpuTotal = 0;
@@ -87,9 +89,8 @@ export function MotionLayer({ rootRef, mode, observe, events }: MotionLayerProps
         fieldMotion = stepFieldMotion(fieldMotion, sample, dt);
         activity = fieldMotion.confidence;
       } else {
-        const seconds = renderer.smoothingSeconds;
-        activity += (target - activity) * (1 - Math.exp(-dt / seconds));
-        if (Math.abs(activity) < .0001 && target === 0) activity = 0;
+        observatoryMotion = stepObservatoryMotion(observatoryMotion, sample, dt);
+        activity = observatoryMotion.activity;
       }
       const gpuMilliseconds = renderer.draw(geometry, activity, sample.progress);
       sampleFrames += 1;
