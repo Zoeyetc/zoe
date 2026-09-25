@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzePcmListening } from '@computational-listening/engine';
-import { classifyPercussion } from '@computational-listening/engine';
-import type { PercussionDescriptors, PercussionKind } from '@computational-listening/engine';
+import { analyzePcmListening } from '../src/listening-engine/index.ts';
+import { classifyPercussion } from '../src/listening-engine/index.ts';
+import type { PercussionDescriptors, PercussionKind } from '../src/listening-engine/index.ts';
 import {
   ambiguousClap, denseHats, fourOnFloorHats, isolatedClosedHat, isolatedKick,
   isolatedOpenHat, isolatedSnare, isolatedTom, lowSine, overlappingKickSnare,

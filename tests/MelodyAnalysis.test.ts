@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzeMelody } from '@computational-listening/engine';
-import { analyzePcmListening } from '@computational-listening/engine';
-import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
-import { toCarouselInput } from '../apps/zland/src/rides/carousel/adapter.ts';
-import { createCarouselSimulation } from '../apps/zland/src/rides/carousel/simulation.ts';
+import { analyzeMelody } from '../src/listening-engine/index.ts';
+import { analyzePcmListening } from '../src/listening-engine/index.ts';
 
 const SAMPLE_RATE = 48_000;
 const source = { id: 'melody-test', filename: 'melody-test.wav', mimeType: 'audio/wav' };
@@ -126,54 +123,4 @@ test('continuous slide keeps contour without chromatic note chatter', () => {
   assert.ok(voiced.length > 20);
   assert.ok(voiced.at(-1)!.midiFloat! - voiced[0].midiFloat! > 8);
   assert.ok(result.notes.length <= 4);
-});
-
-test('real ZlandAudioMap preserves absolute melody at Carousel boundary when tonal context is unavailable', () => {
-  const signal = concat(tone(261.6256, 0.65), tone(329.6276, 0.65), tone(391.9954, 0.65));
-  const map = analyzePcmListening({ sampleRate: SAMPLE_RATE, channels: [signal] }, source);
-  assert.equal(map.capabilities.melody, true);
-  assert.ok((map.melodyAnalysis?.notes.length ?? 0) >= 3);
-  assert.equal(map.capabilities.harmony, false);
-  assert.equal(map.capabilities.structure, false);
-  assert.equal(map.percussion, null);
-
-  const world = createAudioWorld(map);
-  const firstTime = map.melody![0].start + 0.02;
-  const first = world.synchronize(0, { time: firstTime, duration: map.duration, playing: false });
-  assert.equal(first.events.length, 1);
-  assert.equal(first.events[0].type, 'seek');
-  assert.equal(first.snapshot.melody.noteName, 'C4');
-  assert.equal(first.snapshot.melody.midi, 60);
-
-  const carousel = createCarouselSimulation({ pitchRange: {
-    min: map.melodyAnalysis!.pitchRange.minMidi!, max: map.melodyAnalysis!.pitchRange.maxMidi!,
-  } });
-  carousel.accept(toCarouselInput(first), 0);
-  assert.equal(carousel.read().activeMidi, 60);
-  assert.equal(carousel.read().activeNoteName, 'C4');
-  assert.equal(carousel.read().riders.filter(rider => rider.active).length, 0);
-  assert.equal(carousel.read().chromaticMarker.visible, true);
-  assert.equal(carousel.read().chromaticMarker.noteName, 'C4');
-
-  const crossed = world.read({ time: map.melody![1].start + 0.02, duration: map.duration, playing: true });
-  assert.deepEqual(crossed.events.filter(event => event.type === 'note-off' || event.type === 'note-on')
-    .map(event => event.type), ['note-off', 'note-on']);
-  assert.equal(crossed.snapshot.melody.noteName, 'E4');
-});
-
-test('pause lookup freezes note progress, seek synchronizes directly, and restart returns to timeline start', () => {
-  const signal = concat(tone(261.6256, 0.65), tone(329.6276, 0.65), tone(391.9954, 0.65));
-  const map = analyzePcmListening({ sampleRate: SAMPLE_RATE, channels: [signal] }, source);
-  const world = createAudioWorld(map);
-  const heldTime = map.melody![0].start + 0.2;
-  const pausedA = lookupSnapshot(map, { time: heldTime, duration: map.duration, playing: false });
-  const pausedB = lookupSnapshot(map, { time: heldTime, duration: map.duration, playing: false });
-  assert.equal(pausedA.melody.noteProgress, pausedB.melody.noteProgress);
-  const target = map.melody![2].start + 0.02;
-  const seek = world.synchronize(heldTime, { time: target, duration: map.duration, playing: false });
-  assert.deepEqual(seek.events, [{ type: 'seek', from: heldTime, to: target }]);
-  assert.equal(seek.snapshot.melody.noteName, 'G4');
-  const restart = world.synchronize(target, { time: 0, duration: map.duration, playing: false });
-  assert.equal(restart.events[0].type, 'seek');
-  assert.equal(restart.snapshot.melody.active, false);
 });

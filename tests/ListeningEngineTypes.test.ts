@@ -7,7 +7,7 @@ import type {
   ScaleDegreeEvidence,
   TonalCenterSegment,
   TonalMode,
-} from '@computational-listening/engine';
+} from '../src/listening-engine/index.ts';
 
 test('engine public API exposes the minimal generic listening contract closure', () => {
   const source: MelodySource = 'predominant-analysis';

@@ -1,12 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzePcmListening } from '@computational-listening/engine';
-import { analyzeRhythm, type RhythmEnvelopeFrame } from '@computational-listening/engine';
-import { createPreviewAudioClock } from '../apps/zland/src/audio/AudioClock.ts';
-import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
-import { toBumperCarsInput } from '../apps/zland/src/rides/bumper-cars/adapter.ts';
-import { toPirateShipInput } from '../apps/zland/src/rides/pirate-ship/adapter.ts';
-import { createPirateShipSimulation } from '../apps/zland/src/rides/pirate-ship/simulation.ts';
+import { analyzePcmListening } from '../src/listening-engine/index.ts';
+import { analyzeRhythm, type RhythmEnvelopeFrame } from '../src/listening-engine/index.ts';
 
 const hop = 0.02;
 const envelope = (
@@ -107,63 +102,6 @@ test('PCM analysis reuses the 9A onset pipeline and enables only spectrum plus c
   assert.equal(map.capabilities.structure, false);
   assert.equal(map.percussion, null);
   assert.ok(Math.abs((map.rhythmAnalysis?.bpm ?? 0) - 120) <= 2);
-});
-
-test('AudioWorld derives phase from beat timestamps across pause, seek, restart, and end', () => {
-  const sampleRate = 48_000;
-  const map = analyzePcmListening({ sampleRate, channels: [pcmClicks(sampleRate, 8, 120)] }, {
-    id: 'rhythm-world', filename: 'rhythm.wav', mimeType: 'audio/wav',
-  });
-  let now = 0;
-  const clock = createPreviewAudioClock(map.duration, () => now);
-  const world = createAudioWorld(map);
-  clock.seek(1.35);
-  const paused = world.synchronize(0, clock.read()).snapshot.rhythm;
-  now = 4;
-  assert.equal(world.read(clock.read()).snapshot.rhythm.beatPhase, paused.beatPhase);
-  clock.play(); now = 4.2;
-  const resumed = world.read(clock.read()).snapshot.rhythm;
-  assert.ok(resumed.beatPhase >= 0 && resumed.beatPhase < 1);
-  assert.notEqual(resumed.beatPhase, paused.beatPhase);
-  clock.seek(2.6);
-  const sought = world.synchronize(1.55, clock.read()).snapshot.rhythm;
-  assert.ok(sought.beatPhase >= 0 && sought.beatPhase < 1);
-  clock.restart();
-  const restarted = world.synchronize(2.6, clock.read()).snapshot.rhythm;
-  assert.ok(restarted.beatPhase >= 0 && restarted.beatPhase < 1);
-  clock.seek(map.duration);
-  assert.equal(world.synchronize(0, clock.read()).snapshot.rhythm.available, true);
-});
-
-test('real rhythm wakes PirateShip through AudioWorld while beat events cannot wake BumperCars', () => {
-  const sampleRate = 48_000;
-  const map = analyzePcmListening({ sampleRate, channels: [pcmClicks(sampleRate, 8, 120)] }, {
-    id: 'rhythm-actors', filename: 'rhythm.wav', mimeType: 'audio/wav',
-  });
-  const world = createAudioWorld(map);
-  world.read({ time: 0, duration: map.duration, playing: true });
-  const frame = world.read({ time: 1.4, duration: map.duration, playing: true });
-  assert.ok(frame.events.some(event => event.type === 'beat'));
-  const pirateInput = toPirateShipInput(frame);
-  assert.equal(pirateInput.rhythmAvailable, true);
-  const pirate = createPirateShipSimulation();
-  pirate.accept(pirateInput, 0.1);
-  assert.equal(pirate.read().mode, 'active');
-  const bumperInput = toBumperCarsInput(frame);
-  assert.equal(bumperInput.percussionAvailable, false);
-  assert.deepEqual(bumperInput.events, []);
-});
-
-test('AudioWorld reads the correct phase region directly after a seek', () => {
-  const sampleRate = 48_000;
-  const map = analyzePcmListening({ sampleRate, channels: [pcmClicks(sampleRate, 8, 90)] }, {
-    id: 'rhythm-seek', filename: 'rhythm.wav', mimeType: 'audio/wav',
-  });
-  const atA = lookupSnapshot(map, { time: 1.1, duration: map.duration, playing: false }).rhythm;
-  const atB = lookupSnapshot(map, { time: 1.4, duration: map.duration, playing: false }).rhythm;
-  assert.notEqual(atA.beatPhase, atB.beatPhase);
-  assert.ok(atA.beatPhase >= 0 && atA.beatPhase < 1);
-  assert.ok(atB.beatPhase >= 0 && atB.beatPhase < 1);
 });
 
 

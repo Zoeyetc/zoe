@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { deriveScaleDegreeEvidence, selectReferenceTonicMidi, TONAL_CONFIDENCE_THRESHOLD } from '@computational-listening/engine';
-import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
-import { milestoneOneZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
-import type { MelodyNote, TonalCenterAnalysis, TonalCenterSegment, TonalMode } from '@computational-listening/engine';
-import type { ZlandAudioMap } from '../apps/zland/src/audio/types.ts';
+import { deriveScaleDegreeEvidence, selectReferenceTonicMidi, TONAL_CONFIDENCE_THRESHOLD } from '../src/listening-engine/index.ts';
+import type { MelodyNote, TonalCenterAnalysis, TonalCenterSegment, TonalMode } from '../src/listening-engine/index.ts';
 
 const note = (midi: number, confidence = 0.9): MelodyNote => ({ id: `n-${midi}`, start: 0, end: 8, midi, intensity: 0.8, confidence });
 const tonal = (rootPitchClass: number, mode: TonalMode, confidence = 0.9) => ({ rootPitchClass, mode, confidence });
@@ -61,46 +58,4 @@ test('degree confidence is gated and cannot exceed either source', () => {
   const valid = deriveScaleDegreeEvidence({ note: note(64, 0.7), noteName: 'E4', melodyConfidence: 0.7,
     tonalCenter: tonal(0, 'major', 0.9), referenceTonicMidi: 60 });
   assert.equal(valid.available, true); assert.equal(valid.confidence, 0.7);
-});
-
-function analysis(segments: readonly TonalCenterSegment[]): TonalCenterAnalysis {
-  return { version: 1, available: true, confidence: 0.9, globalTonalCenter: null,
-    averageSegmentDuration: 4, frames: [], segments,
-    metadata: { sourceChroma: 'harmony-analysis-normalized-chroma', windowSize: 8, hopSize: 2,
-      majorProfile: [], minorProfile: [], similarity: 'cosine',
-      smoothing: 'non-causal-dynamic-programming-plus-minimum-segment', minimumSegmentDuration: 4,
-      minimumUsableDuration: 2, availabilityThreshold: 0.56, switchPenalty: 0.11 } };
-}
-const segment = (id: string, start: number, end: number, rootPitchClass: number, label: string): TonalCenterSegment =>
-  ({ id, start, end, rootPitchClass, mode: 'major', label, confidence: 0.9,
-    circleOfFifthsIndex: 0, distanceFromPrevious: null });
-
-function tonalMap(melody: readonly MelodyNote[], segments: readonly TonalCenterSegment[]): ZlandAudioMap {
-  return { ...milestoneOneZlandAudioMap, id: 'degree-fixture', duration: 8, melody,
-    capabilities: { ...milestoneOneZlandAudioMap.capabilities, tonalCenter: true }, tonalCenterAnalysis: analysis(segments) };
-}
-
-test('AudioWorld preserves MIDI while a sustained note is reinterpreted across modulation', () => {
-  const map = tonalMap([note(67)], [segment('c', 0, 4, 0, 'C major'), segment('g', 4, 8, 7, 'G major')]);
-  const world = createAudioWorld(map);
-  const before = world.read({ time: 3, duration: 8, playing: true });
-  assert.equal(before.snapshot.melody.midi, 67); assert.equal(before.snapshot.melody.scaleDegree.degree, 5);
-  const after = world.read({ time: 4.1, duration: 8, playing: true });
-  assert.equal(after.snapshot.melody.midi, 67); assert.equal(after.snapshot.melody.scaleDegree.degree, 1);
-  assert.deepEqual(after.events.map(event => event.type), ['tonal-center-change']);
-});
-
-test('AudioWorld seek resolves destination degree without replaying skipped notes', () => {
-  const map = tonalMap([note(67)], [segment('c', 0, 4, 0, 'C major'), segment('g', 4, 8, 7, 'G major')]);
-  const frame = createAudioWorld(map).synchronize(1, { time: 6, duration: 8, playing: false });
-  assert.equal(frame.snapshot.melody.scaleDegree.degree, 1);
-  assert.deepEqual(frame.events, [{ type: 'seek', from: 1, to: 6 }]);
-});
-
-test('AudioWorld keeps chromatic and no-tonal-center notes absolute with no degree', () => {
-  const chromatic = lookupSnapshot(tonalMap([note(66)], [segment('c', 0, 8, 0, 'C major')]),
-    { time: 2, duration: 8, playing: false });
-  assert.equal(chromatic.melody.midi, 66); assert.equal(chromatic.melody.scaleDegree.degree, null);
-  const noKey = lookupSnapshot(milestoneOneZlandAudioMap, { time: 1.5, duration: 12, playing: false });
-  assert.equal(noKey.melody.midi, 60); assert.equal(noKey.melody.scaleDegree.available, false);
 });

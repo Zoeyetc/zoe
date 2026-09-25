@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzeMelody, analyzeMelodyWithEvidence } from '@computational-listening/engine';
-import type { MelodyEvidenceTimeline } from '@computational-listening/engine';
+import { analyzeMelody, analyzeMelodyWithEvidence } from '../src/listening-engine/index.ts';
+import type { MelodyEvidenceTimeline } from '../src/listening-engine/index.ts';
 import {
   BASS_AMPLITUDE_MATRIX, CALIBRATION_SAMPLE_RATE, characterizeMelodyPath,
   createMelodyCompetitionStimulus, GROUND_TRUTH_BASS, GROUND_TRUTH_MELODY,

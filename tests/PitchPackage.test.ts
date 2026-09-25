@@ -3,7 +3,7 @@ import test from 'node:test';
 import {
   hzToMidi as packageHzToMidi,
   midiToNoteName as packageMidiToNoteName,
-} from '@computational-listening/engine';
+} from '../src/listening-engine/index.ts';
 test('engine pitch API preserves exact representative frequency, MIDI, and note-name behavior', () => {
   assert.equal(packageHzToMidi(440), 69);
   assert.equal(packageHzToMidi(261.6255653005986), 60);

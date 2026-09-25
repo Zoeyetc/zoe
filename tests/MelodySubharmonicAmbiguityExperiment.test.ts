@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzeMelody, analyzeMelodyWithEvidence, MELODY_ANALYSIS } from '@computational-listening/engine';
-import { analyzeMelodyWithDpDiagnostics, analyzeMelodyWithSubharmonicAmbiguityExperiment, MELODY_SUBHARMONIC_AMBIGUITY } from '@computational-listening/engine/diagnostics';
-import type { MelodyAnalysisWithDpDiagnostics, MelodySubharmonicAmbiguityPenalty } from '@computational-listening/engine/diagnostics';
-import type { MelodyDpFrameDiagnostic, MelodyDpStateDiagnostic } from '@computational-listening/engine/diagnostics';
+import { analyzeMelody, analyzeMelodyWithEvidence, MELODY_ANALYSIS } from '../src/listening-engine/index.ts';
+import { analyzeMelodyWithDpDiagnostics, analyzeMelodyWithSubharmonicAmbiguityExperiment, MELODY_SUBHARMONIC_AMBIGUITY } from '../src/listening-engine/diagnostics/index.ts';
+import type { MelodyAnalysisWithDpDiagnostics, MelodySubharmonicAmbiguityPenalty } from '../src/listening-engine/diagnostics/index.ts';
+import type { MelodyDpFrameDiagnostic, MelodyDpStateDiagnostic } from '../src/listening-engine/diagnostics/index.ts';
 import {
   BASS_AMPLITUDE_MATRIX, CALIBRATION_SAMPLE_RATE, characterizeMelodyPath, classifyWrongPath,
   createMelodyCompetitionStimulus, GROUND_TRUTH_BASS, GROUND_TRUTH_MELODY,

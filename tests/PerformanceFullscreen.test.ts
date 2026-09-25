@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createPerformanceFullscreenController, FULLSCREEN_CURSOR_IDLE_MS,
-  type PerformanceFullscreenState } from '../packages/listening-instrument-ui/src/signal-player/performanceFullscreen.ts';
+  type PerformanceFullscreenState } from '../src/instrument-ui/signal-player/performanceFullscreen.ts';
 import { readFileSync } from 'node:fs';
-import { RollingPcmBuffer } from '@computational-listening/engine';
-import { createAudioBufferPlaybackTransport, createLiveAudioClock } from '@computational-listening/audio-source-browser';
+import { RollingPcmBuffer } from '../src/listening-engine/index.ts';
+import { createAudioBufferPlaybackTransport, createLiveAudioClock } from '../src/audio-source-browser/index.ts';
 
 function fixture(options: { unsupported?: boolean; rejectRequest?: boolean } = {}) {
   const document = new EventTarget() as Document;
@@ -35,9 +35,9 @@ function fixture(options: { unsupported?: boolean; rejectRequest?: boolean } = {
 
 test('fullscreen command is mounted on the complete SignalPlayer root', () => {
   const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
-  const player = read('../packages/listening-instrument-ui/src/signal-player/SignalPlayer.tsx');
-  const playback = read('../packages/listening-instrument-ui/src/signal-player/SignalPlayback.tsx');
-  const zoe = read('../apps/zoe/src/ZoeApp.tsx');
+  const player = read('../src/instrument-ui/signal-player/SignalPlayer.tsx');
+  const playback = read('../src/instrument-ui/signal-player/SignalPlayback.tsx');
+  const zoe = read('../src/ZoeApp.tsx');
   assert.match(player, /<main ref=\{rootRef\}/);
   assert.match(player, /<SignalPlayback/);
   assert.match(player, /<SignalConsole/);

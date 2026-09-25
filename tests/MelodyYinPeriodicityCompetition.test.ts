@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzeMelody, analyzeMelodyWithEvidence, MELODY_ANALYSIS } from '@computational-listening/engine';
-import { analyzeMelodyWithDpDiagnostics, inspectMelodyYinFrame } from '@computational-listening/engine/diagnostics';
+import { analyzeMelody, analyzeMelodyWithEvidence, MELODY_ANALYSIS } from '../src/listening-engine/index.ts';
+import { analyzeMelodyWithDpDiagnostics, inspectMelodyYinFrame } from '../src/listening-engine/diagnostics/index.ts';
 import type {
   MelodyCandidateScoreDiagnostic, MelodyDpFrameDiagnostic, MelodyYinFrameDiagnostic,
   MelodyYinLagPointDiagnostic,
-} from '@computational-listening/engine/diagnostics';
+} from '../src/listening-engine/diagnostics/index.ts';
 import {
   CALIBRATION_SAMPLE_RATE, createBassOnlyCompetitionStimulus, createMelodyCompetitionStimulus,
   GROUND_TRUTH_BASS, GROUND_TRUTH_MELODY, matchesPitchIdentity, NON_OCTAVE_CONTROL_BASS,

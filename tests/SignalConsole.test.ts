@@ -1,16 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import type { ZlandAudioMap } from '../apps/zland/src/audio/types.ts';
-import { lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
 import { selectSignalInterpretationFields, selectSignalTelemetry, signalPhraseGroups,
-  TEMPORAL_RESIDUE_POLICY } from '../packages/listening-instrument-ui/src/signal-console/signalTelemetry.ts';
-import { listeningFieldBeatEmphasis, selectPrimaryListeningView } from '../packages/listening-instrument-ui/src/signal-console/primaryListening.ts';
-import type { SignalConsoleObservation } from '../packages/listening-instrument-ui/src/signal-console/types.ts';
-import { analyzePcmListening } from '@computational-listening/engine';
-import { selectMelodyEvidenceForTransport } from '@computational-listening/engine';
+  TEMPORAL_RESIDUE_POLICY } from '../src/instrument-ui/signal-console/signalTelemetry.ts';
+import { listeningFieldBeatEmphasis, selectPrimaryListeningView } from '../src/instrument-ui/signal-console/primaryListening.ts';
+import type { SignalConsoleObservation } from '../src/instrument-ui/signal-console/types.ts';
+import { analyzePcmListening, lookupListeningSnapshot } from '../src/listening-engine/index.ts';
+import type { InstrumentListeningMap, BrowserTransportState } from '../src/instrument-ui/contracts.ts';
+import { selectMelodyEvidenceForTransport } from '../src/listening-engine/index.ts';
 
-function map(id = 'signal-map', rms: readonly [number, number] = [.284, .291]): ZlandAudioMap {
+function map(id = 'signal-map', rms: readonly [number, number] = [.284, .291]): InstrumentListeningMap {
   return {
     version: 1, id, duration: 2,
     capabilities: { melody: true, rhythm: true, percussion: true, harmony: true,
@@ -59,20 +58,23 @@ function map(id = 'signal-map', rms: readonly [number, number] = [.284, .291]): 
           profileScore: .8, tonicSupport: .7, chordSupport: .75 },
         secondCandidate: null, topScore: .76, secondScore: .22, margin: .54, usableCoverage: .9 },
     ] },
-    structure: null, structureAnalysis: { frames: [
+    structureAnalysis: { frames: [
       { id: 'st0', start: 0, end: 1, vector: [], energy: .25, onsetDensity: .2 },
       { id: 'st1', start: 1, end: 2, vector: [], energy: .75, onsetDensity: .6 },
     ], novelty: [.1, .8], noveltyScales: { short: [.11, .7], medium: [.12, .6], long: [.13, .5] } },
-    drops: null,
-  } as unknown as ZlandAudioMap;
+  } as unknown as InstrumentListeningMap;
 }
 
-const observation = (audioMap: ZlandAudioMap, time: number, revision = 0, playing = true): SignalConsoleObservation => ({
+const lookupSnapshot = (audioMap: InstrumentListeningMap, transport: BrowserTransportState) => ({
+  ...lookupListeningSnapshot(audioMap, transport.time), mapId: audioMap.id, transport,
+});
+
+const observation = (audioMap: InstrumentListeningMap, time: number, revision = 0, playing = true): SignalConsoleObservation => ({
   audioMap, mapRevision: revision, transport: { time, duration: audioMap.duration, playing },
 });
 const field = (telemetry: ReturnType<typeof selectSignalTelemetry>, domain: string, label: string) =>
   telemetry.domains.find(item => item.id === domain)?.fields.find(item => item.label === label)?.value;
-const interpretationField = (audioMap: ZlandAudioMap, time: number, ended: boolean) => {
+const interpretationField = (audioMap: InstrumentListeningMap, time: number, ended: boolean) => {
   const snapshot = lookupSnapshot(audioMap, { time, duration: audioMap.duration, playing: false });
   const fields = selectSignalInterpretationFields({ snapshot, events: [] }, ended);
   return (label: string) => fields.find(item => item.label === label)?.value;
@@ -104,7 +106,7 @@ test('paused seek resolves destination frames instead of suppressing synchroniza
   assert.equal(field(sought, 'TRANSIENT', 'ONSET'), '0.800');
 });
 
-test('ZlandAudioMap replacement refreshes equal indexes through explicit revision identity', () => {
+test('AudioMap replacement refreshes equal indexes through explicit revision identity', () => {
   const first = selectSignalTelemetry(observation(map('same-id', [.1, .2]), .01, 4, false));
   const replacement = selectSignalTelemetry(observation(map('same-id', [.9, .8]), .01, 5, false));
   assert.deepEqual(replacement.indexes, first.indexes);
@@ -291,8 +293,8 @@ test('Melody Inspect renders explicit below/above provenance separately from usa
 });
 
 test('SignalConsole uses semantic typography inside fixed phrase-group boundaries', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
-  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/instrument-ui/signal-console/signalConsole.css', import.meta.url), 'utf8');
   assert.match(component, /data-signal-group=/);
   assert.match(component, /data-signal-role=\{item\.role\}/);
   assert.match(component, /data-typography=\{musicalMetrics\.includes\(item\.label\) \? 'musical' : 'code'\}/);
@@ -314,13 +316,13 @@ test('SignalConsole uses semantic typography inside fixed phrase-group boundarie
   assert.match(component, /label="Rejected pre-filter"/);
   assert.match(component, /label="Generation"/);
   assert.match(component, /rejectedCandidates\.map/);
-  assert.match(readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalTelemetry.ts', import.meta.url), 'utf8'),
+  assert.match(readFileSync(new URL('../src/instrument-ui/signal-console/signalTelemetry.ts', import.meta.url), 'utf8'),
     /candidate\.reason/);
 });
 
 test('numeric geometry remains independent from semantic font selection', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
-  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/instrument-ui/signal-console/signalConsole.css', import.meta.url), 'utf8');
   assert.doesNotMatch(component, /NumericMode|Development numeric mode|signal-number-mode/);
   assert.match(styles, /data-signal-role='signal'[^}]*proportional-nums/);
   assert.match(styles, /data-signal-role='anchor'[^}]*tabular-nums/);
@@ -334,7 +336,7 @@ test('numeric geometry remains independent from semantic font selection', () => 
 });
 
 test('visual theme tokens do not alter typographic geometry or numeric mode', () => {
-  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/instrument-ui/signal-console/signalConsole.css', import.meta.url), 'utf8');
   assert.match(styles, /--signal-evidence-strong: var\(--signal-theme-console-signal, #473b5b\)/);
   assert.match(styles, /--signal-anchor: var\(--signal-theme-console-anchor, #242321\)/);
   assert.match(styles, /--signal-interpretation: var\(--signal-theme-console-interpretation, #473b5b\)/);
@@ -343,8 +345,8 @@ test('visual theme tokens do not alter typographic geometry or numeric mode', ()
 });
 
 test('Field typography follows evidence semantics instead of component identity', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
-  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/instrument-ui/signal-console/signalConsole.css', import.meta.url), 'utf8');
   for (const value of ['primary.signal.level', 'primary.signal.transient', 'primary.signal.low',
     'primary.signal.mid', 'primary.signal.high', 'primary.harmony.hypothesis', 'primary.structure.progress']) {
     assert.match(component, new RegExp(`typography="code"[^>]*[\\s\\S]{0,90}\\{${value.replaceAll('.', '\\.')}`));
@@ -362,8 +364,8 @@ test('Field typography follows evidence semantics instead of component identity'
 });
 
 test('Melody evidence hierarchy derives visual weight from existing evidence without layout motion', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
-  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/instrument-ui/signal-console/signalConsole.css', import.meta.url), 'utf8');
   for (const state of ['accepted', 'active', 'candidate', 'rejected', 'empty']) {
     assert.match(styles, new RegExp(`data-melody-evidence-state='${state}'`));
   }
@@ -378,11 +380,11 @@ test('Melody evidence hierarchy derives visual weight from existing evidence wit
   assert.doesNotMatch(styles, /data-melody-evidence-state[^}]*display:\s*none/);
 });
 
-test('SignalConsole uses one presentation loop and contains no ride or PhysicsWorld dependency', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
-  const selector = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalTelemetry.ts', import.meta.url), 'utf8');
+test('SignalConsole uses one presentation loop', () => {
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const selector = readFileSync(new URL('../src/instrument-ui/signal-console/signalTelemetry.ts', import.meta.url), 'utf8');
   assert.equal((component.match(/requestAnimationFrame/g) ?? []).length, 2);
-  assert.doesNotMatch(component + selector, /setInterval|Carousel|FerrisWheel|PirateShip|BumperCars|DropTower|RollerCoaster|FreeBodies|PhysicsWorld|\.\.\/rides|\.\.\/physics/);
+  assert.doesNotMatch(component + selector, /setInterval/);
   assert.match(component, /selectPrimaryListeningView\(telemetry, interpretation, events\)/);
   assert.match(component, /data-time-scale=/);
   assert.match(component, /data-signal-layer=\{layer\}/);
@@ -427,7 +429,7 @@ test('below-range observed pitch remains primary evidence while Melody reports s
   const projected = selectPrimaryListeningView({ ...telemetry, primaryEvidence: {
     ...telemetry.primaryEvidence,
     observedPitch: { frequencyHz: '79.73', noteName: 'D#2', score: '.714', rangeStatus: 'BELOW MELODY RANGE' },
-  } }, { snapshot: lookupSnapshot({ ...map(), capabilities: { ...map().capabilities, melody: false }, melody: null } as ZlandAudioMap,
+  } }, { snapshot: lookupSnapshot({ ...map(), capabilities: { ...map().capabilities, melody: false }, melody: null } as InstrumentListeningMap,
     { time: .2, duration: 2, playing: true }), events: [] }, []);
   assert.equal(projected.observedPitch.frequencyHz, '79.73');
   assert.equal(projected.observedPitch.rangeStatus, 'BELOW MELODY RANGE');
@@ -458,8 +460,8 @@ test('Listening Field beat emphasis returns to baseline within each beat interva
 });
 
 test('temporal score composition keeps primary order, forensic disclosures, and fixed placeholders', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
-  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/instrument-ui/signal-console/signalConsole.css', import.meta.url), 'utf8');
   const ordered = ['scale="FAST"', 'scale="SHORT"', 'scale="BEAT"', 'scale="SLOW"', 'scale="SECTION"'];
   ordered.reduce((position, marker) => {
     const next = component.indexOf(marker);
@@ -479,23 +481,22 @@ test('temporal score composition keeps primary order, forensic disclosures, and 
 });
 
 test('Listening Field reuses the primary listening projection through a presentation-only variant', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
-  const fieldComponent = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
-  const player = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-player/SignalPlayer.tsx', import.meta.url), 'utf8');
-  const host = readFileSync(new URL('../apps/zoe/src/ZoeApp.tsx', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const fieldComponent = readFileSync(new URL('../src/instrument-ui/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
+  const player = readFileSync(new URL('../src/instrument-ui/signal-player/SignalPlayer.tsx', import.meta.url), 'utf8');
+  const host = readFileSync(new URL('../src/ZoeApp.tsx', import.meta.url), 'utf8');
   assert.equal((component.match(/selectPrimaryListeningView\(/g) ?? []).length, 1);
   assert.match(component, /composition = 'temporal-score'/);
   assert.match(component, /<ListeningField primary=\{primary\}/);
   assert.match(player, /composition\?: SignalComposition/);
   assert.match(player, /composition=\{composition\}/);
   assert.match(host, /composition="performance"/);
-  assert.doesNotMatch(host, /ParkMap|Development Workbench|createExperience/);
-  assert.doesNotMatch(fieldComponent, /ZlandAudioMap|AudioWorld|selectSignalTelemetry|requestAnimationFrame|setInterval/);
+  assert.doesNotMatch(fieldComponent, /selectSignalTelemetry|requestAnimationFrame|setInterval/);
 });
 
 test('Performance Surface keeps permanent model orientation and opens performance layers by default', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
-  const fieldComponent = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const fieldComponent = readFileSync(new URL('../src/instrument-ui/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
   assert.match(component, /composition === 'performance'/);
   assert.match(component, /defaultOpen=\{composition === 'performance'\}/);
   assert.match(component, /open=\{composition === 'performance' \|\| undefined\}/);
@@ -509,7 +510,7 @@ test('Performance Surface keeps permanent model orientation and opens performanc
 });
 
 test('Performance Surface uses unequal field heights and keeps uncertainty evidence production-backed', () => {
-  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/instrument-ui/signal-console/signalConsole.css', import.meta.url), 'utf8');
   assert.match(styles, /--performance-pitch-height: 9\.25rem/);
   assert.match(styles, /--performance-signal-height: 3rem/);
   assert.match(styles, /--performance-rhythm-height: 3\.5rem/);
@@ -521,10 +522,10 @@ test('Performance Surface uses unequal field heights and keeps uncertainty evide
 });
 
 test('Single-viewport performance format keeps core truth in one bounded desktop band', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
-  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
-  const player = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-player/SignalPlayer.tsx', import.meta.url), 'utf8');
-  const playerStyles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-player/signalPlayer.css', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/SignalConsole.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/instrument-ui/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const player = readFileSync(new URL('../src/instrument-ui/signal-player/SignalPlayer.tsx', import.meta.url), 'utf8');
+  const playerStyles = readFileSync(new URL('../src/instrument-ui/signal-player/signalPlayer.css', import.meta.url), 'utf8');
   assert.match(component, /data-inspect-format=\{performance \? 'performance' : 'forensic'\}/);
   assert.match(component, /performance\s*\? inspect\.rejectedCandidates\.filter/);
   assert.match(component, /\{ label: 'COUNT', value: `\$\{rejectedTotal\}\/\$\{rejectedCapacity\}`/);
@@ -558,8 +559,8 @@ test('Single-viewport performance format keeps core truth in one bounded desktop
 });
 
 test('Performance density pass uses truthful system rails and keeps Pitch Melody expressive', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
-  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/instrument-ui/signal-console/signalConsole.css', import.meta.url), 'utf8');
   assert.match(component, /name === 'OBSERVED PITCH \/ MELODY' \? 'expressive'/);
   assert.match(component, /name === 'HARMONY' \|\| name === 'TONAL CENTER' \? 'residue' : 'rail'/);
   assert.match(component, /data-field-depth=\{depth\} data-field-form=\{form\}/);
@@ -609,7 +610,7 @@ test('Uncertainty Field projects retained Harmony and Tonal top, second, and mar
     tonalCenterAnalysis: { ...audioMap.tonalCenterAnalysis!, frames: audioMap.tonalCenterAnalysis!.frames.map((frame, index) =>
       index === 0 ? { ...frame, topCandidate: tonal('C minor', 0, .58),
         secondCandidate: tonal('G minor', 7, .51), topScore: .58, secondScore: .51, margin: .07 } : frame) },
-  } as ZlandAudioMap;
+  } as InstrumentListeningMap;
   const uncertainty = selectSignalTelemetry(observation(enriched, .1)).primaryEvidence.uncertainty;
   assert.deepEqual(uncertainty.harmony, {
     top: { identity: 'G major', score: '0.240' },
@@ -622,8 +623,8 @@ test('Uncertainty Field projects retained Harmony and Tonal top, second, and mar
 });
 
 test('Uncertainty Field keeps cognition geometry across accepted states and adds no animation clock', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
-  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/instrument-ui/signal-console/signalConsole.css', import.meta.url), 'utf8');
   assert.match(component, /Array\.from\(\{ length: cap \}/);
   assert.match(component, /accepted \|\| !active \? 'settled'/);
   assert.match(component, /transport\.playing && !ended && primary\.uncertainty\.melody\.changed/);
@@ -641,7 +642,7 @@ test('Uncertainty Field keeps cognition geometry across accepted states and adds
 });
 
 test('Listening Field removes time blocks and peripheral metrics from its primary field', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
   for (const voice of ['SIGNAL', 'OBSERVED PITCH / MELODY', 'RHYTHM / PERCUSSION', 'HARMONY',
     'TONAL CENTER', 'STRUCTURE']) assert.match(component, new RegExp(`name="${voice}"`));
   assert.equal((component.match(/listening-field-now-rule/g) ?? []).length, 1);
@@ -657,7 +658,7 @@ test('Listening Field removes time blocks and peripheral metrics from its primar
 });
 
 test('Listening Field CSS preserves one responsive field, fixed depth rows, and scroll anchoring', () => {
-  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/instrument-ui/signal-console/signalConsole.css', import.meta.url), 'utf8');
   assert.match(styles, /\.listening-field-score \{[^}]*display: grid/s);
   assert.match(styles, /\.listening-field-now-rule \{[^}]*grid-row: 1 \/ 7/s);
   assert.match(styles, /\.listening-field-voice \{[^}]*grid-template-columns: subgrid/s);
@@ -669,7 +670,7 @@ test('Listening Field CSS preserves one responsive field, fixed depth rows, and 
   assert.doesNotMatch(styles, /transition\s*:|animation\s*:|@keyframes/);
 });
 
-function temporalMap(id = 'temporal-map', offset = 0): ZlandAudioMap {
+function temporalMap(id = 'temporal-map', offset = 0): InstrumentListeningMap {
   const chord = (index: number, second = false) => ({
     label: `${second ? 'G' : 'C'} ${index % 2 ? 'minor' : 'major'}`,
     rootPitchClass: second ? 7 : 0,
@@ -713,7 +714,7 @@ function temporalMap(id = 'temporal-map', offset = 0): ZlandAudioMap {
         majorProfile: Array(12).fill(0), minorProfile: Array(12).fill(0), similarity: 'cosine',
         smoothing: 'non-causal-dynamic-programming-plus-minimum-segment', minimumSegmentDuration: 4,
         minimumUsableDuration: 2, availabilityThreshold: .56, switchPenalty: .11 } },
-  } as ZlandAudioMap;
+  } as InstrumentListeningMap;
 }
 
 test('Temporal residue selects bounded real retained states at domain-specific cadence', () => {
@@ -751,7 +752,7 @@ test('Melody residue uses retained candidate frames without interpolation or rep
     }))));
 });
 
-test('restart, seek, and ZlandAudioMap replacement reconstruct residue without stale UI history', () => {
+test('restart, seek, and AudioMap replacement reconstruct residue without stale UI history', () => {
   const original = temporalMap('same', 0);
   const restarted = selectSignalTelemetry(observation(original, 0, 2, false));
   assert.deepEqual(restarted.primaryEvidence.uncertainty.harmony.history, []);
@@ -787,17 +788,17 @@ test('Melody, Harmony, and Tonal gates expose only audited production conditions
 
   const base = temporalMap();
   const lowHarmony = { ...base, harmonyAnalysis: { ...base.harmonyAnalysis!, frames: base.harmonyAnalysis!.frames.map(
-    (frame, index) => index === 12 ? { ...frame, confidence: .51, chord: null } : frame) } } as ZlandAudioMap;
+    (frame, index) => index === 12 ? { ...frame, confidence: .51, chord: null } : frame) } } as InstrumentListeningMap;
   const harmony = selectSignalTelemetry(observation(lowHarmony, 1.21)).primaryEvidence.gates.harmony;
   assert.equal(harmony?.reason, 'LOW_FRAME_CONFIDENCE');
   assert.equal(harmony?.text, 'confidence 0.510 < required 0.520');
 
   const lowTonal = { ...base, tonalCenterAnalysis: { ...base.tonalCenterAnalysis!, available: false,
-    confidence: .55, segments: [] } } as ZlandAudioMap;
+    confidence: .55, segments: [] } } as InstrumentListeningMap;
   const tonal = selectSignalTelemetry(observation(lowTonal, 10)).primaryEvidence.gates.tonalCenter;
   assert.equal(tonal?.reason, 'LOW_TRACK_CONFIDENCE');
   assert.equal(tonal?.text, 'track confidence 0.550 < required 0.560');
-  const selector = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalTelemetry.ts', import.meta.url), 'utf8');
+  const selector = readFileSync(new URL('../src/instrument-ui/signal-console/signalTelemetry.ts', import.meta.url), 'utf8');
   assert.doesNotMatch(selector, /margin \$\{.*< required/);
 });
 
@@ -814,8 +815,8 @@ test('accepted interpretation suppresses stale gates while preserving residue ge
 });
 
 test('Pulse is driven by the existing beat event emphasis and adds no independent clock', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
-  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/instrument-ui/signal-console/signalConsole.css', import.meta.url), 'utf8');
   assert.match(component, /data-event-emphasis=\{primary\.rhythm\.listeningFieldEmphasis\}/g);
   assert.match(component, /className="listening-field-pulse"/);
   assert.match(styles, /listening-field-pulse i\[data-event-emphasis='current'\] \{ opacity: 1; \}/);
@@ -826,8 +827,8 @@ test('Pulse is driven by the existing beat event emphasis and adds no independen
 });
 
 test('Temporal Cognition presentation keeps fixed residue and gate structure without graphs', () => {
-  const component = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
-  const styles = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalConsole.css', import.meta.url), 'utf8');
+  const component = readFileSync(new URL('../src/instrument-ui/signal-console/ListeningField.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/instrument-ui/signal-console/signalConsole.css', import.meta.url), 'utf8');
   assert.match(component, /Array\.from\(\{ length: 3 \}/);
   assert.match(component, /listening-field-residue/);
   assert.match(component, /listening-field-gate/);
@@ -842,11 +843,10 @@ test('Temporal Cognition presentation keeps fixed residue and gate structure wit
 });
 
 test('Zoë exposes only a typed read-only observation seam for SignalConsole', () => {
-  const source = readFileSync(new URL('../apps/zoe/src/ZoeApp.tsx', import.meta.url), 'utf8');
-  const types = readFileSync(new URL('../packages/listening-instrument-ui/src/contracts.ts', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../src/ZoeApp.tsx', import.meta.url), 'utf8');
+  const types = readFileSync(new URL('../src/instrument-ui/contracts.ts', import.meta.url), 'utf8');
   assert.match(types, /type SignalConsoleObservation = Readonly<\{/);
   assert.match(source, /observe=\{\(\) => \(\{ mapRevision:/);
   assert.match(source, /melodyEvidence: selectMelodyEvidenceForTransport\(mapRef\.current\.melodyEvidence, transportRef\.current\)/);
   assert.match(source, /audioMap: mapRef\.current/);
-  assert.doesNotMatch(source, /AudioWorld|ZlandListeningAdapter|ZlandAuthoredOverlay/);
 });

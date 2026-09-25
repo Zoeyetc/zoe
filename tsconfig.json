@@ -18,5 +18,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "files": []
+  "include": [
+    "src"
+  ]
 }

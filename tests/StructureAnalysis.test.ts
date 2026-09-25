@@ -1,13 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { milestoneOneZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
-import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
-import { analyzeStructure, type StructureSourceFrame } from '@computational-listening/engine';
-import { analyzePcmListening } from '@computational-listening/engine';
-import { toDropTowerInput } from '../apps/zland/src/rides/drop-tower/adapter.ts';
-import { toRollerCoasterInput } from '../apps/zland/src/rides/roller-coaster/adapter.ts';
-import type { BeatMarker } from '@computational-listening/engine';
-import type { ZlandAudioMap } from '../apps/zland/src/audio/types.ts';
+import { analyzeStructure, type StructureSourceFrame } from '../src/listening-engine/index.ts';
+import { analyzePcmListening } from '../src/listening-engine/index.ts';
+import type { BeatMarker } from '../src/listening-engine/index.ts';
 
 type SectionName = 'A' | 'B' | 'C' | 'Aprime';
 const SECTION = {
@@ -138,35 +133,6 @@ test('analysis is deterministic and uses beat or fallback aggregation explicitly
   assert.equal(fallback.available, true);
 });
 
-test('AudioWorld resolves current analyzed section and crosses section-change only during forward playback', () => {
-  const structureAnalysis = analyzeFixture(['A', 'B', 'A']);
-  const map: ZlandAudioMap = { ...milestoneOneZlandAudioMap, id: 'structure-world', duration: 36,
-    capabilities: { ...milestoneOneZlandAudioMap.capabilities, structure: true },
-    melody: null, structure: null, structureAnalysis };
-  const middle = lookupSnapshot(map, { time: 15, duration: 36, playing: true }).structure;
-  assert.equal(middle.source, 'analysis');
-  assert.equal(middle.label, 'B');
-  assert.ok(middle.sectionProgress > 0 && middle.sectionProgress < 1);
-  const world = createAudioWorld(map);
-  world.read({ time: 0, duration: 36, playing: true });
-  assert.deepEqual(world.read({ time: 25, duration: 36, playing: true }).events
-    .filter(event => event.type === 'section-change').map(event => event.structure.label), ['B', 'A']);
-  const seek = world.synchronize(25, { time: 15, duration: 36, playing: false });
-  assert.deepEqual(seek.events, [{ type: 'seek', from: 25, to: 15 }]);
-  assert.equal(seek.snapshot.structure.label, 'B');
-});
-
-test('real analyzed structure remains isolated from authored-only base adapters', () => {
-  const structureAnalysis = analyzeFixture(['A', 'B']);
-  const map: ZlandAudioMap = { ...milestoneOneZlandAudioMap, id: 'structure-actor-isolation', duration: 24,
-    capabilities: { ...milestoneOneZlandAudioMap.capabilities, structure: true },
-    melody: null, structure: null, structureAnalysis };
-  const frame = { snapshot: lookupSnapshot(map, { time: 14, duration: 24, playing: true }), events: [] };
-  assert.equal(frame.snapshot.structure.available, true);
-  assert.equal(toDropTowerInput(frame).structureAvailable, false);
-  assert.equal(toRollerCoasterInput(frame).structureAvailable, false);
-});
-
 test('full PCM pipeline derives beat-synchronous A-B-A structure without copyrighted audio', () => {
   const sampleRate = 12_000;
   const hz = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
@@ -266,19 +232,6 @@ test('arrangement spacing, structural duration, snapping, and grid bonus stay bo
     || segment.startBoundaryConfidence >= 0.86));
   assert.ok(result.boundaries.every(boundary => boundary.gridAlignmentBonus >= 0 && boundary.gridAlignmentBonus <= 0.1));
   assert.equal(result.metadata.boundarySnapMaximumBins, 1);
-});
-
-test('arrangement evidence is analysis-only and does not add AudioWorld section events', () => {
-  const input = repetitiveFixture(48, (frame, time) => time >= 16 && time < 24 ? { ...frame, brightness: 0.9 } : frame);
-  const structureAnalysis = analyzeStructure(input.frames, input.duration, input.beats);
-  assert.ok(structureAnalysis.arrangementChanges.length > 0);
-  const map: ZlandAudioMap = { ...milestoneOneZlandAudioMap, id: 'arrangement-world', duration: 48,
-    capabilities: { ...milestoneOneZlandAudioMap.capabilities, structure: structureAnalysis.available },
-    melody: null, structure: null, structureAnalysis };
-  const world = createAudioWorld(map);
-  world.read({ time: 0, duration: 48, playing: true });
-  assert.equal(world.read({ time: 32, duration: 48, playing: true }).events
-    .filter(event => event.type === 'section-change').length, structureAnalysis.boundaries.length);
 });
 
 test('multi-scale structure values and arrangement contributions remain finite and bounded', () => {

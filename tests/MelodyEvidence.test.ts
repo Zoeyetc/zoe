@@ -2,14 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   analyzeMelody, analyzeMelodyWithEvidence, MELODY_ANALYSIS,
-} from '@computational-listening/engine';
+} from '../src/listening-engine/index.ts';
 import {
   melodyEvidenceIndexAt, selectMelodyEvidence,
-} from '@computational-listening/engine';
+} from '../src/listening-engine/index.ts';
 import {
   createCompactMelodyEvidenceTimeline, retainMelodyRejectedCandidate,
-} from '@computational-listening/engine';
-import { MELODY_REJECTED_CANDIDATE_CAP } from '@computational-listening/engine';
+} from '../src/listening-engine/index.ts';
+import { MELODY_REJECTED_CANDIDATE_CAP } from '../src/listening-engine/index.ts';
 
 const SAMPLE_RATE = 48_000;
 const tone = (frequency: number, seconds: number, gain = 0.8) => Float32Array.from(

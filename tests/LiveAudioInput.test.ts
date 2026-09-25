@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { RollingPcmBuffer } from '@computational-listening/engine';
+import { RollingPcmBuffer } from '../src/listening-engine/index.ts';
 import {
   createLiveAudioClock, createLiveAudioInputController, createLiveRollingAnalyzer,
   LIVE_EVENT_BUFFER_CAP, LIVE_INPUT_WINDOW_SECONDS,
-} from '@computational-listening/audio-source-browser';
+} from '../src/audio-source-browser/index.ts';
 
 test('rolling PCM uses arithmetic-mean channels and remains strictly bounded', () => {
   const buffer = new RollingPcmBuffer(10, 1);
@@ -206,17 +206,17 @@ test('stopping during permission request discards a late microphone stream', asy
 });
 
 test('SignalPlayer exposes truthful compact live grammar without file transport controls', () => {
-  const playback = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-player/SignalPlayback.tsx', import.meta.url), 'utf8');
-  const player = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-player/SignalPlayer.tsx', import.meta.url), 'utf8');
-  const app = readFileSync(new URL('../apps/zoe/src/ZoeApp.tsx', import.meta.url), 'utf8');
-  const telemetry = readFileSync(new URL('../packages/listening-instrument-ui/src/signal-console/signalTelemetry.ts', import.meta.url), 'utf8');
+  const playback = readFileSync(new URL('../src/instrument-ui/signal-player/SignalPlayback.tsx', import.meta.url), 'utf8');
+  const player = readFileSync(new URL('../src/instrument-ui/signal-player/SignalPlayer.tsx', import.meta.url), 'utf8');
+  const app = readFileSync(new URL('../src/ZoeApp.tsx', import.meta.url), 'utf8');
+  const telemetry = readFileSync(new URL('../src/instrument-ui/signal-console/signalTelemetry.ts', import.meta.url), 'utf8');
   assert.match(playback, /audio\.input\(/);
   assert.match(playback, /\[LIVE\]/);
   assert.match(playback, /\[STOP\]/);
   assert.match(playback, /liveMode \? <button[\s\S]*\[STOP\][\s\S]*: <>[\s\S]*\[PLAY\][\s\S]*\[PAUSE\][\s\S]*\[RESTART\]/);
   assert.match(playback, /aria-label="Input device"/);
   assert.match(playback, /aria-label="Live session time"/);
-  const worklet = readFileSync(new URL('../packages/audio-source-browser/src/live/livePcmWorklet.ts', import.meta.url), 'utf8');
+  const worklet = readFileSync(new URL('../src/audio-source-browser/live/livePcmWorklet.ts', import.meta.url), 'utf8');
   assert.match(worklet, /this\.inFlight = true/);
   assert.match(worklet, /type === 'consumed'/);
   assert.doesNotMatch(playback, /SYSTEM AUDIO|Spotify|Apple Music/);

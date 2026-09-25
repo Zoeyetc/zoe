@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createAudioBufferPlaybackTransport } from '@computational-listening/audio-source-browser';
+import { createAudioBufferPlaybackTransport } from '../src/audio-source-browser/index.ts';
 
 class MockSource {
   buffer: AudioBuffer | null = null;

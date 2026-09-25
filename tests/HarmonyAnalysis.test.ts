@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzeHarmony } from '@computational-listening/engine';
-import { analyzePcmListening } from '@computational-listening/engine';
-import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
-import { toFerrisWheelInput } from '../apps/zland/src/rides/ferris-wheel/adapter.ts';
-import { createFerrisWheelSimulation } from '../apps/zland/src/rides/ferris-wheel/simulation.ts';
+import { analyzeHarmony } from '../src/listening-engine/index.ts';
+import { analyzePcmListening } from '../src/listening-engine/index.ts';
 
 const SAMPLE_RATE = 12_000;
 const hz = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
@@ -131,36 +128,6 @@ test('frequency mapping is sample-rate aware and stereo downmix retains tonal ev
   }
 });
 
-test('ZlandAudioMap, AudioWorld, and FerrisWheel share one exact chord timeline', () => {
-  const signal = concatenate(chord(0, 'major'), chord(9, 'minor'));
-  const map = analyzePcmListening({ sampleRate: SAMPLE_RATE, channels: [signal] },
-    { id: 'harmony-chain', filename: 'harmony.wav', mimeType: 'audio/wav' });
-  assert.equal(map.capabilities.harmony, true);
-  const world = createAudioWorld(map);
-  const initial = world.read({ time: 0, duration: map.duration, playing: false });
-  assert.deepEqual(initial.snapshot.harmony.pitchClasses, [0, 4, 7]);
-  const crossed = world.read({ time: 1.7, duration: map.duration, playing: true });
-  assert.equal(crossed.snapshot.harmony.chord, 'A minor');
-  assert.ok(crossed.events.some(event => event.type === 'chord-change' && event.harmony?.chord === 'A minor'));
-  const wheel = createFerrisWheelSimulation();
-  wheel.accept(toFerrisWheelInput(crossed), 0);
-  assert.deepEqual(wheel.read().activeCabinIds, [...crossed.snapshot.harmony.pitchClasses].sort((a, b) => a - b));
-});
-
-test('seek resolves target harmony without replaying skipped chord changes', () => {
-  const signal = concatenate(chord(0, 'major'), chord(9, 'minor'), chord(5, 'major'), chord(7, 'major'));
-  const map = analyzePcmListening({ sampleRate: SAMPLE_RATE, channels: [signal] },
-    { id: 'harmony-seek', filename: 'harmony.wav', mimeType: 'audio/wav' });
-  const world = createAudioWorld(map);
-  world.read({ time: 0, duration: map.duration, playing: false });
-  const sought = world.synchronize(0, { time: 4.8, duration: map.duration, playing: false });
-  assert.deepEqual(sought.events, [{ type: 'seek', from: 0, to: 4.8 }]);
-  assert.equal(sought.snapshot.harmony.chord, 'G major');
-  const wheel = createFerrisWheelSimulation();
-  wheel.accept(toFerrisWheelInput(sought), 0);
-  assert.deepEqual(wheel.read().activeCabinIds, [...sought.snapshot.harmony.pitchClasses].sort((a, b) => a - b));
-});
-
 test('real harmony coexists with melody, rhythm, and spectrum without fabricating other domains', () => {
   const pulseChord = chord(0, 'major', 4);
   for (let beat = 0; beat < 8; beat += 1) {
@@ -176,12 +143,4 @@ test('real harmony coexists with melody, rhythm, and spectrum without fabricatin
   assert.equal(map.capabilities.structure, false);
   assert.equal(map.percussion, null);
   assert.equal('structure' in map, false);
-});
-
-test('authored harmony lookup remains unchanged', async () => {
-  const { milestoneSevenZlandAudioMap } = await import('../apps/zland/src/audio/ZlandAudioMaps.ts');
-  const harmony = lookupSnapshot(milestoneSevenZlandAudioMap,
-    { time: 2, duration: milestoneSevenZlandAudioMap.duration, playing: false }).harmony;
-  assert.equal(harmony.chord, 'C major');
-  assert.deepEqual(harmony.pitchClasses, [0, 4, 7]);
 });

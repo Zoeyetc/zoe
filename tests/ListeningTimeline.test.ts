@@ -3,9 +3,7 @@ import test from 'node:test';
 import {
   createListeningTimeline, lookupListeningSnapshot,
   type ListeningMap,
-} from '@computational-listening/engine';
-import { milestoneOneZlandAudioMap, milestoneTwoBZlandAudioMap } from '../apps/zland/src/audio/ZlandAudioMaps.ts';
-import { createAudioWorld, lookupSnapshot } from '../apps/zland/src/audio/AudioWorld.ts';
+} from '../src/listening-engine/index.ts';
 
 const genericMap = {
   version: 1, duration: 4,
@@ -35,20 +33,6 @@ const genericMap = {
   spectrum: null,
 } as unknown as ListeningMap;
 
-test('generic snapshot matches legacy generic fields and excludes Z.land authored semantics', () => {
-  const time = 1.5;
-  const generic = lookupListeningSnapshot(milestoneOneZlandAudioMap, time);
-  const legacy = lookupSnapshot(milestoneOneZlandAudioMap, { time, duration: 12, playing: true });
-  assert.deepEqual(generic.melody, legacy.melody);
-  assert.deepEqual(generic.rhythm, legacy.rhythm);
-  assert.deepEqual(generic.harmony, legacy.harmony);
-  assert.equal('mapId' in generic, false);
-  assert.equal('transport' in generic, false);
-  assert.equal('tension' in generic.structure, false);
-  assert.equal('build' in generic.structure, false);
-  assert.equal('phraseProgress' in generic.structure, false);
-});
-
 test('generic timeline preserves exact forward boundaries, ordering, and duplicate suppression', () => {
   const timeline = createListeningTimeline(genericMap, 'map-a');
   assert.deepEqual(timeline.read(0).events, []);
@@ -73,23 +57,4 @@ test('synchronize, restart, ended, and map replacement reset crossing without re
   assert.deepEqual(timeline.replaceMap(genericMap, 'map-b', 1).events, []);
   assert.equal(timeline.identity, 'map-b');
   assert.deepEqual(timeline.read(1).events, []);
-});
-
-test('generic events contain analyzed events but never authored drops or seek notifications', () => {
-  const timeline = createListeningTimeline(milestoneTwoBZlandAudioMap, 'zland-fixture');
-  timeline.read(12.8);
-  const generic = timeline.read(13.1).events;
-  assert.equal(generic.some(event => (event as { type: string }).type === 'drop'), false);
-  assert.deepEqual(timeline.synchronize(15).events, []);
-});
-
-test('Z.land adapter facade preserves authored structure, drop, and seek behavior', () => {
-  const world = createAudioWorld(milestoneTwoBZlandAudioMap);
-  const before = world.read({ time: 12.8, duration: 20, playing: true });
-  assert.equal(before.snapshot.structure.source, 'authored');
-  assert.equal(before.snapshot.structure.section, 'hold');
-  const crossed = world.read({ time: 13.1, duration: 20, playing: true });
-  assert.deepEqual(crossed.events.filter(event => event.type === 'drop').map(event => event.id), ['major-drop']);
-  assert.deepEqual(world.synchronize(13.1, { time: 15, duration: 20, playing: false }).events,
-    [{ type: 'seek', from: 13.1, to: 15 }]);
 });
