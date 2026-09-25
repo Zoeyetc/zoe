@@ -6,9 +6,10 @@ import {
 } from './audio-source-browser/index.ts';
 import {
   analyzePcmListeningAsync, createListeningTimeline, lookupListeningSnapshot, selectMelodyEvidenceForTransport,
-} from '@computational-listening/engine';
+} from '@zoeyetc/computational-listening-engine';
 import {
   SignalPlayer,
+  type MotionMode,
   type AudioPreparationState, type InstrumentEvent, type InstrumentFrame, type InstrumentListeningMap,
 } from './instrument-ui/index.ts';
 
@@ -25,6 +26,7 @@ const makeFrame = (map: InstrumentListeningMap, transport: BrowserTransportState
 });
 
 export function ZoeApp() {
+  const [motion, setMotion] = useState<MotionMode>('off');
   const mapRef = useRef<InstrumentListeningMap>(emptyMap);
   const fileMapRef = useRef<InstrumentListeningMap>(emptyMap);
   const revisionRef = useRef(0);
@@ -146,5 +148,6 @@ export function ZoeApp() {
     observe={() => ({ mapRevision: revisionRef.current, transport: transportRef.current, audioMap: mapRef.current,
       melodyEvidence: selectMelodyEvidenceForTransport(mapRef.current.melodyEvidence, transportRef.current),
       live: liveRef.current?.status === 'LIVE' || liveRef.current?.status === 'REQUESTING' ? liveRef.current : null })}
-    interpretation={frame} events={recentRef.current} composition="performance" performanceFullscreen />;
+    interpretation={frame} events={recentRef.current} composition="performance" performanceFullscreen
+    motion={motion} onMotionChange={setMotion} />;
 }

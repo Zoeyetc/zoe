@@ -1,0 +1,18 @@
+.signal-motion-study-canvas {
+  position: fixed;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.signal-motion-controls { display: inline-flex; gap: .65rem; }
+.signal-motion-controls button[aria-pressed='true'] { color: var(--performance-active); }
+
+/* Preserve line geometry while the study shader replaces its paint. */
+.signal-player[data-motion-study='a'][data-motion-renderer='webgl'] .signal-console-heading--performance,
+.signal-player[data-motion-study='a'][data-motion-renderer='webgl'] .listening-field-score,
+.signal-player[data-motion-study='a'][data-motion-renderer='webgl'] .listening-field-voice + .listening-field-voice,
+.signal-player[data-motion-study='a'][data-motion-renderer='webgl'] .signal-performance-band > .signal-inspect,
+.signal-player[data-motion-study='a'][data-motion-renderer='webgl'] .signal-system-footer .signal-inspect {
+  border-color: transparent;
+}
+.signal-player[data-motion-study='a'][data-motion-renderer='webgl'] .listening-field-now-rule { border-left-color: transparent; }

@@ -1,5 +1,5 @@
 import type { InstrumentListeningMap, BrowserTransportState } from '../contracts.ts';
-import type { MelodyEvidenceObservation } from '@computational-listening/engine';
+import type { MelodyEvidenceObservation } from '@zoeyetc/computational-listening-engine';
 import type { LiveInputState } from '../../audio-source-browser/index.ts';
 
 /** Narrow, read-only signal observation shared by standalone presentation hosts. */

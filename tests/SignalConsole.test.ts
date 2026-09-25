@@ -5,9 +5,9 @@ import { selectSignalInterpretationFields, selectSignalTelemetry, signalPhraseGr
   TEMPORAL_RESIDUE_POLICY } from '../src/instrument-ui/signal-console/signalTelemetry.ts';
 import { listeningFieldBeatEmphasis, selectPrimaryListeningView } from '../src/instrument-ui/signal-console/primaryListening.ts';
 import type { SignalConsoleObservation } from '../src/instrument-ui/signal-console/types.ts';
-import { analyzePcmListening, lookupListeningSnapshot } from '@computational-listening/engine';
+import { analyzePcmListening, lookupListeningSnapshot } from '@zoeyetc/computational-listening-engine';
 import type { InstrumentListeningMap, BrowserTransportState } from '../src/instrument-ui/contracts.ts';
-import { selectMelodyEvidenceForTransport } from '@computational-listening/engine';
+import { selectMelodyEvidenceForTransport } from '@zoeyetc/computational-listening-engine';
 
 function map(id = 'signal-map', rms: readonly [number, number] = [.284, .291]): InstrumentListeningMap {
   return {

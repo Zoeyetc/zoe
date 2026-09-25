@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs'; import {   analyzeMelody, analyzeMelodyWithEvidence, MELODY_ANALYSIS } from '@computational-listening/engine';
-import { analyzeMelodyWithDpDiagnostics } from '@computational-listening/engine';
+import { readFileSync } from 'node:fs'; import {   analyzeMelody, analyzeMelodyWithEvidence, MELODY_ANALYSIS } from '@zoeyetc/computational-listening-engine';
+import { analyzeMelodyWithDpDiagnostics } from '@zoeyetc/computational-listening-engine';
 import {
   selectMelodyEvidence, selectMelodyEvidenceForTransport, selectObservedPitchEvidence,
-} from '@computational-listening/engine';
-import type { MelodyEvidenceCandidate, MelodyRejectedCandidate } from '@computational-listening/engine';
+} from '@zoeyetc/computational-listening-engine';
+import type { MelodyEvidenceCandidate, MelodyRejectedCandidate } from '@zoeyetc/computational-listening-engine';
 import { selectSignalTelemetry } from '../src/instrument-ui/signal-console/signalTelemetry.ts';
 
 const SAMPLE_RATE = 48_000;

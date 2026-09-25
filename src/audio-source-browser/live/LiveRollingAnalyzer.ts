@@ -2,7 +2,7 @@ import {
   createRollingListeningSession,
   type PcmAudio,
   type RollingListeningSessionOptions,
-} from '@computational-listening/engine';
+} from '@zoeyetc/computational-listening-engine';
 import type { BrowserTransportState } from '../transportTypes.ts';
 import type { LiveAnalysisUpdate, LiveInputState, LiveListenerState } from './types.ts';
 

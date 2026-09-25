@@ -16,7 +16,7 @@
   "dependencies": {
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "@computational-listening/engine": "file:../computational-listening-engine"
+    "@zoeyetc/computational-listening-engine": "^0.1.0"
   },
   "devDependencies": {
     "@types/react": "^19.1.10",

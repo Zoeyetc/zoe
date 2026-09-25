@@ -4,6 +4,7 @@ import type { BrowserTransportState } from '../contracts.ts';
 import type { InstrumentActions } from '../contracts.ts';
 import type { LiveInputState } from '../../audio-source-browser/index.ts';
 import type { PerformanceFullscreenState } from './performanceFullscreen';
+import type { MotionMode } from './MotionStudy';
 
 export type SignalPlaybackProps = Readonly<{
   transport: BrowserTransportState;
@@ -17,6 +18,7 @@ export type SignalPlaybackProps = Readonly<{
   onSelectLiveInput(deviceId: string): void;
   compact?: boolean;
   fullscreen?: PerformanceFullscreenState & Readonly<{ toggle(): void }>;
+  motion?: Readonly<{ mode: MotionMode; select(mode: MotionMode): void }>;
 }>;
 
 function clockTime(value: number) {
@@ -26,13 +28,18 @@ function clockTime(value: number) {
 }
 
 export function SignalPlayback({ transport, preparation, actions, onChooseAudio, onUseFixture,
-  liveInput, onStartLive, onStopLive, onSelectLiveInput, compact = false, fullscreen }: SignalPlaybackProps) {
+  liveInput, onStartLive, onStopLive, onSelectLiveInput, compact = false, fullscreen, motion }: SignalPlaybackProps) {
   const inputId = useId();
   const seekId = useId();
   const inputMenuId = useId();
   const [choosingInput, setChoosingInput] = useState(false);
   const liveButtonRef = useRef<HTMLButtonElement>(null);
   const stopButtonRef = useRef<HTMLButtonElement>(null);
+  const motionControls = motion ? <span className="signal-motion-controls" role="group" aria-label="Motion">
+    {(['off', 'a', 'b', 'c'] as const).map(mode => <button key={mode} type="button"
+      aria-label={`Motion ${mode.toUpperCase()}`} aria-pressed={motion.mode === mode}
+      onClick={() => motion.select(mode)}>{mode === 'off' ? '[MOTION OFF]' : `[${mode.toUpperCase()}]`}</button>)}
+  </span> : null;
   useEffect(() => {
     if (liveInput.status === 'LIVE') stopButtonRef.current?.focus();
   }, [liveInput.status]);
@@ -125,6 +132,7 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
         {fullscreen?.error ? <span className="signal-command-status" role="status">
           {fullscreen.error === 'unavailable' ? 'FULLSCREEN UNAVAILABLE' : 'FULLSCREEN FAILED'}
         </span> : null}
+        {motionControls}
       </div>
       <span className="signal-source-status" role="status">{sourceStatus}</span>
       <span className="signal-sr-only" role="status">Decode: {preparation.decodeState}; Analysis: {preparation.analysisState}
@@ -152,7 +160,7 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
   if (liveMode) return <section className="signal-playback" aria-label="Live input">
     <header><h1>Live input</h1><p>{liveLabel}</p></header>
     <div className="signal-playback-source">{deviceSelector}</div>
-    <div className="signal-playback-actions"><button onClick={onStopLive}>Stop</button></div>
+    <div className="signal-playback-actions"><button onClick={onStopLive}>Stop</button>{motionControls}</div>
     <output aria-label="Live session time">LIVE {clockTime(transport.time)}</output>
   </section>;
 
@@ -179,6 +187,7 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
         onClick={actions.play}>Play</button>
       <button disabled={!transport.playing} onClick={actions.pause}>Pause</button>
       <button onClick={actions.restart}>Restart</button>
+      {motionControls}
     </div>
     <label className="signal-playback-position" htmlFor={seekId}>Position · {transport.time.toFixed(1)} / {transport.duration}s</label>
     <input id={seekId} className="signal-playback-range" type="range" min="0" max={transport.duration} step="0.1"

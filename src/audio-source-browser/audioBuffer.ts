@@ -1,4 +1,4 @@
-import type { PcmAudio } from '@computational-listening/engine';
+import type { PcmAudio } from '@zoeyetc/computational-listening-engine';
 
 export function pcmFromAudioBuffer(buffer: AudioBuffer): PcmAudio {
   return {

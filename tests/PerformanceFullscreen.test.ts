@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createPerformanceFullscreenController, FULLSCREEN_CURSOR_IDLE_MS,
   type PerformanceFullscreenState } from '../src/instrument-ui/signal-player/performanceFullscreen.ts';
 import { readFileSync } from 'node:fs';
-import { RollingPcmBuffer } from '@computational-listening/engine';
+import { RollingPcmBuffer } from '@zoeyetc/computational-listening-engine';
 import { createAudioBufferPlaybackTransport, createLiveAudioClock } from '../src/audio-source-browser/index.ts';
 
 function fixture(options: { unsupported?: boolean; rejectRequest?: boolean } = {}) {
