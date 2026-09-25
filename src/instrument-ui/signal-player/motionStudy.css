@@ -15,6 +15,32 @@
   font: 650 .62rem/1.4 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   white-space: nowrap;
 }
+.signal-motion-desktop-discovery { display: none; }
+
+@media (min-width: 1200px) {
+  .signal-playback--compact .signal-motion-controls[data-expanded='true'] { margin-bottom: 0; }
+  .signal-playback--compact .signal-motion-mode-label,
+  .signal-playback--compact .signal-motion-description { display: none; }
+  .signal-playback--compact .signal-motion-desktop-discovery {
+    position: absolute;
+    top: -1.25rem;
+    right: calc(100% + 4rem);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .15rem;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .signal-motion-desktop-discovery strong {
+    color: var(--performance-active);
+    font: 750 .68rem/1.4 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  }
+  .signal-motion-desktop-discovery > span {
+    color: var(--signal-player-muted);
+    font: 650 .62rem/1.4 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  }
+}
 
 /* Preserve line geometry while the study shader replaces its paint. */
 .signal-player[data-motion-dividers='replace'][data-motion-renderer='webgl'] .signal-console-heading--performance,

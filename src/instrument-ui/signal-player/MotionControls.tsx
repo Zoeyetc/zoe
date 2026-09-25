@@ -44,5 +44,9 @@ export function MotionControls({ mode, enabled, select, setEnabled }: MotionCont
       <span className="signal-motion-mode-label" aria-hidden="true"><span>{MODE_DISCOVERABILITY[item].label}</span></span>
     </button>)}
     {enabled && expanded !== null && <span className="signal-motion-description">{MODE_DISCOVERABILITY[expanded].description}</span>}
+    {enabled && expanded !== null && <span className="signal-motion-desktop-discovery">
+      <strong>{MODE_DISCOVERABILITY[expanded].label}</strong>
+      <span>{MODE_DISCOVERABILITY[expanded].description}</span>
+    </span>}
   </span>;
 }
