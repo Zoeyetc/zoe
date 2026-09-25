@@ -268,7 +268,23 @@
   background: var(--performance-active-strong);
 }
 
-@media (max-width: 680px) {
+@media (min-width: 900px) and (max-width: 1199px) {
+  .signal-playback--compact .signal-playback-actions {
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+}
+
+@media (min-width: 700px) and (max-width: 899px) {
+  .signal-playback--compact .signal-playback-actions {
+    flex: 0 1 17rem;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 699px) {
   .signal-player[data-composition='performance'] {
     padding-inline-start: max(1rem, env(safe-area-inset-left));
     padding-inline-end: max(1rem, env(safe-area-inset-right));

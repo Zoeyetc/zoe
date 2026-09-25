@@ -4,8 +4,17 @@
   pointer-events: none;
 }
 
-.signal-motion-controls { display: inline-flex; gap: .65rem; }
+.signal-motion-controls { position: relative; display: inline-flex; gap: .65rem; }
 .signal-motion-controls button[aria-pressed='true'] { color: var(--performance-active); }
+.signal-motion-controls[data-expanded='true'] { margin-bottom: 1.25rem; }
+.signal-motion-description {
+  position: absolute;
+  top: calc(100% + .15rem);
+  right: 0;
+  color: var(--signal-player-muted);
+  font: 650 .62rem/1.4 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  white-space: nowrap;
+}
 
 /* Preserve line geometry while the study shader replaces its paint. */
 .signal-player[data-motion-dividers='replace'][data-motion-renderer='webgl'] .signal-console-heading--performance,
