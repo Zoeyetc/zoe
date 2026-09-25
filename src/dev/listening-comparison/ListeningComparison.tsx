@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { analyzePcmListeningAsync, createListeningTimeline } from '@zoeyetc/computational-listening-engine';
+import { createListeningTimeline, lookupBassSnapshot, lookupListeningSnapshot,
+  selectMelodyEvidenceForTransport } from '@zoeyetc/computational-listening-engine';
 import { createAudioBufferPlaybackTransport, decodeLocalAudioFile, pcmFromAudioBuffer,
   type AudioPlaybackTransport, type BrowserTransportState } from '../../audio-source-browser/index.ts';
-import type { InstrumentEvent, InstrumentListeningMap } from '../../instrument-ui/contracts.ts';
+import { analyzeDualPathListeningAsync } from '../../audio-source-browser/analyzeDualPathListeningAsync.ts';
+import type { InstrumentDualPath, InstrumentEvent, InstrumentListeningMap } from '../../instrument-ui/contracts.ts';
+import { selectBassPresentation } from '../../instrument-ui/signal-console/bassPresentation.ts';
 import { initialInstrumentMotion, stepInstrumentMotion } from '../../instrument-ui/signal-player/instrumentMotion.ts';
 import { initialMaterialMotion, stepMaterialMotion } from '../../instrument-ui/signal-player/materialMotion.ts';
 import { initialFieldMotion, stepFieldMotion } from '../../instrument-ui/signal-player/fieldMotion.ts';
@@ -55,13 +58,17 @@ export function ListeningComparison() {
   });
   const playback = useRef<AudioPlaybackTransport | null>(null);
   const context = useRef<AudioContext | null>(null);
-  const map = useRef<InstrumentListeningMap | null>(null);
+  const listening = useRef<InstrumentDualPath | null>(null);
   const timeline = useRef<ReturnType<typeof createListeningTimeline> | null>(null);
   const recentEvents = useRef<InstrumentEvent[]>([]);
   const interpretationRevision = useRef(0);
   const requestId = useRef(0);
   const timeOutput = useRef<HTMLOutputElement>(null);
   const range = useRef<HTMLInputElement>(null);
+  const melodyOutput = useRef<HTMLOutputElement>(null);
+  const melodyCandidates = useRef<HTMLOutputElement>(null);
+  const bassOutput = useRef<HTMLOutputElement>(null);
+  const bassCandidates = useRef<HTMLOutputElement>(null);
   const [source, setSource] = useState('No audio loaded');
   const [status, setStatus] = useState('Choose one audio file to compare all four modes.');
   const [duration, setDuration] = useState(0);
@@ -95,14 +102,14 @@ export function ListeningComparison() {
     let material = initialMaterialMotion;
     let field = initialFieldMotion;
     let observatory = initialObservatoryMotion;
-    let lastSource = map.current;
+    let lastSource: InstrumentListeningMap | null = listening.current?.listeningMap ?? null;
     let lastInterpretationRevision = interpretationRevision.current;
     let previousTime = 0;
     let animationFrame = 0;
     const render = (now: number) => {
       const dt = previousTime ? Math.min(.1, (now - previousTime) / 1000) : 1 / 60;
       previousTime = now;
-      const currentMap = map.current;
+      const currentMap = listening.current?.listeningMap ?? null;
       const transport = playback.current?.read() ?? initialTransport;
       if (timeOutput.current) timeOutput.current.textContent = clock(transport.time);
       if (range.current) range.current.value = String(transport.time);
@@ -115,6 +122,21 @@ export function ListeningComparison() {
         lastInterpretationRevision = interpretationRevision.current;
       }
       if (currentMap && timeline.current) {
+        const melody = selectMelodyEvidenceForTransport(currentMap.melodyEvidence, transport);
+        const accepted = lookupListeningSnapshot(currentMap, transport.time).melody;
+        const bassEvidence = listening.current?.bassEvidence;
+        const bass = selectBassPresentation(bassEvidence ? lookupBassSnapshot(bassEvidence, transport.time) : null,
+          bassEvidence);
+        if (melodyOutput.current) melodyOutput.current.textContent = melody
+          ? `PATH ${melody.selectedCandidateIndex ?? 'ABSTAIN'} · ${melody.reason} · CONF ${melody.finalConfidence.toFixed(3)} · ACCEPTED ${accepted.active ? accepted.noteName : '—'}`
+          : 'NO MELODY EVIDENCE';
+        if (melodyCandidates.current) melodyCandidates.current.textContent = melody?.candidates.length
+          ? melody.candidates.map((candidate, index) => `${index + 1} ${candidate.noteName} ${candidate.pitchHz.toFixed(2)} Hz SCORE ${candidate.score.toFixed(3)}`).join(' · ')
+          : 'NO CANDIDATES';
+        if (bassOutput.current) bassOutput.current.textContent = `PATH ${bass.frame?.selectedCandidateIndex ?? 'ABSTAIN'} · ${bass.state} · ${bass.noteName} ${bass.frequencyHz === '—' ? '' : `${bass.frequencyHz} Hz`} · SCORE ${bass.score} · CONF ${bass.confidence}`;
+        if (bassCandidates.current) bassCandidates.current.textContent = bass.frame?.candidates.length
+          ? bass.frame.candidates.map((candidate, index) => `${index + 1} ${candidate.pitchHz.toFixed(2)} Hz SCORE ${candidate.score.toFixed(3)} ${candidate.source}`).join(' · ')
+          : 'NO CANDIDATES';
         const next = timeline.current.read(transport.time);
         if (next.events.length) recentEvents.current = [...recentEvents.current, ...next.events].slice(-8);
         const sample = selectMotionStudySample({ mapRevision: 0, transport, audioMap: currentMap }, recentEvents.current);
@@ -160,7 +182,7 @@ export function ListeningComparison() {
     playback.current = null;
     void context.current?.close();
     context.current = null;
-    map.current = null;
+    listening.current = null;
     timeline.current = null;
     recentEvents.current = [];
     interpretationRevision.current += 1;
@@ -173,14 +195,14 @@ export function ListeningComparison() {
       const buffer = await decodeLocalAudioFile(file, nextContext);
       if (generation !== requestId.current) { void nextContext.close(); return; }
       setStatus('Analyzing retained evidence…');
-      const listening = await analyzePcmListeningAsync(pcmFromAudioBuffer(buffer));
+      const analyzed = await analyzeDualPathListeningAsync(pcmFromAudioBuffer(buffer));
       if (generation !== requestId.current) { void nextContext.close(); return; }
       context.current = nextContext;
       playback.current = createAudioBufferPlaybackTransport(nextContext, buffer);
-      const nextMap: InstrumentListeningMap = { ...listening, id: `comparison-${generation}` };
+      const nextMap = { ...analyzed.listeningMap, id: `comparison-${generation}` };
       timeline.current = createListeningTimeline(nextMap, nextMap.id);
       recentEvents.current = [];
-      map.current = nextMap;
+      listening.current = { listeningMap: nextMap, bassEvidence: analyzed.bassEvidence };
       setDuration(buffer.duration);
       setReady(true);
       setStatus('Ready · identical retained evidence in all four panels');
@@ -220,5 +242,11 @@ export function ListeningComparison() {
       {MOTION_MODES.map(mode => <ComparisonPanel key={mode} mode={mode}
         register={(item, root) => { roots.current[item] = root; }} />)}
     </div>
+    <section className="comparison-paths" aria-label="Independent Engine listening paths">
+      <div><h2>MELODY</h2><output ref={melodyOutput}>NO MELODY EVIDENCE</output>
+        <small>CANDIDATES</small><output ref={melodyCandidates}>NO CANDIDATES</output></div>
+      <div><h2>BASS</h2><output ref={bassOutput}>NO BASS EVIDENCE</output>
+        <small>CANDIDATES</small><output ref={bassCandidates}>NO CANDIDATES</output></div>
+    </section>
   </main>;
 }
