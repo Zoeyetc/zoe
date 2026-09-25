@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  createAudioBufferPlaybackTransport, createLiveAudioInputController, decodeLocalAudioFile,
-  INITIAL_LIVE_INPUT_STATE, pcmFromAudioBuffer,
+  createAudioBufferPlaybackTransport, createMediaElementPlaybackTransport, createLiveAudioInputController,
+  decodeLocalAudioFile, shouldUseIPhoneSafariPlayback, INITIAL_LIVE_INPUT_STATE, pcmFromAudioBuffer,
   type AudioPlaybackTransport, type BrowserTransportState, type LiveInputState,
 } from './audio-source-browser/index.ts';
 import {
@@ -105,17 +105,28 @@ export function ZoeApp() {
       const context = new AudioContext();
       try {
         const buffer = await decodeLocalAudioFile(file, context);
-        if (requestId !== requestRef.current) return;
+        if (requestId !== requestRef.current) { void context.close(); return; }
         setPreparation(p => ({ ...p, duration: buffer.duration, decodeState: 'ready', analysisState: 'analyzing' }));
         const listening = await analyzePcmListeningAsync(pcmFromAudioBuffer(buffer));
-        if (requestId !== requestRef.current) return;
+        if (requestId !== requestRef.current) { void context.close(); return; }
         const map: InstrumentListeningMap = { ...listening, id: `zoe-file-${requestId}`,
           source: { kind: 'real-audio', filename: file.name, mimeType: file.type || 'application/octet-stream' } };
-        playbackRef.current?.dispose(); playbackRef.current = createAudioBufferPlaybackTransport(context, buffer);
+        playbackRef.current?.dispose();
+        if (shouldUseIPhoneSafariPlayback(navigator.userAgent)) {
+          const url = URL.createObjectURL(file);
+          const element = new Audio(url);
+          element.preload = 'auto';
+          playbackRef.current = createMediaElementPlaybackTransport(element, buffer.duration,
+            () => URL.revokeObjectURL(url));
+          void context.close();
+        } else {
+          playbackRef.current = createAudioBufferPlaybackTransport(context, buffer);
+        }
         fileMapRef.current = map; mapRef.current = map; revisionRef.current += 1;
         timelineRef.current.replaceMap(map, map.id, 0);
         setPreparation(p => ({ ...p, analysisState: 'ready' })); sync(playbackRef.current.read());
       } catch (error) {
+        void context.close();
         setPreparation(p => ({ ...p, decodeState: p.decodeState === 'decoding' ? 'error' : p.decodeState,
           analysisState: p.analysisState === 'analyzing' ? 'error' : p.analysisState,
           error: error instanceof Error ? error.message : 'Audio preparation failed' }));

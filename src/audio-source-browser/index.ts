@@ -1,6 +1,7 @@
 export { pcmFromAudioBuffer } from './audioBuffer.ts';
 export { decodeLocalAudioFile } from './file/AudioSourceLoader.ts';
-export { createAudioBufferPlaybackTransport } from './file/AudioPlaybackTransport.ts';
+export { createAudioBufferPlaybackTransport, createMediaElementPlaybackTransport,
+  shouldUseIPhoneSafariPlayback } from './file/AudioPlaybackTransport.ts';
 export type { AudioPlaybackDiagnostics, AudioPlaybackTransport } from './file/AudioPlaybackTransport.ts';
 export { createLiveAudioClock } from './live/LiveAudioClock.ts';
 export { createLiveAudioInputController } from './live/LiveAudioInputController.ts';

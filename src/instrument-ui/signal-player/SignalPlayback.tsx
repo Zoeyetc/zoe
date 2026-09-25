@@ -79,7 +79,7 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
   if (compact) return <section className="signal-playback signal-playback--compact"
     aria-label="Audio transport" data-transport-state={liveMode ? 'live' : transportState}
     data-source-mode={liveMode ? 'live-input' : 'file'}>
-    <div className="signal-playback-command">
+    <div className="signal-playback-command" role="group" aria-label="Playback">
       {liveMode ? <span className="signal-load-command signal-active-input-command">
         <span>audio.input(</span><strong>&quot;{liveLabel}&quot;</strong><span>)</span>
       </span> : <>
@@ -128,14 +128,13 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
         {fullscreen?.error ? <span className="signal-command-status" role="status">
           {fullscreen.error === 'unavailable' ? 'FULLSCREEN UNAVAILABLE' : 'FULLSCREEN FAILED'}
         </span> : null}
-        {motionControls}
       </div>
-      <span className="signal-source-status" role="status">{sourceStatus}</span>
       <span className="signal-sr-only" role="status">Decode: {preparation.decodeState}; Analysis: {preparation.analysisState}
         {preparation.error ? `; ${preparation.error}` : ''}; Live input: {liveInput.status}
         {liveInput.error ? `; ${liveInput.error}` : ''}
         {fullscreen?.error ? `; Fullscreen: ${fullscreen.error}` : ''}</span>
     </div>
+    <div className="signal-playback-timeline" role="group" aria-label="Timeline">
     {liveMode ? <div className="signal-live-command" aria-label="Live listening session">
       <strong>{liveInput.status}</strong><output aria-label="Live session time">{clockTime(liveInput.sessionTime)}</output>
     </div> : <div className="signal-progress-command">
@@ -151,6 +150,11 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
         aria-label={`Seek position ${clockTime(transport.time)} of ${clockTime(transport.duration)}`}
         onChange={event => actions.seek(Number(event.target.value))} />
     </div>}
+    </div>
+    <div className="signal-playback-listening" role="group" aria-label="Listening">
+      <span className="signal-source-status" role="status">{sourceStatus}</span>
+      {motionControls}
+    </div>
   </section>;
 
   if (liveMode) return <section className="signal-playback" aria-label="Live input">
