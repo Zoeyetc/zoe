@@ -235,7 +235,9 @@ export function ListeningField({ primary, transport, ended, uncertainty = false,
           <Identity typography="code" anchor>{primary.structure.progress}</Identity>
           <span className="listening-field-state">{primary.structure.state}</span>
           <span className="listening-field-event listening-field-boundary" data-typography="code"
-            data-event-emphasis={primary.structure.emphasis}>BOUNDARY {primary.structure.boundaryConfidence}</span>
+            data-event-emphasis={primary.structure.emphasis}>
+            <span className="listening-field-boundary-label">BOUNDARY </span>{primary.structure.boundaryConfidence}
+          </span>
         </div>
       </Voice>
     </div>
