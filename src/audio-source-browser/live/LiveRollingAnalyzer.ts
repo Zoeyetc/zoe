@@ -1,24 +1,35 @@
 import {
   analyzeBassFromMelodyEvidence,
+  analyzePcmListeningAsync,
   createRollingListeningSession,
   type PcmAudio,
   type RollingListeningSessionOptions,
 } from '@zoeyetc/computational-listening-engine';
 import type { BrowserTransportState } from '../transportTypes.ts';
 import type { LiveAnalysisUpdate, LiveInputState, LiveListenerState } from './types.ts';
+import { LiveLatencyDiagnostics, setLiveLatencyDiagnostics } from './liveLatencyDiagnostics.ts';
 
 type AnalyzePcm = NonNullable<RollingListeningSessionOptions['analyze']>;
 export type LiveRollingAnalyzerOptions = Readonly<{
   sampleRate: number; sessionId: string; deviceId: string | null; deviceLabel: string | null;
   channelCount: number; baseLatency: number | null; outputLatency: number | null;
   readTransport(): BrowserTransportState; onUpdate(update: LiveAnalysisUpdate): void;
-  analyze?: AnalyzePcm; now?: () => number;
+  analyze?: AnalyzePcm; now?: () => number; debugLatency?: boolean;
 }>;
 const status = (ready: boolean, available: boolean): LiveListenerState => !ready ? 'WARMING_UP' : available ? 'LIVE' : 'SEARCHING';
 
 export function createLiveRollingAnalyzer(options: LiveRollingAnalyzerOptions) {
-  return createRollingListeningSession({
-    sampleRate: options.sampleRate, analyze: options.analyze, now: options.now,
+  const probe = (options.debugLatency ?? import.meta.env?.DEV) ? new LiveLatencyDiagnostics(options.sessionId, options.sampleRate) : null;
+  if (probe) setLiveLatencyDiagnostics(probe);
+  const session = createRollingListeningSession({
+    sampleRate: options.sampleRate,
+    analyze: probe ? async pcm => {
+      probe.analysisStart(pcm.channels[0].length / pcm.sampleRate * 1000);
+      const map = await (options.analyze ?? analyzePcmListeningAsync)(pcm);
+      probe.analysisComplete();
+      return map;
+    } : options.analyze,
+    now: options.now,
     readTime: () => options.readTransport().time,
     onUpdate(update) {
       const transport = options.readTransport();
@@ -38,12 +49,21 @@ export function createLiveRollingAnalyzer(options: LiveRollingAnalyzerOptions) {
         baseLatency: options.baseLatency, outputLatency: options.outputLatency,
         ...update.diagnostics, listeners, error: null,
       };
-      options.onUpdate({ sessionId: options.sessionId, map: update.map,
-        bassEvidence: update.map.melodyEvidence
-          ? analyzeBassFromMelodyEvidence(update.map.melodyEvidence) : null,
+      probe?.rollingUpdate();
+      const bassEvidence = update.map.melodyEvidence
+        ? analyzeBassFromMelodyEvidence(update.map.melodyEvidence) : null;
+      probe?.bassComplete();
+      options.onUpdate({ sessionId: options.sessionId, map: update.map, bassEvidence,
         source: { kind: 'live-input', filename: null, mimeType: 'audio/x-live-input', deviceId: options.deviceId, deviceLabel: options.deviceLabel },
         transport, events: update.events, state });
+      probe?.published();
     },
   });
+  if (!probe) return session;
+  return {
+    ...session,
+    push(channels: readonly Float32Array[]) { probe.block(channels); session.push(channels); },
+    stop() { session.stop(); setLiveLatencyDiagnostics(null); },
+  };
 }
 export type { PcmAudio };

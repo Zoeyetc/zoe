@@ -14,6 +14,7 @@ import {
   type AudioPreparationState, type InstrumentDualPath, type InstrumentEvent, type InstrumentFrame,
   type InstrumentListeningMap,
 } from './instrument-ui/index.ts';
+import { markLiveUiObservation } from './audio-source-browser/live/liveLatencyDiagnostics.ts';
 
 const emptyMap: InstrumentListeningMap = {
   id: 'zoe-empty', version: 1, duration: 1,
@@ -163,7 +164,7 @@ export function ZoeApp() {
     transport={transport} preparation={preparation} actions={actions}
     onChooseAudio={chooseAudio} onUseFixture={useReference} liveInput={liveState}
     onStartLive={startLive} onStopLive={stopLive} onSelectLiveInput={deviceId => startLive(deviceId || null)}
-    observe={() => ({ mapRevision: revisionRef.current, transport: transportRef.current,
+    observe={() => { if (import.meta.env?.DEV) markLiveUiObservation(); return ({ mapRevision: revisionRef.current, transport: transportRef.current,
       audioMap: listeningRef.current.listeningMap,
       melodyEvidence: selectMelodyEvidenceForTransport(listeningRef.current.listeningMap.melodyEvidence, transportRef.current),
       bassEvidence: listeningRef.current.bassEvidence,
@@ -172,7 +173,7 @@ export function ZoeApp() {
           ? Math.min(transportRef.current.time,
             listeningRef.current.bassEvidence.frames.at(-1)?.time ?? transportRef.current.time)
           : transportRef.current.time) : null,
-      live: liveRef.current?.status === 'LIVE' || liveRef.current?.status === 'REQUESTING' ? liveRef.current : null })}
+      live: liveRef.current?.status === 'LIVE' || liveRef.current?.status === 'REQUESTING' ? liveRef.current : null }); }}
     interpretation={frame} events={recentRef.current} composition="performance" performanceFullscreen
     motion={motion} onMotionChange={setMotion}
     motionEnabled={motionEnabled} onMotionEnabledChange={setMotionEnabled} />;

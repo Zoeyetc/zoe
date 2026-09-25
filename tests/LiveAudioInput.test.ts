@@ -8,6 +8,7 @@ import {
   createLiveAudioClock, createLiveAudioInputController, createLiveRollingAnalyzer,
   LIVE_EVENT_BUFFER_CAP, LIVE_INPUT_WINDOW_SECONDS,
 } from '../src/audio-source-browser/index.ts';
+import { readLiveLatencyDiagnostics } from '../src/audio-source-browser/live/liveLatencyDiagnostics.ts';
 
 test('rolling PCM uses arithmetic-mean channels and remains strictly bounded', () => {
   const buffer = new RollingPcmBuffer(10, 1);
@@ -88,6 +89,33 @@ test('LIVE dual-path publication preserves the Engine rolling Melody map', async
   assert.deepEqual(current.events, previous.events);
   assert.deepEqual(current.bassEvidence,
     analyzeBassFromMelodyEvidence(previous.map.melodyEvidence!));
+});
+
+test('development LIVE probe observes a completed rolling run without changing its evidence', async () => {
+  const previousDebug = console.debug;
+  console.debug = () => undefined;
+  let analyzer: ReturnType<typeof createLiveRollingAnalyzer> | undefined;
+  try {
+    const pcm = new Float32Array(12_000);
+    const update = new Promise<Parameters<Parameters<typeof createLiveRollingAnalyzer>[0]['onUpdate']>[0]>(resolve => {
+      analyzer = createLiveRollingAnalyzer({ sampleRate: 12_000, sessionId: 'diagnostic',
+        deviceId: null, deviceLabel: null, channelCount: 1, baseLatency: null, outputLatency: null,
+        readTransport: () => ({ time: 1, duration: 2, playing: true }), debugLatency: true,
+        onUpdate: resolve });
+      analyzer.push([pcm]);
+    });
+    const result = await update;
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const probe = readLiveLatencyDiagnostics();
+    assert.ok(probe);
+    assert.equal(probe.runs.length, 1);
+    assert.ok(probe.runs[0].analysisRuntimeMs >= 0);
+    assert.equal(probe.runs[0].historyDurationMs, 1000);
+    assert.deepEqual(result.bassEvidence, analyzeBassFromMelodyEvidence(result.map.melodyEvidence!));
+  } finally {
+    analyzer?.stop();
+    console.debug = previousDebug;
+  }
 });
 
 test('backpressure retains at most running work plus one newest rerun request', async () => {
