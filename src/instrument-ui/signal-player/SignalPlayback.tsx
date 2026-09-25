@@ -134,6 +134,10 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
         {liveInput.error ? `; ${liveInput.error}` : ''}
         {fullscreen?.error ? `; Fullscreen: ${fullscreen.error}` : ''}</span>
     </div>
+    <div className="signal-playback-listening" role="group" aria-label="Listening">
+      <span className="signal-source-status" role="status">{sourceStatus}</span>
+      {motionControls}
+    </div>
     <div className="signal-playback-timeline" role="group" aria-label="Timeline">
     {liveMode ? <div className="signal-live-command" aria-label="Live listening session">
       <strong>{liveInput.status}</strong><output aria-label="Live session time">{clockTime(liveInput.sessionTime)}</output>
@@ -150,10 +154,6 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
         aria-label={`Seek position ${clockTime(transport.time)} of ${clockTime(transport.duration)}`}
         onChange={event => actions.seek(Number(event.target.value))} />
     </div>}
-    </div>
-    <div className="signal-playback-listening" role="group" aria-label="Listening">
-      <span className="signal-source-status" role="status">{sourceStatus}</span>
-      {motionControls}
     </div>
   </section>;
 

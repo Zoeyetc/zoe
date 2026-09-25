@@ -73,8 +73,8 @@
 }
 .signal-playback--compact {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(15rem, .7fr) max-content;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: baseline;
   column-gap: 1.2rem;
   margin: 0 0 .35rem;
   padding: .35rem 0 .5rem;
@@ -90,7 +90,7 @@
   min-width: 0;
   gap: .45rem 1.2rem;
 }
-.signal-playback-timeline { min-width: 0; }
+.signal-playback-timeline { grid-column: 1 / -1; min-width: 0; }
 .signal-playback-listening {
   display: flex;
   flex-direction: column;
@@ -208,7 +208,7 @@
   grid-template-columns: 5.5rem minmax(8rem, 1fr) 5.5rem;
   align-items: center;
   gap: .75rem;
-  margin-top: 0;
+  margin-top: .42rem;
   min-height: 1.2rem;
   color: var(--signal-player-muted);
   font-size: .66rem;
@@ -272,7 +272,7 @@
   .signal-playback--compact { display: block; }
   .signal-playback-command { align-items: flex-start; flex-direction: column; gap: .32rem; }
   .signal-playback-listening { align-items: flex-start; }
-  .signal-playback-timeline { margin-block: .42rem; }
+  .signal-playback-timeline { margin-bottom: .42rem; }
   .signal-load-command strong { max-width: 72vw; }
   .signal-progress-command { grid-template-columns: 4.8rem minmax(5rem, 1fr) 4.8rem; gap: .45rem; }
   .signal-playback--compact .signal-playback-range--compact { left: 5.25rem; width: calc(100% - 10.5rem); }
@@ -286,5 +286,5 @@
     margin-bottom: .1rem;
     padding-block: .15rem;
   }
-  .signal-player[data-composition='performance'] .signal-playback--compact { column-gap: .8rem; }
+  .signal-player[data-composition='performance'] .signal-progress-command { margin-top: .1rem; }
 }
