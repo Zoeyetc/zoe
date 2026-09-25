@@ -14,9 +14,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@zoeyetc/computational-listening-engine": "0.2.0",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "@zoeyetc/computational-listening-engine": "^0.1.0"
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
     "@types/react": "^19.1.10",

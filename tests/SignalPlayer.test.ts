@@ -92,5 +92,5 @@ test('Zoë owns the standalone SignalPlayer composition without unrelated runtim
   assert.match(app, /<SignalPlayer/);
   assert.match(app, /createListeningTimeline/);
   assert.match(app, /createLiveAudioInputController/);
-  assert.match(app, /analyzePcmListeningAsync/);
+  assert.match(app, /analyzeDualPathListeningAsync/);
 });

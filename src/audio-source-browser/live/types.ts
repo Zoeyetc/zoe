@@ -1,4 +1,4 @@
-import type { ListeningEvent, ListeningMap } from '@zoeyetc/computational-listening-engine';
+import type { BassEvidence, ListeningEvent, ListeningMap } from '@zoeyetc/computational-listening-engine';
 import type { AudioSourceMetadata } from '../types.ts';
 import type { BrowserTransportState } from '../transportTypes.ts';
 
@@ -16,7 +16,8 @@ export type LiveInputState = Readonly<{
   listeners: Readonly<Record<LiveListenerId, LiveListenerStatus>>; error: string | null;
 }>;
 export type LiveAnalysisUpdate = Readonly<{
-  sessionId: string; map: ListeningMap; source: AudioSourceMetadata; transport: BrowserTransportState;
+  sessionId: string; map: ListeningMap; bassEvidence: BassEvidence | null;
+  source: AudioSourceMetadata; transport: BrowserTransportState;
   events: readonly ListeningEvent[]; state: LiveInputState;
 }>;
 export const LIVE_INPUT_WINDOW_SECONDS = 12;

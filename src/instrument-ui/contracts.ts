@@ -1,7 +1,9 @@
 import type { AudioSourceMetadata, BrowserTransportState, LiveInputState } from '../audio-source-browser/index.ts';
-import type { ListeningEvent, ListeningMap, ListeningSnapshot, MelodyEvidenceObservation } from '@zoeyetc/computational-listening-engine';
+import type { BassEvidence, BassSnapshot, ListeningEvent, ListeningMap, ListeningSnapshot,
+  MelodyEvidenceObservation } from '@zoeyetc/computational-listening-engine';
 
 export type InstrumentListeningMap = ListeningMap & Readonly<{ id: string; source?: AudioSourceMetadata }>;
+export type InstrumentDualPath = Readonly<{ listeningMap: InstrumentListeningMap; bassEvidence: BassEvidence | null }>;
 export type InstrumentSnapshot = ListeningSnapshot & Readonly<{ mapId: string; transport: BrowserTransportState }>;
 export type InstrumentEvent = ListeningEvent | Readonly<{ type: 'seek'; from: number; to: number }>;
 export type InstrumentFrame = Readonly<{ snapshot: InstrumentSnapshot; events: readonly InstrumentEvent[] }>;
@@ -13,7 +15,9 @@ export type AudioPreparationState = Readonly<{
 }>;
 export type SignalConsoleObservation = Readonly<{
   mapRevision: number; transport: BrowserTransportState; audioMap: InstrumentListeningMap;
-  melodyEvidence?: MelodyEvidenceObservation | null; live?: LiveInputState | null;
+  melodyEvidence?: MelodyEvidenceObservation | null;
+  bassEvidence?: BassEvidence | null; bassSnapshot?: BassSnapshot | null;
+  live?: LiveInputState | null;
 }>;
 
 export type { BrowserTransportState, LiveInputState } from '../audio-source-browser/index.ts';

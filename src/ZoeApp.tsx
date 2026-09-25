@@ -4,13 +4,15 @@ import {
   decodeLocalAudioFile, shouldUseIPhoneSafariPlayback, INITIAL_LIVE_INPUT_STATE, pcmFromAudioBuffer,
   type AudioPlaybackTransport, type BrowserTransportState, type LiveInputState,
 } from './audio-source-browser/index.ts';
+import { analyzeDualPathListeningAsync } from './audio-source-browser/analyzeDualPathListeningAsync.ts';
 import {
-  analyzePcmListeningAsync, createListeningTimeline, lookupListeningSnapshot, selectMelodyEvidenceForTransport,
+  createListeningTimeline, lookupBassSnapshot, lookupListeningSnapshot, selectMelodyEvidenceForTransport,
 } from '@zoeyetc/computational-listening-engine';
 import {
   SignalPlayer,
   MotionMode,
-  type AudioPreparationState, type InstrumentEvent, type InstrumentFrame, type InstrumentListeningMap,
+  type AudioPreparationState, type InstrumentDualPath, type InstrumentEvent, type InstrumentFrame,
+  type InstrumentListeningMap,
 } from './instrument-ui/index.ts';
 
 const emptyMap: InstrumentListeningMap = {
@@ -19,6 +21,7 @@ const emptyMap: InstrumentListeningMap = {
   melody: null, percussion: null, rhythm: null, harmony: null, spectrum: null,
   source: { kind: 'fixture', filename: null, mimeType: null },
 };
+const emptyDualPath: InstrumentDualPath = { listeningMap: emptyMap, bassEvidence: null };
 const stopped: BrowserTransportState = { time: 0, duration: 1, playing: false };
 const makeFrame = (map: InstrumentListeningMap, transport: BrowserTransportState,
   events: readonly InstrumentEvent[] = []): InstrumentFrame => ({
@@ -28,8 +31,8 @@ const makeFrame = (map: InstrumentListeningMap, transport: BrowserTransportState
 export function ZoeApp() {
   const [motion, setMotion] = useState<MotionMode>(MotionMode.Instrument);
   const [motionEnabled, setMotionEnabled] = useState(true);
-  const mapRef = useRef<InstrumentListeningMap>(emptyMap);
-  const fileMapRef = useRef<InstrumentListeningMap>(emptyMap);
+  const listeningRef = useRef<InstrumentDualPath>(emptyDualPath);
+  const fileListeningRef = useRef<InstrumentDualPath>(emptyDualPath);
   const revisionRef = useRef(0);
   const timelineRef = useRef(createListeningTimeline(emptyMap, emptyMap.id));
   const playbackRef = useRef<AudioPlaybackTransport | null>(null);
@@ -44,9 +47,10 @@ export function ZoeApp() {
   const requestRef = useRef(0);
   const liveControllerRef = useRef<ReturnType<typeof createLiveAudioInputController> | null>(null);
   const restoreFile = useCallback(() => {
-    const map = fileMapRef.current;
+    const nextListening = fileListeningRef.current;
+    const map = nextListening.listeningMap;
     const next = playbackRef.current?.read() ?? stopped;
-    mapRef.current = map; revisionRef.current += 1;
+    listeningRef.current = nextListening; revisionRef.current += 1;
     timelineRef.current.replaceMap(map, map.id, next.time);
     transportRef.current = next; recentRef.current = [];
     setTransport(next); setFrame(makeFrame(map, next));
@@ -54,7 +58,7 @@ export function ZoeApp() {
   const sync = useCallback((nextTransport: BrowserTransportState, events: readonly InstrumentEvent[] = []) => {
     transportRef.current = nextTransport;
     const generic = timelineRef.current.synchronize(nextTransport.time);
-    const next = makeFrame(mapRef.current, nextTransport, [...generic.events, ...events]);
+    const next = makeFrame(listeningRef.current.listeningMap, nextTransport, [...generic.events, ...events]);
     if (events.length) recentRef.current = [...recentRef.current, ...events].slice(-8);
     setTransport(nextTransport); setFrame(next);
   }, []);
@@ -69,7 +73,8 @@ export function ZoeApp() {
       onAnalysis(update) {
         if (liveControllerRef.current !== controller || liveRef.current?.status !== 'LIVE') return;
         const map: InstrumentListeningMap = { ...update.map, id: `live-input-${update.sessionId}`, source: update.source };
-        mapRef.current = map; revisionRef.current += 1; transportRef.current = update.transport;
+        listeningRef.current = { listeningMap: map, bassEvidence: update.bassEvidence };
+        revisionRef.current += 1; transportRef.current = update.transport;
         const generic = timelineRef.current.replaceMap(map, map.id, update.transport.time);
         const next = makeFrame(map, update.transport, update.events);
         recentRef.current = [...recentRef.current, ...generic.events, ...update.events].slice(-8);
@@ -92,7 +97,7 @@ export function ZoeApp() {
       const generic = timelineRef.current.read(nextTransport.time);
       transportRef.current = nextTransport;
       if (generic.events.length) recentRef.current = [...recentRef.current, ...generic.events].slice(-8);
-      setTransport(nextTransport); setFrame(makeFrame(mapRef.current, nextTransport, generic.events));
+      setTransport(nextTransport); setFrame(makeFrame(listeningRef.current.listeningMap, nextTransport, generic.events));
     }, 42);
     return () => window.clearInterval(timer);
   }, []);
@@ -107,10 +112,11 @@ export function ZoeApp() {
         const buffer = await decodeLocalAudioFile(file, context);
         if (requestId !== requestRef.current) { void context.close(); return; }
         setPreparation(p => ({ ...p, duration: buffer.duration, decodeState: 'ready', analysisState: 'analyzing' }));
-        const listening = await analyzePcmListeningAsync(pcmFromAudioBuffer(buffer));
+        const dualPath = await analyzeDualPathListeningAsync(pcmFromAudioBuffer(buffer));
         if (requestId !== requestRef.current) { void context.close(); return; }
-        const map: InstrumentListeningMap = { ...listening, id: `zoe-file-${requestId}`,
+        const map: InstrumentListeningMap = { ...dualPath.listeningMap, id: `zoe-file-${requestId}`,
           source: { kind: 'real-audio', filename: file.name, mimeType: file.type || 'application/octet-stream' } };
+        const listening: InstrumentDualPath = { listeningMap: map, bassEvidence: dualPath.bassEvidence };
         playbackRef.current?.dispose();
         if (shouldUseIPhoneSafariPlayback(navigator.userAgent)) {
           const url = URL.createObjectURL(file);
@@ -122,7 +128,7 @@ export function ZoeApp() {
         } else {
           playbackRef.current = createAudioBufferPlaybackTransport(context, buffer);
         }
-        fileMapRef.current = map; mapRef.current = map; revisionRef.current += 1;
+        fileListeningRef.current = listening; listeningRef.current = listening; revisionRef.current += 1;
         timelineRef.current.replaceMap(map, map.id, 0);
         setPreparation(p => ({ ...p, analysisState: 'ready' })); sync(playbackRef.current.read());
       } catch (error) {
@@ -144,7 +150,7 @@ export function ZoeApp() {
     if (liveRef.current?.status === 'LIVE' || liveRef.current?.status === 'REQUESTING') {
       void liveControllerRef.current?.stop();
     }
-    fileMapRef.current = emptyMap; mapRef.current = emptyMap; revisionRef.current += 1;
+    fileListeningRef.current = emptyDualPath; listeningRef.current = emptyDualPath; revisionRef.current += 1;
     timelineRef.current.replaceMap(emptyMap, emptyMap.id, 0);
     recentRef.current = [];
     setPreparation({ sourceMode: 'fixture', filename: null, duration: null, decodeState: 'idle',
@@ -157,8 +163,15 @@ export function ZoeApp() {
     transport={transport} preparation={preparation} actions={actions}
     onChooseAudio={chooseAudio} onUseFixture={useReference} liveInput={liveState}
     onStartLive={startLive} onStopLive={stopLive} onSelectLiveInput={deviceId => startLive(deviceId || null)}
-    observe={() => ({ mapRevision: revisionRef.current, transport: transportRef.current, audioMap: mapRef.current,
-      melodyEvidence: selectMelodyEvidenceForTransport(mapRef.current.melodyEvidence, transportRef.current),
+    observe={() => ({ mapRevision: revisionRef.current, transport: transportRef.current,
+      audioMap: listeningRef.current.listeningMap,
+      melodyEvidence: selectMelodyEvidenceForTransport(listeningRef.current.listeningMap.melodyEvidence, transportRef.current),
+      bassEvidence: listeningRef.current.bassEvidence,
+      bassSnapshot: listeningRef.current.bassEvidence
+        ? lookupBassSnapshot(listeningRef.current.bassEvidence, liveRef.current?.status === 'LIVE'
+          ? Math.min(transportRef.current.time,
+            listeningRef.current.bassEvidence.frames.at(-1)?.time ?? transportRef.current.time)
+          : transportRef.current.time) : null,
       live: liveRef.current?.status === 'LIVE' || liveRef.current?.status === 'REQUESTING' ? liveRef.current : null })}
     interpretation={frame} events={recentRef.current} composition="performance" performanceFullscreen
     motion={motion} onMotionChange={setMotion}

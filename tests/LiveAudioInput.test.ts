@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { RollingPcmBuffer } from '@zoeyetc/computational-listening-engine';
+import {
+  analyzeBassFromMelodyEvidence, createRollingListeningSession, lookupBassSnapshot, RollingPcmBuffer,
+} from '@zoeyetc/computational-listening-engine';
 import {
   createLiveAudioClock, createLiveAudioInputController, createLiveRollingAnalyzer,
   LIVE_EVENT_BUFFER_CAP, LIVE_INPUT_WINDOW_SECONDS,
@@ -54,10 +56,38 @@ test('deterministic injected PCM produces bounded rolling evidence without live 
   assert.ok(result.map.amplitude?.length);
   assert.ok(result.map.spectrum?.length);
   assert.ok(result.map.melodyEvidence?.frameCount);
+  assert.ok(result.bassEvidence);
+  assert.deepEqual(result.bassEvidence, analyzeBassFromMelodyEvidence(result.map.melodyEvidence!));
+  assert.ok(Math.abs(result.bassEvidence.frames.at(-1)!.time
+    - result.map.melodyAnalysis!.contour.at(-1)!.time) < 1e-6);
+  assert.notEqual(lookupBassSnapshot(result.bassEvidence, result.bassEvidence.frames.at(-1)!.time).reason,
+    'OUTSIDE_EVIDENCE');
   assert.ok(result.state.rollingPcmBytes <= sampleRate * LIVE_INPUT_WINDOW_SECONDS * 4);
   assert.ok(result.state.retainedEventCount <= LIVE_EVENT_BUFFER_CAP);
   assert.equal(result.map.analysis?.downmix, 'arithmetic-mean');
   analyzer.stop();
+});
+
+test('LIVE dual-path publication preserves the Engine rolling Melody map', async () => {
+  const sampleRate = 12_000;
+  const pcm = Float32Array.from({ length: sampleRate }, (_, index) =>
+    0.35 * Math.sin(2 * Math.PI * 110 * index / sampleRate));
+  const transport = () => ({ time: 1, duration: 2, playing: true });
+  const baseline = new Promise<Parameters<Parameters<typeof createRollingListeningSession>[0]['onUpdate']>[0]>(resolve => {
+    const session = createRollingListeningSession({ sampleRate, readTime: () => 1, onUpdate: resolve });
+    session.push([pcm]);
+  });
+  const dual = new Promise<Parameters<Parameters<typeof createLiveRollingAnalyzer>[0]['onUpdate']>[0]>(resolve => {
+    const session = createLiveRollingAnalyzer({ sampleRate, sessionId: 'same-audio', deviceId: null,
+      deviceLabel: null, channelCount: 1, baseLatency: null, outputLatency: null,
+      readTransport: transport, onUpdate: resolve });
+    session.push([pcm]);
+  });
+  const [previous, current] = await Promise.all([baseline, dual]);
+  assert.deepEqual(current.map, previous.map);
+  assert.deepEqual(current.events, previous.events);
+  assert.deepEqual(current.bassEvidence,
+    analyzeBassFromMelodyEvidence(previous.map.melodyEvidence!));
 });
 
 test('backpressure retains at most running work plus one newest rerun request', async () => {
@@ -143,6 +173,7 @@ test('permission lifecycle, device replacement, stop, and device loss clean up c
     rhythm: { state: 'SEARCHING' as const, elapsed: 5, required: 4 } };
   emitAnalysis?.({
     sessionId: '2', source: { kind: 'live-input', filename: null, mimeType: 'audio/x-live-input' },
+    bassEvidence: null,
     map: { version: 1, duration: 5,
       capabilities: { melody: false, rhythm: false, percussion: false, harmony: false,
         tonalCenter: false, structure: false, spectrum: true },
@@ -222,7 +253,8 @@ test('SignalPlayer exposes truthful compact live grammar without file transport 
   assert.doesNotMatch(playback, /SYSTEM AUDIO|Spotify|Apple Music/);
   assert.match(player, /liveInput: LiveInputState/);
   assert.match(app, /createLiveAudioInputController/);
-  assert.match(app, /fileMapRef/);
+  assert.match(app, /fileListeningRef/);
+  assert.match(app, /listeningRef\.current = \{ listeningMap: map, bassEvidence: update\.bassEvidence \}/);
   assert.match(telemetry, /UNAVAILABLE LIVE/);
   assert.match(telemetry, /WARMING UP/);
   assert.match(telemetry, /ROLLING 12\.0 S/);

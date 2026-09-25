@@ -1,4 +1,5 @@
 import {
+  analyzeBassFromMelodyEvidence,
   createRollingListeningSession,
   type PcmAudio,
   type RollingListeningSessionOptions,
@@ -38,6 +39,8 @@ export function createLiveRollingAnalyzer(options: LiveRollingAnalyzerOptions) {
         ...update.diagnostics, listeners, error: null,
       };
       options.onUpdate({ sessionId: options.sessionId, map: update.map,
+        bassEvidence: update.map.melodyEvidence
+          ? analyzeBassFromMelodyEvidence(update.map.melodyEvidence) : null,
         source: { kind: 'live-input', filename: null, mimeType: 'audio/x-live-input', deviceId: options.deviceId, deviceLabel: options.deviceLabel },
         transport, events: update.events, state });
     },

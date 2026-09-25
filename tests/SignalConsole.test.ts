@@ -847,6 +847,8 @@ test('Zoë exposes only a typed read-only observation seam for SignalConsole', (
   const types = readFileSync(new URL('../src/instrument-ui/contracts.ts', import.meta.url), 'utf8');
   assert.match(types, /type SignalConsoleObservation = Readonly<\{/);
   assert.match(source, /observe=\{\(\) => \(\{ mapRevision:/);
-  assert.match(source, /melodyEvidence: selectMelodyEvidenceForTransport\(mapRef\.current\.melodyEvidence, transportRef\.current\)/);
-  assert.match(source, /audioMap: mapRef\.current/);
+  assert.match(source, /melodyEvidence: selectMelodyEvidenceForTransport\(listeningRef\.current\.listeningMap\.melodyEvidence, transportRef\.current\)/);
+  assert.match(source, /bassEvidence: listeningRef\.current\.bassEvidence/);
+  assert.match(source, /bassSnapshot: listeningRef\.current\.bassEvidence/);
+  assert.match(source, /audioMap: listeningRef\.current\.listeningMap/);
 });
