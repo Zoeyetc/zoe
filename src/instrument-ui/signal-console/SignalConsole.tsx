@@ -199,6 +199,8 @@ export function SignalConsole({ observe, interpretation, events, composition = '
 
   const primary = selectPrimaryListeningView(telemetry, interpretation, events);
   const snapshot = interpretation.snapshot;
+  const sourceKind = primary.sourceSystem.find(field => field.label === 'KIND')?.value ?? 'FIXTURE';
+  const inputState = primary.sourceSystem.find(field => field.label === 'CAPTURE')?.value ?? 'NOT CONNECTED';
   return <section className="signal-console" aria-label={composition === 'performance' ? 'Computational listening' : undefined}
     aria-labelledby={composition === 'performance' ? undefined : 'signal-console-heading'} data-composition={composition}
     data-transport-state={telemetry.ended ? 'ended' : telemetry.transport.playing ? 'playing' : 'paused'}
@@ -323,6 +325,10 @@ export function SignalConsole({ observe, interpretation, events, composition = '
       <footer className="signal-system-footer">
         <details className="signal-inspect" data-signal-domain="source-system">
           <summary>SOURCE / SYSTEM</summary>
+          <div className="signal-source-mobile">
+            <div><strong>SOURCE</strong><span>{sourceKind}</span></div>
+            <div><strong>INPUT</strong><span>{inputState}</span></div>
+          </div>
           <div className="signal-inspect-stream">
             <TelemetryLine label="Source" fields={primary.sourceSystem} layer="analysis" />
             <p className="signal-capabilities">CAPABILITIES&nbsp; {Object.entries(snapshot.capabilities)
