@@ -4,7 +4,7 @@ import type { BrowserTransportState } from '../contracts.ts';
 import type { InstrumentActions } from '../contracts.ts';
 import type { LiveInputState } from '../../audio-source-browser/index.ts';
 import type { PerformanceFullscreenState } from './performanceFullscreen';
-import type { MotionMode } from './MotionStudy';
+import { MotionControls, type MotionControlsProps } from './MotionControls';
 
 export type SignalPlaybackProps = Readonly<{
   transport: BrowserTransportState;
@@ -18,7 +18,7 @@ export type SignalPlaybackProps = Readonly<{
   onSelectLiveInput(deviceId: string): void;
   compact?: boolean;
   fullscreen?: PerformanceFullscreenState & Readonly<{ toggle(): void }>;
-  motion?: Readonly<{ mode: MotionMode; select(mode: MotionMode): void }>;
+  motion?: MotionControlsProps;
 }>;
 
 function clockTime(value: number) {
@@ -35,11 +35,7 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
   const [choosingInput, setChoosingInput] = useState(false);
   const liveButtonRef = useRef<HTMLButtonElement>(null);
   const stopButtonRef = useRef<HTMLButtonElement>(null);
-  const motionControls = motion ? <span className="signal-motion-controls" role="group" aria-label="Motion">
-    {(['off', 'a', 'b', 'c'] as const).map(mode => <button key={mode} type="button"
-      aria-label={`Motion ${mode.toUpperCase()}`} aria-pressed={motion.mode === mode}
-      onClick={() => motion.select(mode)}>{mode === 'off' ? '[MOTION OFF]' : `[${mode.toUpperCase()}]`}</button>)}
-  </span> : null;
+  const motionControls = motion ? <MotionControls {...motion} /> : null;
   useEffect(() => {
     if (liveInput.status === 'LIVE') stopButtonRef.current?.focus();
   }, [liveInput.status]);

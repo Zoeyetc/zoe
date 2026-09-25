@@ -1,20 +1,22 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import type { InstrumentEvent } from '../contracts.ts';
 import type { SignalConsoleObservation } from '../signal-console/types.ts';
-import { motionStudyTarget, selectMotionStudySample, type MotionStudyVariant } from './motionStudyEvidence.ts';
-import { collectStudyGeometry, createMotionStudyRenderer } from './motionStudyRenderer.ts';
+import { selectMotionStudySample } from './motionStudyEvidence.ts';
+import type { MotionMode } from './MotionMode.ts';
+import { MotionMode as Mode } from './MotionMode.ts';
+import { motionModeRenderers, type MotionRenderer } from './motionModeRenderers.ts';
+import { initialInstrumentMotion, stepInstrumentMotion } from './instrumentMotion.ts';
+import { initialMaterialMotion, stepMaterialMotion } from './materialMotion.ts';
 import './motionStudy.css';
-
-export type MotionMode = 'off' | MotionStudyVariant;
 
 type MotionLayerProps = Readonly<{
   rootRef: RefObject<HTMLElement | null>;
-  variant: MotionStudyVariant;
+  mode: MotionMode;
   observe(): SignalConsoleObservation;
   events: readonly InstrumentEvent[];
 }>;
 
-export function MotionLayer({ rootRef, variant, observe, events }: MotionLayerProps) {
+export function MotionLayer({ rootRef, mode, observe, events }: MotionLayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const latestRef = useRef({ observe, events });
   latestRef.current = { observe, events };
@@ -23,9 +25,9 @@ export function MotionLayer({ rootRef, variant, observe, events }: MotionLayerPr
     const root = rootRef.current;
     const canvas = canvasRef.current;
     if (!root || !canvas) return;
-    let renderer: ReturnType<typeof createMotionStudyRenderer>;
+    let renderer: MotionRenderer | null;
     try {
-      renderer = createMotionStudyRenderer(canvas, root);
+      renderer = motionModeRenderers[mode].create(canvas, root);
     } catch {
       renderer = null;
     }
@@ -36,9 +38,9 @@ export function MotionLayer({ rootRef, variant, observe, events }: MotionLayerPr
     }
     canvas.dataset.motionRenderer = 'webgl';
     root.dataset.motionRenderer = 'webgl';
-    let geometry = collectStudyGeometry(root, variant);
+    let geometry = renderer.measure();
     const measure = () => {
-      geometry = collectStudyGeometry(root, variant);
+      geometry = renderer.measure();
       const rect = root.getBoundingClientRect();
       canvas.style.left = `${rect.left}px`;
       canvas.style.top = `${rect.top}px`;
@@ -61,6 +63,8 @@ export function MotionLayer({ rootRef, variant, observe, events }: MotionLayerPr
     let animationFrame = 0;
     let previousTime = 0;
     let activity = 0;
+    let instrumentMotion = initialInstrumentMotion;
+    let materialMotion = initialMaterialMotion;
     let sampleStart = 0;
     let sampleFrames = 0;
     let cpuTotal = 0;
@@ -70,11 +74,19 @@ export function MotionLayer({ rootRef, variant, observe, events }: MotionLayerPr
       previousTime = now;
       const { observe: read, events: recent } = latestRef.current;
       const sample = selectMotionStudySample(read(), recent);
-      const target = motionStudyTarget(variant, sample);
-      const seconds = variant === 'c' ? .8 : variant === 'a' ? .24 : .11;
-      activity += (target - activity) * (1 - Math.exp(-dt / seconds));
-      if (Math.abs(activity) < .0001 && target === 0) activity = 0;
-      const gpuMilliseconds = renderer.draw(variant, geometry, activity, sample.progress);
+      const target = renderer.target(sample);
+      if (mode === Mode.Instrument) {
+        instrumentMotion = stepInstrumentMotion(instrumentMotion, target, dt);
+        activity = instrumentMotion.activity;
+      } else if (mode === Mode.Material) {
+        materialMotion = stepMaterialMotion(materialMotion, sample, dt);
+        activity = materialMotion.activity;
+      } else {
+        const seconds = renderer.smoothingSeconds;
+        activity += (target - activity) * (1 - Math.exp(-dt / seconds));
+        if (Math.abs(activity) < .0001 && target === 0) activity = 0;
+      }
+      const gpuMilliseconds = renderer.draw(geometry, activity, sample.progress);
       sampleFrames += 1;
       cpuTotal += performance.now() - started;
       if (!sampleStart) sampleStart = now;
@@ -99,10 +111,10 @@ export function MotionLayer({ rootRef, variant, observe, events }: MotionLayerPr
       renderer.dispose();
       delete root.dataset.motionRenderer;
     };
-  }, [rootRef, variant]);
+  }, [rootRef, mode]);
 
   return <canvas ref={canvasRef} className="signal-motion-study-canvas" aria-hidden="true"
-    data-motion-variant={variant} />;
+    data-motion-mode={mode} />;
 }
 
 /** @deprecated Use MotionLayer. */

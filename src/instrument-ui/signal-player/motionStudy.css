@@ -8,11 +8,28 @@
 .signal-motion-controls button[aria-pressed='true'] { color: var(--performance-active); }
 
 /* Preserve line geometry while the study shader replaces its paint. */
-.signal-player[data-motion-study='a'][data-motion-renderer='webgl'] .signal-console-heading--performance,
-.signal-player[data-motion-study='a'][data-motion-renderer='webgl'] .listening-field-score,
-.signal-player[data-motion-study='a'][data-motion-renderer='webgl'] .listening-field-voice + .listening-field-voice,
-.signal-player[data-motion-study='a'][data-motion-renderer='webgl'] .signal-performance-band > .signal-inspect,
-.signal-player[data-motion-study='a'][data-motion-renderer='webgl'] .signal-system-footer .signal-inspect {
+.signal-player[data-motion-dividers='replace'][data-motion-renderer='webgl'] .signal-console-heading--performance,
+.signal-player[data-motion-dividers='replace'][data-motion-renderer='webgl'] .listening-field-score,
+.signal-player[data-motion-dividers='replace'][data-motion-renderer='webgl'] .listening-field-voice + .listening-field-voice,
+.signal-player[data-motion-dividers='replace'][data-motion-renderer='webgl'] .signal-performance-band > .signal-inspect,
+.signal-player[data-motion-dividers='replace'][data-motion-renderer='webgl'] .signal-system-footer .signal-inspect {
   border-color: transparent;
 }
-.signal-player[data-motion-study='a'][data-motion-renderer='webgl'] .listening-field-now-rule { border-left-color: transparent; }
+.signal-player[data-motion-dividers='replace'][data-motion-renderer='webgl'] .listening-field-now-rule { border-left-color: transparent; }
+
+.signal-motion-mode { display: inline-flex; align-items: baseline; }
+.signal-motion-mode-label {
+  display: inline-grid;
+  grid-template-columns: 0fr;
+  opacity: 0;
+  transition: grid-template-columns 180ms ease, opacity 180ms ease;
+}
+.signal-motion-mode-label > span { overflow: hidden; white-space: nowrap; min-width: 0; }
+.signal-motion-mode-label > span::before { content: '\00a0'; }
+.signal-motion-mode[data-expanded='true'] .signal-motion-mode-label {
+  grid-template-columns: 1fr;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-motion-mode-label { transition: none; }
+}

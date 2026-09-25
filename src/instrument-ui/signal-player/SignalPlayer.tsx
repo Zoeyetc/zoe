@@ -8,7 +8,9 @@ import { SignalPlayback } from './SignalPlayback';
 import './signalPlayer.css';
 import type { LiveInputState } from '../../audio-source-browser/index.ts';
 import { createPerformanceFullscreenController, type PerformanceFullscreenState } from './performanceFullscreen';
-import { MotionLayer, type MotionMode } from './MotionStudy';
+import { MotionLayer } from './MotionStudy';
+import { MotionMode } from './MotionMode';
+import { motionModeRenderers } from './motionModeRenderers';
 
 export type SignalPlayerProps = Readonly<{
   title?: string;
@@ -29,11 +31,14 @@ export type SignalPlayerProps = Readonly<{
   performanceFullscreen?: boolean;
   motion?: MotionMode;
   onMotionChange?(mode: MotionMode): void;
+  motionEnabled?: boolean;
+  onMotionEnabledChange?(enabled: boolean): void;
 }>;
 
 export function SignalPlayer({ title, nameplateDescription, transport, preparation, actions, onChooseAudio, onUseFixture,
   liveInput, onStartLive, onStopLive, onSelectLiveInput,
-  observe, interpretation, events, composition, performanceFullscreen = false, motion = 'off', onMotionChange }: SignalPlayerProps) {
+  observe, interpretation, events, composition, performanceFullscreen = false, motion = MotionMode.Instrument, onMotionChange,
+  motionEnabled = true, onMotionEnabledChange }: SignalPlayerProps) {
   const rootRef = useRef<HTMLElement>(null);
   const fullscreenRef = useRef<ReturnType<typeof createPerformanceFullscreenController> | null>(null);
   const [fullscreen, setFullscreen] = useState<PerformanceFullscreenState>({ active: false, supported: false, error: null });
@@ -44,18 +49,20 @@ export function SignalPlayer({ title, nameplateDescription, transport, preparati
     return () => { fullscreenRef.current = null; controller.dispose(); };
   }, [performanceFullscreen]);
   return <main ref={rootRef} className="signal-player" aria-label={title ?? 'Signal player'}
-    data-composition={composition} data-fullscreen={fullscreen.active} data-motion-study={motion}>
+    data-composition={composition} data-fullscreen={fullscreen.active} data-motion-mode={motion} data-motion-enabled={motionEnabled}
+    data-motion-dividers={motionEnabled && motionModeRenderers[motion].replacesDividers ? 'replace' : 'preserve'}>
     {title && composition !== 'performance'
       ? <header className="signal-player-heading"><h1>{title}</h1></header> : null}
     <SignalPlayback transport={transport} preparation={preparation} actions={actions}
       onChooseAudio={onChooseAudio} onUseFixture={onUseFixture} liveInput={liveInput}
       onStartLive={onStartLive} onStopLive={onStopLive} onSelectLiveInput={onSelectLiveInput}
       compact={composition === 'performance'}
-      motion={onMotionChange ? { mode: motion, select: onMotionChange } : undefined}
+      motion={onMotionChange && onMotionEnabledChange
+        ? { mode: motion, enabled: motionEnabled, select: onMotionChange, setEnabled: onMotionEnabledChange } : undefined}
       fullscreen={performanceFullscreen ? { ...fullscreen, toggle: () => void fullscreenRef.current?.toggle() } : undefined} />
     <SignalConsole observe={observe} interpretation={interpretation} events={events} composition={composition}
       nameplate={composition === 'performance' && title
         ? { name: title, description: nameplateDescription ?? '' } : undefined} />
-    {motion === 'off' ? null : <MotionLayer rootRef={rootRef} variant={motion} observe={observe} events={events} />}
+    {!motionEnabled ? null : <MotionLayer rootRef={rootRef} mode={motion} observe={observe} events={events} />}
   </main>;
 }
