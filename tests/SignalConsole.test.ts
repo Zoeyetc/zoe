@@ -546,7 +546,10 @@ test('Single-viewport performance format keeps core truth in one bounded desktop
   assert.ok(component.indexOf('<div className="signal-performance-band">')
     < component.indexOf('<footer className="signal-system-footer">'));
   assert.doesNotMatch(component, /data-signal-domain="source-system"[^>]*open=/);
-  assert.match(styles, /min-height: clamp\(13rem, 23vh, 14rem\)/);
+  assert.match(styles, /grid-template-rows: minmax\(0, 1fr\) 9rem;\s*block-size: 19rem/);
+  assert.match(component, /Array\.from\(\{ length: 8 \}, \(_, index\) => recentEvents\[index\] \?\? null\)/);
+  assert.match(component, /<li key=\{index\} data-event-empty=\{event === null\}/);
+  assert.match(styles, /grid-template-rows: repeat\(8, \.82rem\)/);
   assert.match(styles, /data-inspect-format='performance'[\s\S]*grid-template-columns: 3\.25rem minmax\(0, 1fr\)/);
   assert.match(styles, /--performance-pitch-height: 9\.25rem/);
   assert.match(styles, /--performance-signal-height: 3rem/);

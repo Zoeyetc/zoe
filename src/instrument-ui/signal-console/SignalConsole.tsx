@@ -232,6 +232,9 @@ export function SignalConsole({ observe, interpretation, events, composition = '
   const snapshot = interpretation.snapshot;
   const sourceKind = primary.sourceSystem.find(field => field.label === 'KIND')?.value ?? 'FIXTURE';
   const inputState = primary.sourceSystem.find(field => field.label === 'CAPTURE')?.value ?? 'NOT CONNECTED';
+  const recentEvents = events.slice(-8).reverse();
+  const eventSlots = composition === 'performance'
+    ? Array.from({ length: 8 }, (_, index) => recentEvents[index] ?? null) : recentEvents;
   return <section className="signal-console" aria-label={composition === 'performance' ? 'Computational listening' : undefined}
     aria-labelledby={composition === 'performance' ? undefined : 'signal-console-heading'} data-composition={composition}
     data-transport-state={telemetry.ended ? 'ended' : telemetry.transport.playing ? 'playing' : 'paused'}
@@ -350,8 +353,10 @@ export function SignalConsole({ observe, interpretation, events, composition = '
         <details className="signal-inspect" data-signal-domain="recent-events"
           open={composition === 'performance' || undefined}>
           <summary>RECENT EVENTS</summary>
-          <ol className="signal-event-log">{events.slice(-8).reverse().map((event, index) =>
-            <li key={`${event.type}-${index}-${event.type === 'seek' ? event.to : event.time}`}>{eventText(event)}</li>)}</ol>
+          <ol className="signal-event-log">{eventSlots.map((event, index) =>
+            <li key={index} data-event-empty={event === null} aria-hidden={event === null}>
+              {event ? eventText(event) : '\u00a0'}
+            </li>)}</ol>
         </details>
       </div>
       <footer className="signal-system-footer">
