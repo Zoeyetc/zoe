@@ -1,6 +1,5 @@
 import {
   analyzeBassFromMelodyEvidence,
-  analyzePcmListeningAsync,
   createRollingListeningSession,
   type PcmAudio,
   type RollingListeningSessionOptions,
@@ -19,19 +18,17 @@ export type LiveRollingAnalyzerOptions = Readonly<{
 const status = (ready: boolean, available: boolean): LiveListenerState => !ready ? 'WARMING_UP' : available ? 'LIVE' : 'SEARCHING';
 
 export function createLiveRollingAnalyzer(options: LiveRollingAnalyzerOptions) {
-  const probe = (options.debugLatency ?? import.meta.env?.DEV) ? new LiveLatencyDiagnostics(options.sessionId, options.sampleRate) : null;
+  const probe = (options.debugLatency ?? import.meta.env?.DEV) && !options.analyze
+    ? new LiveLatencyDiagnostics(options.sessionId) : null;
   if (probe) setLiveLatencyDiagnostics(probe);
   const session = createRollingListeningSession({
     sampleRate: options.sampleRate,
-    analyze: probe ? async pcm => {
-      probe.analysisStart(pcm.channels[0].length / pcm.sampleRate * 1000);
-      const map = await (options.analyze ?? analyzePcmListeningAsync)(pcm);
-      probe.analysisComplete();
-      return map;
-    } : options.analyze,
+    ...(options.analyze ? { analyze: options.analyze } : {}),
     now: options.now,
     readTime: () => options.readTransport().time,
+    onDiagnostic: probe ? record => probe.diagnostic(record) : undefined,
     onUpdate(update) {
+      probe?.applicationStarted();
       const transport = options.readTransport();
       const elapsed = transport.time;
       const listeners = {
@@ -49,20 +46,19 @@ export function createLiveRollingAnalyzer(options: LiveRollingAnalyzerOptions) {
         baseLatency: options.baseLatency, outputLatency: options.outputLatency,
         ...update.diagnostics, listeners, error: null,
       };
-      probe?.rollingUpdate();
+      probe?.bassStarted();
       const bassEvidence = update.map.melodyEvidence
         ? analyzeBassFromMelodyEvidence(update.map.melodyEvidence) : null;
-      probe?.bassComplete();
+      const bassRuntimeMs = probe?.bassComplete();
       options.onUpdate({ sessionId: options.sessionId, map: update.map, bassEvidence,
         source: { kind: 'live-input', filename: null, mimeType: 'audio/x-live-input', deviceId: options.deviceId, deviceLabel: options.deviceLabel },
         transport, events: update.events, state });
-      probe?.published();
+      if (bassRuntimeMs !== undefined) probe?.published(bassRuntimeMs);
     },
   });
   if (!probe) return session;
   return {
     ...session,
-    push(channels: readonly Float32Array[]) { probe.block(channels); session.push(channels); },
     stop() { session.stop(); setLiveLatencyDiagnostics(null); },
   };
 }

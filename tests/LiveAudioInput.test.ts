@@ -92,8 +92,6 @@ test('LIVE dual-path publication preserves the Engine rolling Melody map', async
 });
 
 test('development LIVE probe observes a completed rolling run without changing its evidence', async () => {
-  const previousDebug = console.debug;
-  console.debug = () => undefined;
   let analyzer: ReturnType<typeof createLiveRollingAnalyzer> | undefined;
   try {
     const pcm = new Float32Array(12_000);
@@ -109,12 +107,12 @@ test('development LIVE probe observes a completed rolling run without changing i
     const probe = readLiveLatencyDiagnostics();
     assert.ok(probe);
     assert.equal(probe.runs.length, 1);
+    assert.equal(probe.runs[0].record.analyzer, 'built-in-production');
     assert.ok(probe.runs[0].analysisRuntimeMs >= 0);
     assert.equal(probe.runs[0].historyDurationMs, 1000);
     assert.deepEqual(result.bassEvidence, analyzeBassFromMelodyEvidence(result.map.melodyEvidence!));
   } finally {
     analyzer?.stop();
-    console.debug = previousDebug;
   }
 });
 

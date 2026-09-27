@@ -1,37 +1,37 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type { RollingAnalysisDiagnosticRecord } from '@zoeyetc/computational-listening-engine';
 import { LiveLatencyDiagnostics } from '../src/audio-source-browser/live/liveLatencyDiagnostics.ts';
 
-test('LIVE latency measurements use bounded wall-clock runs and distinguish all external boundaries', () => {
-  let wallMs = 100;
-  const probe = new LiveLatencyDiagnostics('test', 10, () => wallMs);
-  const previousDebug = console.debug;
-  console.debug = () => undefined;
-  try {
-    probe.block([new Float32Array(1)]);
-    wallMs = 103; probe.analysisStart(100);
-    wallMs = 110; probe.analysisComplete();
-    wallMs = 112; probe.rollingUpdate();
-    wallMs = 115; probe.bassComplete();
-    wallMs = 118; probe.published();
-    wallMs = 130; probe.observed();
-    assert.deepEqual(probe.runs[0], {
-      run: 1, audioBlockArrivalMs: 100, analysisRequestMs: 100,
-      analysisStartMs: 103, analysisCompleteMs: 110, rollingUpdateMs: 112,
-      bassCompleteMs: 115, applicationPublicationMs: 118, uiObservationMs: 130,
-      historyDurationMs: 100, newestBlockAgeMs: 10, scheduleWaitMs: 3,
-      analysisRuntimeMs: 7, bassRuntimeMs: 3, publishOverheadMs: 3, uiObservationWaitMs: 12,
-    });
-    assert.equal(probe.summary().historyGrowth, null);
-    for (let index = 0; index < 130; index += 1) {
-      wallMs += 100;
-      probe.block([new Float32Array(5)]);
-      probe.analysisStart(12_000);
-      probe.analysisComplete(); probe.rollingUpdate(); probe.bassComplete(); probe.published(); probe.observed();
-    }
-    assert.equal(probe.runs.length, 128);
-    assert.equal(probe.summary().analysisRuntimeMs?.count, 128);
-  } finally {
-    console.debug = previousDebug;
-  }
+const record = (runId: number, analyzer: RollingAnalysisDiagnosticRecord['analyzer'] = 'built-in-production'):
+  RollingAnalysisDiagnosticRecord => ({
+    version: 1, sessionId: 1, runId, requestId: runId, publicationId: runId,
+    analyzer, trigger: 'cadence', eligibility: 'immediate', coalescedRequestCount: 2,
+    wallClockMilliseconds: { requested: 100, eligible: 103, analysisStarted: 105,
+      analysisCompleted: 112, updatePrepared: 115, updatePublished: 120 },
+    audioTimeSeconds: { sessionAtAnalysisStart: 1, sessionAtPublication: 1.1,
+      historyDuration: 1, newestIncludedInput: 1 },
+  });
+
+test('passive LIVE diagnostics accept only built-in production records and retain bounded summaries', () => {
+  let wallMs = 120;
+  const probe = new LiveLatencyDiagnostics('test', () => wallMs);
+  probe.applicationStarted();
+  probe.bassStarted();
+  wallMs = 122; const bassRuntime = probe.bassComplete();
+  wallMs = 124; probe.published(bassRuntime);
+  probe.diagnostic(record(1, 'custom-override'));
+  assert.equal(probe.runs.length, 0);
+  probe.diagnostic(record(1));
+  wallMs = 130; probe.observed();
+  assert.deepEqual({ ...probe.runs[0], record: undefined }, {
+    record: undefined, scheduleWaitMs: 3, analysisRuntimeMs: 7,
+    updatePreparationMs: 3, publicationOverheadMs: 5, requestToPublicationMs: 20,
+    historyDurationMs: 1000, coalescedRequestCount: 2, bassRuntimeMs: 2,
+    applicationOverheadMs: 4, uiObservationWaitMs: 10,
+  });
+  assert.equal('newestBlockAgeMs' in probe.runs[0], false);
+  for (let index = 2; index <= 131; index += 1) probe.diagnostic(record(index));
+  assert.equal(probe.runs.length, 128);
+  assert.equal(probe.summary().analysisRuntimeMs?.count, 128);
 });
