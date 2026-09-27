@@ -5,6 +5,7 @@ import type { InstrumentActions } from '../contracts.ts';
 import type { LiveInputState } from '../../audio-source-browser/index.ts';
 import type { PerformanceFullscreenState } from './performanceFullscreen';
 import { MotionControls, type MotionControlsProps } from './MotionControls';
+import { RepresentationControls, type RepresentationControlsProps } from '../representations/RepresentationControls.tsx';
 
 export type SignalPlaybackProps = Readonly<{
   transport: BrowserTransportState;
@@ -19,6 +20,7 @@ export type SignalPlaybackProps = Readonly<{
   compact?: boolean;
   fullscreen?: PerformanceFullscreenState & Readonly<{ toggle(): void }>;
   motion?: MotionControlsProps;
+  representation?: RepresentationControlsProps;
 }>;
 
 function clockTime(value: number) {
@@ -28,7 +30,8 @@ function clockTime(value: number) {
 }
 
 export function SignalPlayback({ transport, preparation, actions, onChooseAudio, onUseFixture,
-  liveInput, onStartLive, onStopLive, onSelectLiveInput, compact = false, fullscreen, motion }: SignalPlaybackProps) {
+  liveInput, onStartLive, onStopLive, onSelectLiveInput, compact = false, fullscreen, motion,
+  representation }: SignalPlaybackProps) {
   const inputId = useId();
   const seekId = useId();
   const inputMenuId = useId();
@@ -36,6 +39,7 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
   const liveButtonRef = useRef<HTMLButtonElement>(null);
   const stopButtonRef = useRef<HTMLButtonElement>(null);
   const motionControls = motion ? <MotionControls {...motion} /> : null;
+  const representationControls = representation ? <RepresentationControls {...representation} /> : null;
   useEffect(() => {
     if (liveInput.status === 'LIVE') stopButtonRef.current?.focus();
   }, [liveInput.status]);
@@ -137,6 +141,7 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
     <div className="signal-playback-listening" role="group" aria-label="Listening">
       <span className="signal-source-status" role="status">{sourceStatus}</span>
       {motionControls}
+      {representationControls}
     </div>
     <div className="signal-playback-timeline" role="group" aria-label="Timeline">
     {liveMode ? <div className="signal-live-command" aria-label="Live listening session">
@@ -160,7 +165,7 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
   if (liveMode) return <section className="signal-playback" aria-label="Live input">
     <header><h1>Live input</h1><p>{liveLabel}</p></header>
     <div className="signal-playback-source">{deviceSelector}</div>
-    <div className="signal-playback-actions"><button onClick={onStopLive}>Stop</button>{motionControls}</div>
+    <div className="signal-playback-actions"><button onClick={onStopLive}>Stop</button>{motionControls}{representationControls}</div>
     <output aria-label="Live session time">LIVE {clockTime(transport.time)}</output>
   </section>;
 
@@ -188,6 +193,7 @@ export function SignalPlayback({ transport, preparation, actions, onChooseAudio,
       <button disabled={!transport.playing} onClick={actions.pause}>Pause</button>
       <button onClick={actions.restart}>Restart</button>
       {motionControls}
+      {representationControls}
     </div>
     <label className="signal-playback-position" htmlFor={seekId}>Position · {transport.time.toFixed(1)} / {transport.duration}s</label>
     <input id={seekId} className="signal-playback-range" type="range" min="0" max={transport.duration} step="0.1"

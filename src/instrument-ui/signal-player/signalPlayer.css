@@ -33,6 +33,7 @@
 }
 .signal-player *, .signal-player *::before, .signal-player *::after { box-sizing: border-box; }
 .signal-player[data-composition='performance'] { padding-block: 1rem; }
+.signal-player[data-composition='performance'][data-visual-representation='glyph-field'] { min-height: 100dvh; }
 .signal-player[data-fullscreen='true'] {
   width: 100vw;
   height: 100dvh;
@@ -97,6 +98,28 @@
   align-items: flex-end;
   gap: .2rem;
   min-width: 0;
+}
+.signal-representation-controls {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .42rem;
+  min-width: 0;
+  color: var(--signal-player-muted);
+  font: 700 .58rem/1.4 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  white-space: nowrap;
+}
+.signal-representation-label { color: var(--signal-player-secondary); letter-spacing: .07em; }
+.signal-representation-choice { display: inline-flex; align-items: baseline; gap: .42rem; }
+.signal-representation-separator { color: var(--signal-player-border); }
+.signal-playback--compact .signal-representation-controls button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--signal-player-muted);
+  font: inherit;
+}
+.signal-playback--compact .signal-representation-controls button[aria-pressed='true'] {
+  color: var(--performance-active);
 }
 .signal-input-device {
   max-width: min(18rem, 28vw);
@@ -295,7 +318,8 @@
   .signal-playback--compact .signal-playback-actions { flex-wrap: wrap; }
   .signal-playback--compact .signal-playback-actions button,
   .signal-playback--compact .signal-input-menu button,
-  .signal-playback--compact .signal-motion-controls button {
+  .signal-playback--compact .signal-motion-controls button,
+  .signal-playback--compact .signal-representation-controls button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -310,6 +334,7 @@
     min-height: 44px;
   }
   .signal-playback--compact .signal-motion-controls { flex-wrap: wrap; gap: 0; max-width: 100%; }
+  .signal-playback--compact .signal-representation-controls { flex-wrap: wrap; gap: 0 .42rem; max-width: 100%; }
   .signal-playback--compact .signal-motion-mode { align-items: center; }
   .signal-playback-listening { align-items: flex-start; }
   .signal-playback-timeline { margin-bottom: .42rem; }

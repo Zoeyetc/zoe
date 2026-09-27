@@ -1,0 +1,202 @@
+.glyph-field-console {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: calc(100dvh - 6.5rem);
+  overflow: clip;
+  color: var(--signal-primary);
+  font-family: var(--signal-font-mono);
+}
+
+.glyph-field-heading {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 1rem;
+  margin-bottom: 0;
+  padding: .22rem 0 .32rem;
+  border-bottom-color: var(--signal-guide);
+}
+.glyph-field-heading .signal-models-label {
+  color: var(--signal-muted-text);
+  font: 750 .66rem/1.25 var(--signal-font-mono);
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+.glyph-field-heading > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--signal-label);
+  font-size: .55rem;
+  text-align: right;
+  letter-spacing: .05em;
+}
+
+.glyph-record-navigation {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: .45rem;
+  min-height: 1.8rem;
+  color: var(--signal-muted);
+  font-size: .5rem;
+  letter-spacing: .08em;
+}
+.glyph-record-navigation > span:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--signal-guide);
+  white-space: nowrap;
+}
+.glyph-record-navigation button {
+  min-height: 1.5rem;
+  padding: .15rem 0 .15rem .35rem;
+  border: 0;
+  background: transparent;
+  color: var(--performance-active);
+  font: 700 .5rem/1 var(--signal-font-mono);
+  letter-spacing: .08em;
+  cursor: pointer;
+}
+.glyph-record-navigation button:hover { color: var(--performance-active-strong); }
+.glyph-record-navigation button:focus-visible { outline: 1px solid var(--performance-active); outline-offset: 2px; }
+
+.glyph-record-viewport {
+  position: relative;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-block: 1px solid var(--signal-guide);
+  overscroll-behavior-inline: contain;
+  scrollbar-color: var(--signal-guide) transparent;
+  scrollbar-width: thin;
+  touch-action: pan-x;
+}
+.glyph-record-viewport:focus-visible { outline: 1px solid var(--performance-active); outline-offset: -1px; }
+.glyph-record-surface {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(17rem, 1fr) 7.25rem;
+  width: var(--record-width);
+  min-width: 100%;
+  height: 100%;
+  min-height: 25rem;
+}
+.glyph-record-field {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background-image: linear-gradient(90deg, color-mix(in srgb, var(--signal-guide) 32%, transparent) 1px, transparent 1px);
+  background-size: 9rem 100%;
+}
+.glyph-record-field--bass { border-top: 1px solid var(--signal-guide); }
+.glyph-record-field h2 {
+  position: sticky;
+  z-index: 4;
+  top: 0;
+  left: .55rem;
+  display: inline-flex;
+  gap: .55rem;
+  margin: 0;
+  padding: .38rem .45rem;
+  background: color-mix(in srgb, var(--signal-background) 88%, transparent);
+  color: var(--signal-label);
+  font-size: .52rem;
+  line-height: 1;
+  letter-spacing: .1em;
+}
+.glyph-record-field h2 span { color: var(--signal-muted); font-weight: 500; }
+.glyph-record-glyph {
+  position: absolute;
+  z-index: 2;
+  top: var(--glyph-y);
+  left: var(--glyph-x);
+  max-width: 3.5rem;
+  color: var(--signal-evidence-strong);
+  font-size: .55rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 580;
+  line-height: 1;
+  opacity: var(--glyph-strength);
+  translate: -50% -50%;
+  white-space: nowrap;
+}
+.glyph-record-glyph[data-glyph-kind='selected'],
+.glyph-record-glyph[data-glyph-kind='bass-selected'] {
+  z-index: 3;
+  color: var(--performance-active-strong);
+  font-weight: 900;
+}
+.glyph-record-glyph[data-glyph-kind='selected']::before,
+.glyph-record-glyph[data-glyph-kind='bass-selected']::before { content: '['; color: var(--performance-active); }
+.glyph-record-glyph[data-glyph-kind='selected']::after,
+.glyph-record-glyph[data-glyph-kind='bass-selected']::after { content: ']'; color: var(--performance-active); }
+.glyph-record-glyph[data-glyph-kind='rejected'] { color: var(--signal-muted); font-weight: 800; }
+.glyph-record-glyph[data-glyph-kind='bass-candidate'] { color: var(--signal-secondary); }
+.glyph-record-path {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.glyph-record-path line {
+  fill: none;
+  stroke: color-mix(in srgb, var(--performance-active) 30%, transparent);
+  stroke-width: .7;
+  stroke-linecap: round;
+  stroke-dasharray: 1 3;
+  vector-effect: non-scaling-stroke;
+}
+.glyph-record-now {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  bottom: 0;
+  left: var(--record-now);
+  width: 1px;
+  background: var(--performance-active);
+  opacity: .7;
+  pointer-events: none;
+}
+.glyph-record-now::before {
+  position: absolute;
+  top: .4rem;
+  right: .28rem;
+  content: 'NOW';
+  color: var(--performance-active);
+  font: 700 .46rem/1 var(--signal-font-mono);
+  letter-spacing: .08em;
+  translate: 100% 0;
+  writing-mode: vertical-rl;
+}
+
+.glyph-record-inspector {
+  display: grid;
+  grid-template-columns: 10rem minmax(0, 1fr) minmax(0, 1fr);
+  min-width: 0;
+  min-height: 3.6rem;
+  gap: .5rem 1rem;
+  padding: .5rem 0 .2rem;
+  color: var(--signal-secondary);
+  font: 560 .52rem/1.45 var(--signal-font-mono);
+}
+.glyph-record-inspector > strong { color: var(--signal-label); letter-spacing: .06em; }
+.glyph-record-inspector > div { display: grid; min-width: 0; grid-template-columns: 3.8rem minmax(0, 1fr); gap: .08rem .45rem; }
+.glyph-record-inspector b { grid-row: 1 / span 2; color: var(--signal-label); }
+.glyph-record-inspector span { min-width: 0; overflow-wrap: anywhere; }
+.glyph-record-inspector[data-empty='true'] { grid-template-columns: 10rem minmax(0, 1fr); }
+
+@media (max-width: 699px) {
+  .glyph-field-console { min-height: calc(100dvh - 14rem); }
+  .glyph-field-heading { grid-template-columns: minmax(0, 1fr); row-gap: .2rem; }
+  .glyph-field-heading > span:last-child { text-align: left; }
+  .glyph-record-navigation { position: relative; min-height: 2.75rem; padding-right: 0; }
+  .glyph-record-navigation button { min-height: 44px; }
+  .glyph-record-viewport { width: 100%; touch-action: pan-x; }
+  .glyph-record-surface { grid-template-rows: 19rem 8rem; min-height: 27rem; }
+  .glyph-record-glyph { font-size: .52rem; }
+  .glyph-record-inspector { grid-template-columns: minmax(0, 1fr); min-height: 7.6rem; }
+  .glyph-record-inspector > div { grid-template-columns: 3.4rem minmax(0, 1fr); }
+}

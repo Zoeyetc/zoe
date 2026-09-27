@@ -11,6 +11,9 @@ import { createPerformanceFullscreenController, type PerformanceFullscreenState 
 import { MotionLayer } from './MotionStudy';
 import { MotionMode } from './MotionMode';
 import { motionModeRenderers } from './motionModeRenderers';
+import { GlyphFieldRenderer } from '../representations/GlyphFieldRenderer.tsx';
+import { VisualRepresentation } from '../representations/VisualRepresentation.ts';
+import type { PersistentListeningRecord } from '../representations/ListeningRecord.ts';
 
 export type SignalPlayerProps = Readonly<{
   title?: string;
@@ -33,12 +36,16 @@ export type SignalPlayerProps = Readonly<{
   onMotionChange?(mode: MotionMode): void;
   motionEnabled?: boolean;
   onMotionEnabledChange?(enabled: boolean): void;
+  representation?: VisualRepresentation;
+  onRepresentationChange?(representation: VisualRepresentation): void;
+  listeningRecord?: PersistentListeningRecord;
 }>;
 
 export function SignalPlayer({ title, nameplateDescription, transport, preparation, actions, onChooseAudio, onUseFixture,
   liveInput, onStartLive, onStopLive, onSelectLiveInput,
   observe, interpretation, events, composition, performanceFullscreen = false, motion = MotionMode.Instrument, onMotionChange,
-  motionEnabled = true, onMotionEnabledChange }: SignalPlayerProps) {
+  motionEnabled = true, onMotionEnabledChange, representation = VisualRepresentation.Original,
+  onRepresentationChange, listeningRecord }: SignalPlayerProps) {
   const rootRef = useRef<HTMLElement>(null);
   const fullscreenRef = useRef<ReturnType<typeof createPerformanceFullscreenController> | null>(null);
   const [fullscreen, setFullscreen] = useState<PerformanceFullscreenState>({ active: false, supported: false, error: null });
@@ -50,6 +57,7 @@ export function SignalPlayer({ title, nameplateDescription, transport, preparati
   }, [performanceFullscreen]);
   return <main ref={rootRef} className="signal-player" aria-label={title ?? 'Signal player'}
     data-composition={composition} data-fullscreen={fullscreen.active} data-motion-mode={motion} data-motion-enabled={motionEnabled}
+    data-visual-representation={representation}
     data-motion-dividers={motionEnabled && motionModeRenderers[motion].replacesDividers ? 'replace' : 'preserve'}>
     {title && composition !== 'performance'
       ? <header className="signal-player-heading"><h1>{title}</h1></header> : null}
@@ -59,10 +67,13 @@ export function SignalPlayer({ title, nameplateDescription, transport, preparati
       compact={composition === 'performance'}
       motion={onMotionChange && onMotionEnabledChange
         ? { mode: motion, enabled: motionEnabled, select: onMotionChange, setEnabled: onMotionEnabledChange } : undefined}
+      representation={onRepresentationChange ? { representation, select: onRepresentationChange } : undefined}
       fullscreen={performanceFullscreen ? { ...fullscreen, toggle: () => void fullscreenRef.current?.toggle() } : undefined} />
-    <SignalConsole observe={observe} interpretation={interpretation} events={events} composition={composition}
-      nameplate={composition === 'performance' && title
-        ? { name: title, description: nameplateDescription ?? '' } : undefined} />
+    {representation === VisualRepresentation.Original
+      ? <SignalConsole observe={observe} interpretation={interpretation} events={events} composition={composition}
+        nameplate={composition === 'performance' && title
+          ? { name: title, description: nameplateDescription ?? '' } : undefined} />
+      : listeningRecord ? <GlyphFieldRenderer record={listeningRecord} /> : null}
     {!motionEnabled ? null : <MotionLayer rootRef={rootRef} mode={motion} observe={observe} events={events} />}
   </main>;
 }

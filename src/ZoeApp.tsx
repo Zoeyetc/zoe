@@ -11,10 +11,13 @@ import {
 import {
   SignalPlayer,
   MotionMode,
+  VisualRepresentation,
   type AudioPreparationState, type InstrumentDualPath, type InstrumentEvent, type InstrumentFrame,
-  type InstrumentListeningMap,
+  type InstrumentListeningMap, type SignalConsoleObservation,
 } from './instrument-ui/index.ts';
 import { markLiveUiObservation } from './audio-source-browser/live/liveLatencyDiagnostics.ts';
+import { createListeningRecordLifecycle,
+  createPersistentListeningRecord } from './instrument-ui/representations/ListeningRecord.ts';
 
 const emptyMap: InstrumentListeningMap = {
   id: 'zoe-empty', version: 1, duration: 1,
@@ -32,6 +35,9 @@ const makeFrame = (map: InstrumentListeningMap, transport: BrowserTransportState
 export function ZoeApp() {
   const [motion, setMotion] = useState<MotionMode>(MotionMode.Instrument);
   const [motionEnabled, setMotionEnabled] = useState(true);
+  const [representation, setRepresentation] = useState(VisualRepresentation.Original);
+  const [listeningRecord] = useState(createPersistentListeningRecord);
+  const [recordLifecycle] = useState(() => createListeningRecordLifecycle(listeningRecord));
   const listeningRef = useRef<InstrumentDualPath>(emptyDualPath);
   const fileListeningRef = useRef<InstrumentDualPath>(emptyDualPath);
   const revisionRef = useRef(0);
@@ -47,6 +53,18 @@ export function ZoeApp() {
     duration: null, decodeState: 'idle', analysisState: 'idle', error: null, requestId: 0 });
   const requestRef = useRef(0);
   const liveControllerRef = useRef<ReturnType<typeof createLiveAudioInputController> | null>(null);
+  const observationAt = useCallback((nextTransport: BrowserTransportState): SignalConsoleObservation => ({
+    mapRevision: revisionRef.current, transport: nextTransport,
+    audioMap: listeningRef.current.listeningMap,
+    melodyEvidence: selectMelodyEvidenceForTransport(listeningRef.current.listeningMap.melodyEvidence, nextTransport),
+    bassEvidence: listeningRef.current.bassEvidence,
+    bassSnapshot: listeningRef.current.bassEvidence
+      ? lookupBassSnapshot(listeningRef.current.bassEvidence, liveRef.current?.status === 'LIVE'
+        ? Math.min(nextTransport.time,
+          listeningRef.current.bassEvidence.frames.at(-1)?.time ?? nextTransport.time)
+        : nextTransport.time) : null,
+    live: liveRef.current?.status === 'LIVE' || liveRef.current?.status === 'REQUESTING' ? liveRef.current : null,
+  }), []);
   const restoreFile = useCallback(() => {
     const nextListening = fileListeningRef.current;
     const map = nextListening.listeningMap;
@@ -58,11 +76,12 @@ export function ZoeApp() {
   }, []);
   const sync = useCallback((nextTransport: BrowserTransportState, events: readonly InstrumentEvent[] = []) => {
     transportRef.current = nextTransport;
+    listeningRecord.capture(observationAt(nextTransport));
     const generic = timelineRef.current.synchronize(nextTransport.time);
     const next = makeFrame(listeningRef.current.listeningMap, nextTransport, [...generic.events, ...events]);
     if (events.length) recentRef.current = [...recentRef.current, ...events].slice(-8);
     setTransport(nextTransport); setFrame(next);
-  }, []);
+  }, [listeningRecord, observationAt]);
   useEffect(() => {
     const controller = createLiveAudioInputController({
       onState(next) {
@@ -76,6 +95,8 @@ export function ZoeApp() {
         const map: InstrumentListeningMap = { ...update.map, id: `live-input-${update.sessionId}`, source: update.source };
         listeningRef.current = { listeningMap: map, bassEvidence: update.bassEvidence };
         revisionRef.current += 1; transportRef.current = update.transport;
+        recordLifecycle.activateLive({ id: map.id, kind: 'live-input', label: update.source.deviceLabel ?? 'LIVE INPUT' });
+        listeningRecord.capture(observationAt(update.transport));
         const generic = timelineRef.current.replaceMap(map, map.id, update.transport.time);
         const next = makeFrame(map, update.transport, update.events);
         recentRef.current = [...recentRef.current, ...generic.events, ...update.events].slice(-8);
@@ -89,19 +110,21 @@ export function ZoeApp() {
       playbackRef.current?.dispose();
       void controller.dispose();
     };
-  }, [restoreFile]);
+  }, [listeningRecord, observationAt, recordLifecycle, restoreFile]);
   useEffect(() => {
     const timer = window.setInterval(() => {
       const source = playbackRef.current;
       if (!source || liveRef.current?.status === 'LIVE') return;
       const nextTransport = source.read();
+      if (nextTransport.playing) recordLifecycle.activateSelectedFile();
       const generic = timelineRef.current.read(nextTransport.time);
       transportRef.current = nextTransport;
+      listeningRecord.capture(observationAt(nextTransport));
       if (generic.events.length) recentRef.current = [...recentRef.current, ...generic.events].slice(-8);
       setTransport(nextTransport); setFrame(makeFrame(listeningRef.current.listeningMap, nextTransport, generic.events));
     }, 42);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [listeningRecord, observationAt, recordLifecycle]);
   const chooseAudio = useCallback((file: File) => {
     const requestId = ++requestRef.current;
     setPreparation({ sourceMode: 'real-audio', filename: file.name, duration: null, decodeState: 'decoding', analysisState: 'idle', error: null, requestId });
@@ -130,8 +153,12 @@ export function ZoeApp() {
           playbackRef.current = createAudioBufferPlaybackTransport(context, buffer);
         }
         fileListeningRef.current = listening; listeningRef.current = listening; revisionRef.current += 1;
+        recordLifecycle.selectFile({ id: map.id, kind: 'file', label: file.name });
         timelineRef.current.replaceMap(map, map.id, 0);
-        setPreparation(p => ({ ...p, analysisState: 'ready' })); sync(playbackRef.current.read());
+        const next = playbackRef.current.read();
+        transportRef.current = next;
+        setPreparation(p => ({ ...p, analysisState: 'ready' }));
+        setTransport(next); setFrame(makeFrame(map, next));
       } catch (error) {
         void context.close();
         setPreparation(p => ({ ...p, decodeState: p.decodeState === 'decoding' ? 'error' : p.decodeState,
@@ -139,11 +166,25 @@ export function ZoeApp() {
           error: error instanceof Error ? error.message : 'Audio preparation failed' }));
       }
     });
-  }, [sync]);
+  }, [recordLifecycle]);
   const actions = {
-    play() { playbackRef.current?.play(); }, pause() { playbackRef.current?.pause(); },
+    play() {
+      const source = playbackRef.current;
+      if (!source) return;
+      source.play();
+      recordLifecycle.activateSelectedFile();
+    },
+    pause() { playbackRef.current?.pause(); },
     seek(time: number) { const from = transportRef.current.time; playbackRef.current?.seek(time); const next = playbackRef.current?.read() ?? transportRef.current; sync(next, [{ type: 'seek', from, to: next.time }]); },
-    restart() { const from = transportRef.current.time; playbackRef.current?.restart(); const next = playbackRef.current?.read() ?? transportRef.current; sync(next, [{ type: 'seek', from, to: next.time }]); },
+    restart() {
+      const source = playbackRef.current;
+      if (!source) return;
+      const from = transportRef.current.time;
+      source.restart(); source.play();
+      recordLifecycle.activateSelectedFile();
+      const next = source.read();
+      sync(next, [{ type: 'seek', from, to: next.time }]);
+    },
   };
   const useReference = useCallback(() => {
     requestRef.current += 1;
@@ -152,29 +193,24 @@ export function ZoeApp() {
       void liveControllerRef.current?.stop();
     }
     fileListeningRef.current = emptyDualPath; listeningRef.current = emptyDualPath; revisionRef.current += 1;
+    recordLifecycle.clearFileSelection();
+    listeningRecord.beginSession({ id: emptyMap.id, kind: 'fixture', label: 'REFERENCE' });
     timelineRef.current.replaceMap(emptyMap, emptyMap.id, 0);
     recentRef.current = [];
     setPreparation({ sourceMode: 'fixture', filename: null, duration: null, decodeState: 'idle',
       analysisState: 'idle', error: null, requestId: requestRef.current });
     sync(stopped);
-  }, [sync]);
+  }, [listeningRecord, recordLifecycle, sync]);
   const startLive = (deviceId: string | null) => { playbackRef.current?.pause(); void liveControllerRef.current?.start(deviceId); };
   const stopLive = () => { void liveControllerRef.current?.stop(); };
   return <SignalPlayer title="Zoë" nameplateDescription="Computational Listening Instrument"
     transport={transport} preparation={preparation} actions={actions}
     onChooseAudio={chooseAudio} onUseFixture={useReference} liveInput={liveState}
     onStartLive={startLive} onStopLive={stopLive} onSelectLiveInput={deviceId => startLive(deviceId || null)}
-    observe={() => { if (import.meta.env?.DEV) markLiveUiObservation(); return ({ mapRevision: revisionRef.current, transport: transportRef.current,
-      audioMap: listeningRef.current.listeningMap,
-      melodyEvidence: selectMelodyEvidenceForTransport(listeningRef.current.listeningMap.melodyEvidence, transportRef.current),
-      bassEvidence: listeningRef.current.bassEvidence,
-      bassSnapshot: listeningRef.current.bassEvidence
-        ? lookupBassSnapshot(listeningRef.current.bassEvidence, liveRef.current?.status === 'LIVE'
-          ? Math.min(transportRef.current.time,
-            listeningRef.current.bassEvidence.frames.at(-1)?.time ?? transportRef.current.time)
-          : transportRef.current.time) : null,
-      live: liveRef.current?.status === 'LIVE' || liveRef.current?.status === 'REQUESTING' ? liveRef.current : null }); }}
+    observe={() => { if (import.meta.env?.DEV) markLiveUiObservation(); return observationAt(transportRef.current); }}
+    listeningRecord={listeningRecord}
     interpretation={frame} events={recentRef.current} composition="performance" performanceFullscreen
     motion={motion} onMotionChange={setMotion}
-    motionEnabled={motionEnabled} onMotionEnabledChange={setMotionEnabled} />;
+    motionEnabled={motionEnabled} onMotionEnabledChange={setMotionEnabled}
+    representation={representation} onRepresentationChange={setRepresentation} />;
 }
