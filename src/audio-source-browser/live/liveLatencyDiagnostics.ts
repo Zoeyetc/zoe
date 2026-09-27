@@ -93,8 +93,8 @@ export class LiveLatencyDiagnostics {
 let active: LiveLatencyDiagnostics | null = null;
 export function setLiveLatencyDiagnostics(probe: LiveLatencyDiagnostics | null) {
   active = probe;
-  if (typeof window !== 'undefined') {
-    (window as Window & { __ZOE_LIVE_LATENCY__?: LiveLatencyDiagnostics | null }).__ZOE_LIVE_LATENCY__ = probe;
+  if (probe && typeof window !== 'undefined') {
+    (window as Window & { __ZOE_LIVE_LATENCY__?: LiveLatencyDiagnostics }).__ZOE_LIVE_LATENCY__ = probe;
   }
 }
 export function markLiveUiObservation() { active?.observed(); }
