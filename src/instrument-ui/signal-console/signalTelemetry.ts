@@ -4,6 +4,7 @@ import type {
 } from '../contracts.ts';
 import type { SignalConsoleObservation } from './types';
 import { selectBassPresentation, type BassPresentation } from './bassPresentation.ts';
+import { selectDrumPresentation, type DrumPresentation } from './drumPresentation.ts';
 import type { LiveInputState, LiveListenerStatus } from '../../audio-source-browser/index.ts';
 import { melodyEvidenceIndexAt, selectMelodyEvidence,
   selectMelodyEvidenceForTransport } from '@zoeyetc/computational-listening-engine';
@@ -51,6 +52,7 @@ export type SignalTelemetry = Readonly<{
   hearing: readonly HearingDomain[];
   melodyInspect: MelodyInspectTelemetry;
   bass: BassPresentation;
+  drum: DrumPresentation;
   primaryEvidence: Readonly<{
     sourceSystem: readonly SignalField[];
     signal: Readonly<{
@@ -301,10 +303,11 @@ export function signalPresentationKey(observation: SignalConsoleObservation) {
   const { audioMap: map, transport, mapRevision } = observation;
   const ended = isSignalTransportEnded(transport);
   const indexes = retainedIndexes(map, transport.time, ended);
+  const drum = selectDrumPresentation(map.drumEvidence, transport.time, ended);
   return [mapRevision, map.id, transport.duration, transport.playing ? 1 : 0, ended ? 1 : 0,
     indexes.amplitude, indexes.spectrum, indexes.pitch, indexes.chroma, indexes.tonal, indexes.structure,
     indexes.melodyEvidence, observation.bassSnapshot?.time ?? 'no-bass',
-    observation.bassSnapshot?.reason ?? 'no-bass'].join(':');
+    observation.bassSnapshot?.reason ?? 'no-bass', drum.state, drum.attempt?.id ?? 'no-drum'].join(':');
 }
 
 const sourceFields = (map: InstrumentListeningMap, revision: number, live?: LiveInputState | null): readonly SignalField[] => [
@@ -501,6 +504,7 @@ export function selectSignalTelemetry(observation: SignalConsoleObservation): Si
     hearing: selectHearing(map, observation.live),
     melodyInspect: selectMelodyInspect(map, melodyEvidence, Boolean(observation.live)),
     bass: selectBassPresentation(observation.bassSnapshot, observation.bassEvidence),
+    drum: selectDrumPresentation(map.drumEvidence, transport.time, ended),
     primaryEvidence: {
       sourceSystem: sourceFields(map, mapRevision, observation.live),
       signal: {

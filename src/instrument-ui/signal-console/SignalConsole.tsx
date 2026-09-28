@@ -7,6 +7,7 @@ import { selectSignalTelemetry, signalPhraseGroups, signalPresentationKey,
 import type { SignalConsoleObservation } from './types';
 import { ListeningField } from './ListeningField';
 import type { BassPresentation } from './bassPresentation.ts';
+import type { DrumPresentation } from './drumPresentation.ts';
 import './signalConsole.css';
 
 export type SignalComposition = 'temporal-score' | 'listening-field' | 'listening-field-uncertainty' | 'performance';
@@ -197,6 +198,63 @@ function BassInspect({ bass, performance }: { bass: BassPresentation; performanc
   </details>;
 }
 
+const drumNumber = (value: number, digits = 3) => Number.isFinite(value) ? value.toFixed(digits) : '—';
+const drumLabel = (value: string) => value.replaceAll('_', ' ');
+
+function DrumInspect({ drum, performance }: { drum: DrumPresentation; performance: boolean }) {
+  const classified = drum.classifierEvidence !== null;
+  const selected = drum.state === 'SELECTED';
+  const stateLabel = selected && drum.selectedClass
+    ? `SELECTED · ${drumLabel(drum.selectedClass)}` : drumLabel(drum.state);
+  return <details className="signal-inspect signal-drum-inspect" data-signal-domain="drum-inspect"
+    data-inspect-format={performance ? 'performance' : 'forensic'} data-drum-state={drum.state}
+    open={performance || undefined}>
+    <summary>DRUM / INSPECT</summary>
+    <div className="signal-drum-stream">
+      <header className="signal-drum-decision">
+        <strong>{stateLabel}</strong><span>{drumLabel(drum.reason)}</span>
+      </header>
+      {drum.state === 'UNAVAILABLE' || drum.state === 'NO_EVENT' || drum.state === 'NO_CURRENT_ATTEMPT' ? null : <>
+        <section className="signal-drum-stratum" aria-label="Acoustic observation">
+          <h4>SOUND</h4>
+          <div className="signal-drum-metrics">
+            <span><i>ONSET</i><b>{drumNumber(drum.attempt?.acoustic.normalizedOnsetStrength ?? NaN)}</b></span>
+            <span><i>RMS</i><b>{drumNumber(drum.attempt?.acoustic.normalizedRms ?? NaN)}</b></span>
+            <span><i>BASELINE</i><b>{drumNumber(drum.attempt?.acoustic.localOnsetBaseline ?? NaN)}</b></span>
+            <span><i>THRESHOLD</i><b>{drumNumber(drum.attempt?.acoustic.appliedOnsetThreshold ?? NaN)}</b></span>
+            {drum.physicalEventStrength === null ? null
+              : <span data-drum-strength="true"><i>EVENT STRENGTH</i><b>{drumNumber(drum.physicalEventStrength)}</b></span>}
+          </div>
+        </section>
+        <section className="signal-drum-stratum" aria-label="Classifier interpretation">
+          <h4>INTERPRETATION <span>{classified ? '· EXPERIMENTAL · UNCALIBRATED' : '· NOT REACHED'}</span></h4>
+          {classified ? <>
+            <ol className="signal-drum-hypotheses">
+              {drum.hypotheses.map(hypothesis => <li key={hypothesis.kind}
+                data-drum-selected={drum.selectedClass === hypothesis.kind}
+                data-drum-leading={hypothesis.rank <= 2}>
+                <span className="signal-drum-rank">{hypothesis.rank}</span>
+                <strong>{drumLabel(hypothesis.kind)}</strong>
+                <span className="signal-drum-score-position" aria-hidden="true"><i
+                  style={{ '--drum-score': Math.max(0, Math.min(1, hypothesis.comparativeScore)) } as React.CSSProperties} /></span>
+                <span>{drumNumber(hypothesis.comparativeScore)}</span>
+              </li>)}
+            </ol>
+            <div className="signal-drum-classifier-metrics">
+              <span><i>MARGIN</i><b>{drumNumber(drum.classifierEvidence?.comparativeMargin ?? NaN)}</b></span>
+              <span><i>TRANSIENT QUALITY</i><b>{drumNumber(drum.classifierEvidence?.transientQuality ?? NaN)}</b></span>
+              <span><i>CONSISTENCY</i><b>{drumNumber(drum.classifierEvidence?.consistency ?? NaN)}</b></span>
+              <span><i>UNCALIBRATED CONFIDENCE</i><b>{drumNumber(drum.classifierEvidence?.uncalibratedConfidence ?? NaN)}</b></span>
+            </div>
+            {drum.ambiguityReasons.length ? <p className="signal-drum-ambiguity">AMBIGUITY&nbsp;
+              {drum.ambiguityReasons.map(drumLabel).join(' · ')}</p> : null}
+          </> : null}
+        </section>
+      </>}
+    </div>
+  </details>;
+}
+
 function eventText(event: InstrumentEvent) {
   if (event.type === 'seek') return `SEEK ${event.from.toFixed(3)} → ${event.to.toFixed(3)}`;
   return `${event.type.toUpperCase()} ${event.time.toFixed(3)}`;
@@ -364,6 +422,7 @@ export function SignalConsole({ observe, interpretation, events, composition = '
           acceptedConfidence={telemetry.ended ? '—' : snapshot.melody.confidence.toFixed(3)}
           defaultOpen={composition === 'performance'} performance={composition === 'performance'} />
         <BassInspect bass={telemetry.bass} performance={composition === 'performance'} />
+        <DrumInspect drum={telemetry.drum} performance={composition === 'performance'} />
         <details className="signal-inspect" data-signal-domain="recent-events"
           open={composition === 'performance' || undefined}>
           <summary>RECENT EVENTS</summary>

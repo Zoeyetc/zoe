@@ -546,12 +546,15 @@ test('Single-viewport performance format keeps core truth in one bounded desktop
   assert.ok(component.indexOf('<div className="signal-performance-band">')
     < component.indexOf('<footer className="signal-system-footer">'));
   assert.doesNotMatch(component, /data-signal-domain="source-system"[^>]*open=/);
-  assert.match(styles, /grid-template-rows: minmax\(0, 1fr\) 9rem;\s*block-size: 19rem/);
+  assert.match(styles, /grid-template-rows: minmax\(0, 1fr\) minmax\(0, 1fr\) 9rem;\s*block-size: 29rem/);
+  assert.match(component, /<DrumInspect drum=\{telemetry\.drum\}/);
   assert.match(component, /Array\.from\(\{ length: 8 \}, \(_, index\) => recentEvents\[index\] \?\? null\)/);
   assert.match(component, /<li key=\{index\} data-event-empty=\{event === null\}/);
   assert.match(styles, /grid-template-rows: repeat\(8, \.82rem\)/);
   assert.match(styles, /\.signal-bass-inspect-group \.signal-token \{[\s\S]*overflow-wrap: anywhere/);
   assert.match(styles, /\.signal-bass-inspect-group \.signal-token\[data-bass-active='true'\] \.signal-value/);
+  assert.match(styles, /data-drum-state='UNAVAILABLE'[^}]*\.signal-drum-decision strong \{\s*font-size: \.57rem;/);
+  assert.match(styles, /data-drum-state='UNAVAILABLE'[^}]*\.signal-drum-decision span \{\s*font-size: \.52rem;/);
   assert.match(styles, /data-inspect-format='performance'[\s\S]*grid-template-columns: 3\.25rem minmax\(0, 1fr\)/);
   assert.match(styles, /--performance-pitch-height: 9\.25rem/);
   assert.match(styles, /--performance-signal-height: 3rem/);
