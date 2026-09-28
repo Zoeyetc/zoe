@@ -16,6 +16,9 @@ test('published dual-path analysis preserves the existing Melody map and returns
   const dual = analyzeDualPathListening(pcm);
 
   assert.deepEqual(dual.listeningMap, previous);
+  assert.equal(dual.listeningMap.drumEvidence?.version, 1);
+  assert.equal(dual.listeningMap.drumEvidence?.experimental, true);
+  assert.equal(dual.listeningMap.drumEvidence?.calibration, 'UNCALIBRATED');
   assert.ok(dual.bassEvidence.frames.length > 0);
   assert.equal(dual.bassEvidence.path.selectedCandidateIndexes.length, dual.bassEvidence.frames.length);
   const bass = lookupBassSnapshot(dual.bassEvidence, 1);

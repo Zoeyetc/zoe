@@ -57,6 +57,9 @@ test('deterministic injected PCM produces bounded rolling evidence without live 
   assert.ok(result.map.amplitude?.length);
   assert.ok(result.map.spectrum?.length);
   assert.ok(result.map.melodyEvidence?.frameCount);
+  assert.equal(result.map.drumEvidence?.version, 1);
+  assert.equal(result.map.drumEvidence?.experimental, true);
+  assert.equal(result.map.drumEvidence?.calibration, 'UNCALIBRATED');
   assert.ok(result.bassEvidence);
   assert.deepEqual(result.bassEvidence, analyzeBassFromMelodyEvidence(result.map.melodyEvidence!));
   assert.ok(Math.abs(result.bassEvidence.frames.at(-1)!.time
