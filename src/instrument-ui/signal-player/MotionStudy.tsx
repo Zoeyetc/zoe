@@ -3,12 +3,9 @@ import type { InstrumentEvent } from '../contracts.ts';
 import type { SignalConsoleObservation } from '../signal-console/types.ts';
 import { selectMotionStudySample } from './motionStudyEvidence.ts';
 import type { MotionMode } from './MotionMode.ts';
-import { MotionMode as Mode } from './MotionMode.ts';
 import { motionModeRenderers, type MotionRenderer } from './motionModeRenderers.ts';
-import { initialInstrumentMotion, stepInstrumentMotion } from './instrumentMotion.ts';
-import { initialMaterialMotion, stepMaterialMotion } from './materialMotion.ts';
-import { initialFieldMotion, stepFieldMotion } from './fieldMotion.ts';
-import { initialObservatoryMotion, stepObservatoryMotion } from './observatoryMotion.ts';
+import { initialMotionPolicyState, MOTION_POLICY_STATE_SCALAR_COUNT,
+  stepMotionPolicies } from './motionResponsePolicy.ts';
 import './motionStudy.css';
 
 type MotionLayerProps = Readonly<{
@@ -20,6 +17,7 @@ type MotionLayerProps = Readonly<{
 
 export function MotionLayer({ rootRef, mode, observe, events }: MotionLayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const policyStateRef = useRef(initialMotionPolicyState);
   const latestRef = useRef({ observe, events });
   latestRef.current = { observe, events };
 
@@ -64,46 +62,40 @@ export function MotionLayer({ rootRef, mode, observe, events }: MotionLayerProps
 
     let animationFrame = 0;
     let previousTime = 0;
-    let activity = 0;
-    let instrumentMotion = initialInstrumentMotion;
-    let materialMotion = initialMaterialMotion;
-    let fieldMotion = initialFieldMotion;
-    let observatoryMotion = initialObservatoryMotion;
     let sampleStart = 0;
     let sampleFrames = 0;
     let cpuTotal = 0;
+    let policyTotal = 0;
     const render = (now: number) => {
       const started = performance.now();
       const dt = previousTime ? Math.min(.1, (now - previousTime) / 1000) : 1 / 60;
       previousTime = now;
       const { observe: read, events: recent } = latestRef.current;
       const sample = selectMotionStudySample(read(), recent);
-      const target = renderer.target(sample);
-      if (mode === Mode.Instrument) {
-        instrumentMotion = stepInstrumentMotion(instrumentMotion, target, dt);
-        activity = instrumentMotion.activity;
-      } else if (mode === Mode.Material) {
-        materialMotion = stepMaterialMotion(materialMotion, sample, dt);
-        activity = materialMotion.activity;
-      } else if (mode === Mode.Field) {
-        fieldMotion = stepFieldMotion(fieldMotion, sample, dt);
-        activity = fieldMotion.confidence;
-      } else {
-        observatoryMotion = stepObservatoryMotion(observatoryMotion, sample, dt);
-        activity = observatoryMotion.activity;
-      }
-      const gpuMilliseconds = renderer.draw(geometry, activity, sample.progress);
+      const policyStarted = performance.now();
+      const stepped = stepMotionPolicies(policyStateRef.current, sample, dt);
+      policyStateRef.current = stepped.state;
+      const response = stepped.responses[mode];
+      policyTotal += performance.now() - policyStarted;
+      const gpuMilliseconds = renderer.draw(geometry, response, sample.progress);
       sampleFrames += 1;
       cpuTotal += performance.now() - started;
       if (!sampleStart) sampleStart = now;
       if (now - sampleStart >= 1000) {
         canvas.dataset.motionFps = (sampleFrames * 1000 / (now - sampleStart)).toFixed(1);
         canvas.dataset.motionCpuMs = (cpuTotal / sampleFrames).toFixed(3);
+        canvas.dataset.motionPolicyMs = (policyTotal / sampleFrames).toFixed(3);
+        canvas.dataset.motionStateScalars = String(MOTION_POLICY_STATE_SCALAR_COUNT);
         canvas.dataset.motionGpuMs = gpuMilliseconds === null ? 'unavailable' : gpuMilliseconds.toFixed(3);
-        canvas.dataset.motionActivity = activity.toFixed(3);
+        canvas.dataset.motionActivity = response.activity.toFixed(3);
+        canvas.dataset.motionArticulation = response.articulation.toFixed(3);
+        canvas.dataset.motionMemory = response.memory.toFixed(3);
+        canvas.dataset.motionOrganization = response.organization.toFixed(3);
+        canvas.dataset.motionCommitment = response.commitment.toFixed(3);
         sampleStart = now;
         sampleFrames = 0;
         cpuTotal = 0;
+        policyTotal = 0;
       }
       animationFrame = requestAnimationFrame(render);
     };

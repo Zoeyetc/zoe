@@ -1,13 +1,12 @@
 import { MotionMode } from './MotionMode.ts';
-import { motionStudyTarget, type MotionStudySample, type MotionStudyVariant } from './motionStudyEvidence.ts';
+import type { MotionStudyVariant } from './motionStudyEvidence.ts';
 import { collectStudyGeometry, createMotionStudyRenderer, type StudyGeometry } from './motionStudyRenderer.ts';
+import type { MotionExpression } from './motionResponsePolicy.ts';
 
 export type MotionRenderer = {
   measure(): StudyGeometry;
   resize(geometry: StudyGeometry): void;
-  target(sample: MotionStudySample): number;
-  smoothingSeconds: number;
-  draw(geometry: StudyGeometry, activity: number, progress: number): number | null;
+  draw(geometry: StudyGeometry, response: MotionExpression, progress: number): number | null;
   dispose(): void;
 };
 
@@ -26,9 +25,7 @@ function studyRenderer(variant: MotionStudyVariant): MotionRendererDefinition {
       return {
         measure: () => collectStudyGeometry(root, variant),
         resize: renderer.resize,
-        target: sample => motionStudyTarget(variant, sample),
-        smoothingSeconds: variant === 'c' ? .8 : variant === 'a' ? .24 : .11,
-        draw: (geometry, activity, progress) => renderer.draw(variant, geometry, activity, progress),
+        draw: (geometry, response, progress) => renderer.draw(variant, geometry, response, progress),
         dispose: renderer.dispose,
       };
     },

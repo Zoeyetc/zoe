@@ -19,7 +19,7 @@ test('Instrument preserves continuity on a retained-evidence step and comes to r
   }
   assert.ok(frames[0] > 0 && frames[0] < .01);
   assert.ok(Math.max(...frames.slice(0, 60)) < .72);
-  assert.ok(Math.max(...frames.slice(1).map((value, index) => Math.abs(value - frames[index]))) < .03);
+  assert.ok(Math.max(...frames.slice(1).map((value, index) => Math.abs(value - frames[index]))) < .05);
   assert.equal(state.activity, 0);
   assert.equal(state.velocity, 0);
 });

@@ -1,4 +1,5 @@
 import type { MotionStudyVariant } from './motionStudyEvidence.ts';
+import type { MotionExpression } from './motionResponsePolicy.ts';
 
 export type StudyLine = Readonly<{ x: number; y: number; length: number; vertical: boolean }>;
 export type StudyGeometry = Readonly<{ width: number; height: number; lines: readonly StudyLine[] }>;
@@ -158,13 +159,12 @@ export function createMotionStudyRenderer(canvas: HTMLCanvasElement, root: HTMLE
         gl.viewport(0, 0, width, height);
       }
     },
-    draw(variant: MotionStudyVariant, geometry: StudyGeometry, activity: number, progress: number) {
+    draw(variant: MotionStudyVariant, geometry: StudyGeometry, response: MotionExpression, progress: number) {
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.useProgram(linked);
       gl.uniform2f(uniforms.u_viewport, geometry.width, geometry.height);
       gl.uniform3f(uniforms.u_color, ...color);
-      gl.uniform1f(uniforms.u_activity, activity);
       gl.uniform1f(uniforms.u_progress, progress);
       gl.uniform1f(uniforms.u_mode, variant === 'a' ? 0 : variant === 'b' ? 1 : 2);
       if (timer && pending && timer.getQueryObjectEXT(pending, timer.QUERY_RESULT_AVAILABLE_EXT)) {
@@ -182,11 +182,20 @@ export function createMotionStudyRenderer(canvas: HTMLCanvasElement, root: HTMLE
           measuringGpu = true;
         }
       }
-      for (const line of geometry.lines) {
-        const thickness = variant === 'b' ? 9 : variant === 'c' ? 2 + activity * 4 : 4;
+      for (let index = 0; index < geometry.lines.length; index += 1) {
+        const line = geometry.lines[index];
+        const localWeight = .72 + .28 * Math.sin((index + 1) * 1.73) ** 2;
+        const coordinatedWeight = localWeight + (1 - localWeight) * response.organization;
+        const activity = Math.min(1, response.activity * coordinatedWeight);
+        const thickness = variant === 'b' ? 9 : variant === 'c' ? 2 + activity * 4
+          : 3.2 + response.memory * 3.4 + response.commitment * .8;
+        const direction = index % 2 === 0 ? 1 : -1;
+        const displacement = direction * (response.articulation * 1.4 + response.memory * 3.2)
+          * (1 - response.organization * .55);
         const rect = line.vertical
-          ? [line.x - thickness / 2, line.y, thickness, line.length]
-          : [line.x, line.y - thickness / 2, line.length, thickness];
+          ? [line.x - thickness / 2 + displacement, line.y, thickness, line.length]
+          : [line.x, line.y - thickness / 2 + displacement, line.length, thickness];
+        gl.uniform1f(uniforms.u_activity, activity);
         gl.uniform4f(uniforms.u_rect, rect[0], rect[1], rect[2], rect[3]);
         gl.uniform1f(uniforms.u_vertical, line.vertical ? 1 : 0);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

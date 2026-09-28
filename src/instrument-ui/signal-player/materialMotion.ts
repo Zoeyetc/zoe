@@ -13,20 +13,26 @@ export const initialMaterialMotion: MaterialMotionState = {
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 
+/** Persistent accepted evidence loads the material; isolated impulses only make small deposits. */
+export function materialEvidenceDrive(sample: MotionStudySample) {
+  if (!sample.active) return 0;
+  const acceptedPersistence = clamp(sample.melodySupport * .38 + sample.bassSupport * .3
+    + sample.harmonySupport * .14 + sample.tonalSupport * .1 + sample.level * .55);
+  const impulse = Math.max(sample.transient, sample.notePulse, sample.percussionPulse, sample.beat);
+  return clamp(acceptedPersistence * .86 + impulse * .34);
+}
+
 /** Store pressure from retained evidence, then let the divider deform and recover with inertia. */
 export function stepMaterialMotion(state: MaterialMotionState, sample: MotionStudySample, dt: number): MaterialMotionState {
-  const sustained = sample.active ? clamp((sample.level - .12) / .5) : 0;
-  const onset = sample.active ? clamp((sample.transient - .4) / .6) : 0;
-  const beat = sample.active ? clamp((sample.beat - .35) / .65) : 0;
-  const drive = clamp(sustained * .7 + onset * .4 + beat * .55);
+  const drive = materialEvidenceDrive(sample);
   const steps = Math.max(1, Math.ceil(Math.max(0, dt) / (1 / 120)));
   const step = Math.min(.1, Math.max(0, dt)) / steps;
   let { pressure, deformation, velocity } = state;
   for (let index = 0; index < steps; index += 1) {
-    pressure += (drive * .85 * (1 - pressure) - pressure * (drive > 0 ? .25 : .65)) * step;
+    pressure += (drive * .72 * (1 - pressure) - pressure * (drive > .04 ? .2 : .48)) * step;
     pressure = clamp(pressure);
     const target = Math.pow(clamp((pressure - .04) / .96), 1.3);
-    velocity += ((target - deformation) * 16 - velocity * 7.2) * step;
+    velocity += ((target - deformation) * 13 - velocity * 6.1) * step;
     deformation += velocity * step;
   }
   if (drive === 0 && pressure < .001) pressure = 0;

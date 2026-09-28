@@ -6,11 +6,8 @@ import { createAudioBufferPlaybackTransport, decodeLocalAudioFile, pcmFromAudioB
 import { analyzeDualPathListeningAsync } from '../../audio-source-browser/analyzeDualPathListeningAsync.ts';
 import type { InstrumentDualPath, InstrumentEvent, InstrumentListeningMap } from '../../instrument-ui/contracts.ts';
 import { selectBassPresentation } from '../../instrument-ui/signal-console/bassPresentation.ts';
-import { initialInstrumentMotion, stepInstrumentMotion } from '../../instrument-ui/signal-player/instrumentMotion.ts';
-import { initialMaterialMotion, stepMaterialMotion } from '../../instrument-ui/signal-player/materialMotion.ts';
-import { initialFieldMotion, stepFieldMotion } from '../../instrument-ui/signal-player/fieldMotion.ts';
-import { initialObservatoryMotion, stepObservatoryMotion } from '../../instrument-ui/signal-player/observatoryMotion.ts';
-import { selectMotionStudySample, motionStudyTarget } from '../../instrument-ui/signal-player/motionStudyEvidence.ts';
+import { initialMotionPolicyState, stepMotionPolicies } from '../../instrument-ui/signal-player/motionResponsePolicy.ts';
+import { selectMotionStudySample } from '../../instrument-ui/signal-player/motionStudyEvidence.ts';
 import { MotionMode, MOTION_MODES, MOTION_MODE_NAMES } from '../../instrument-ui/signal-player/MotionMode.ts';
 import { motionModeRenderers, type MotionRenderer } from '../../instrument-ui/signal-player/motionModeRenderers.ts';
 
@@ -98,10 +95,7 @@ export function ListeningComparison() {
     panels.forEach(panel => resize.observe(panel.root));
     measure();
 
-    let instrument = initialInstrumentMotion;
-    let material = initialMaterialMotion;
-    let field = initialFieldMotion;
-    let observatory = initialObservatoryMotion;
+    let policyState = initialMotionPolicyState;
     let lastSource: InstrumentListeningMap | null = listening.current?.listeningMap ?? null;
     let lastInterpretationRevision = interpretationRevision.current;
     let previousTime = 0;
@@ -114,10 +108,7 @@ export function ListeningComparison() {
       if (timeOutput.current) timeOutput.current.textContent = clock(transport.time);
       if (range.current) range.current.value = String(transport.time);
       if (currentMap !== lastSource || interpretationRevision.current !== lastInterpretationRevision) {
-        instrument = initialInstrumentMotion;
-        material = initialMaterialMotion;
-        field = initialFieldMotion;
-        observatory = initialObservatoryMotion;
+        policyState = initialMotionPolicyState;
         lastSource = currentMap;
         lastInterpretationRevision = interpretationRevision.current;
       }
@@ -125,8 +116,8 @@ export function ListeningComparison() {
         const melody = selectMelodyEvidenceForTransport(currentMap.melodyEvidence, transport);
         const accepted = lookupListeningSnapshot(currentMap, transport.time).melody;
         const bassEvidence = listening.current?.bassEvidence;
-        const bass = selectBassPresentation(bassEvidence ? lookupBassSnapshot(bassEvidence, transport.time) : null,
-          bassEvidence);
+        const bassSnapshot = bassEvidence ? lookupBassSnapshot(bassEvidence, transport.time) : null;
+        const bass = selectBassPresentation(bassSnapshot, bassEvidence);
         if (melodyOutput.current) melodyOutput.current.textContent = melody
           ? `PATH ${melody.selectedCandidateIndex ?? 'ABSTAIN'} · ${melody.reason} · CONF ${melody.finalConfidence.toFixed(3)} · ACCEPTED ${accepted.active ? accepted.noteName : '—'}`
           : 'NO MELODY EVIDENCE';
@@ -139,27 +130,21 @@ export function ListeningComparison() {
           : 'NO CANDIDATES';
         const next = timeline.current.read(transport.time);
         if (next.events.length) recentEvents.current = [...recentEvents.current, ...next.events].slice(-8);
-        const sample = selectMotionStudySample({ mapRevision: 0, transport, audioMap: currentMap }, recentEvents.current);
+        const sample = selectMotionStudySample({ mapRevision: 0, transport, audioMap: currentMap,
+          melodyEvidence: melody, bassEvidence, bassSnapshot }, recentEvents.current);
         // One retained-evidence sample and one transport timestamp feed every panel in this frame.
-        instrument = stepInstrumentMotion(instrument, motionStudyTarget('a', sample), dt);
-        material = stepMaterialMotion(material, sample, dt);
-        field = stepFieldMotion(field, sample, dt);
-        observatory = stepObservatoryMotion(observatory, sample, dt);
-        const activities: Record<MotionMode, number> = {
-          [MotionMode.Instrument]: instrument.activity,
-          [MotionMode.Material]: material.activity,
-          [MotionMode.Field]: field.confidence,
-          [MotionMode.Observatory]: observatory.activity,
-        };
+        const stepped = stepMotionPolicies(policyState, sample, dt);
+        policyState = stepped.state;
         for (const panel of panels) {
-          const activity = activities[panel.mode];
+          const response = stepped.responses[panel.mode];
+          const activity = response.activity;
           panel.activity.textContent = activity.toFixed(3);
           panel.canvas.dataset.motionActivity = activity.toFixed(3);
           panel.canvas.dataset.evidenceTime = transport.time.toFixed(3);
           if (panel.mode === MotionMode.Observatory) {
-            panel.confirmation.textContent = observatory.confirmed ? 'CONFIRMED' : 'WAITING';
+            panel.confirmation.textContent = policyState.observatory.confirmed ? 'CONFIRMED' : 'WAITING';
           }
-          if (panel.renderer && panel.geometry) panel.renderer.draw(panel.geometry, activity, sample.progress);
+          if (panel.renderer && panel.geometry) panel.renderer.draw(panel.geometry, response, sample.progress);
         }
       }
       animationFrame = requestAnimationFrame(render);

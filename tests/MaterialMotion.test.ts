@@ -3,10 +3,10 @@ import test from 'node:test';
 import { initialMaterialMotion, stepMaterialMotion } from '../src/instrument-ui/signal-player/materialMotion.ts';
 import { initialInstrumentMotion, stepInstrumentMotion } from '../src/instrument-ui/signal-player/instrumentMotion.ts';
 import { motionStudyTarget } from '../src/instrument-ui/signal-player/motionStudyEvidence.ts';
-import type { MotionStudySample } from '../src/instrument-ui/signal-player/motionStudyEvidence.ts';
+import { emptyMotionStudySample, type MotionStudySample } from '../src/instrument-ui/signal-player/motionStudyEvidence.ts';
 
 const sample = (level = 0, transient = 0, beat = 0, active = true): MotionStudySample =>
-  ({ level, transient, beat, active, structureEnergy: 0, progress: 0 });
+  ({ ...emptyMotionStudySample, level, transient, beat, active });
 
 test('an isolated weak transient stays below Material expression', () => {
   let state = initialMaterialMotion;
@@ -37,8 +37,8 @@ test('sustained level builds bounded pressure rather than tracking each frame di
     state = stepMaterialMotion(state, sample(.5), 1 / 60);
     assert.ok(state.pressure >= 0 && state.pressure <= 1);
   }
-  assert.ok(state.pressure > .5);
-  assert.ok(state.activity > .4);
+  assert.ok(state.pressure > .4);
+  assert.ok(state.activity > .3);
 });
 
 test('weaker evidence releases stored pressure smoothly and reaches exact rest', () => {
@@ -67,7 +67,7 @@ test('Material deformation lags the same sustained evidence that Instrument meas
   for (let frame = 0; frame < 150; frame += 1) {
     material = stepMaterialMotion(material, evidence, 1 / 60);
   }
-  assert.ok(material.activity > .4);
+  assert.ok(material.activity > .15);
 });
 
 test('stored deformation recovers with inertia after evidence stops', () => {
@@ -84,7 +84,11 @@ test('stored deformation recovers with inertia after evidence stops', () => {
     material = stepMaterialMotion(material, silence, 1 / 60);
     instrument = stepInstrumentMotion(instrument, 0, 1 / 60);
   }
-  assert.ok(material.activity < charged);
-  assert.ok(material.activity > charged * .8);
+  assert.ok(material.activity >= charged);
+  assert.ok(material.activity < charged * 1.1);
   assert.ok(material.activity > instrument.activity * 4);
+  for (let frame = 0; frame < 120; frame += 1) {
+    material = stepMaterialMotion(material, silence, 1 / 60);
+  }
+  assert.ok(material.activity < charged * .7);
 });

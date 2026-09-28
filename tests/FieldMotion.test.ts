@@ -1,48 +1,61 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { fieldAgreement, initialFieldMotion, stepFieldMotion } from '../src/instrument-ui/signal-player/fieldMotion.ts';
-import type { MotionStudySample } from '../src/instrument-ui/signal-player/motionStudyEvidence.ts';
+import { fieldRelationships, initialFieldMotion, stepFieldMotion } from '../src/instrument-ui/signal-player/fieldMotion.ts';
+import { emptyMotionStudySample, type MotionStudySample } from '../src/instrument-ui/signal-player/motionStudyEvidence.ts';
 
-const sample = (level: number, transient: number, structureEnergy: number, beat: number,
-  active = true): MotionStudySample => ({ level, transient, structureEnergy, beat, active, progress: 0 });
+const sample = (overrides: Partial<MotionStudySample> = {}): MotionStudySample =>
+  ({ ...emptyMotionStudySample, active: true, ...overrides });
 
-test('high agreement yields high confidence, while partial agreement stays restrained', () => {
-  assert.ok(Math.abs(fieldAgreement(sample(.8, .8, .8, .8)) - .8) < 1e-12);
-  assert.ok(Math.abs(fieldAgreement(sample(.8, .8, 0, 0)) - .08) < 1e-12);
-  assert.ok(fieldAgreement(sample(.5, .5, .5, 1)) < fieldAgreement(sample(.5, .5, .5, .5)));
+const organized = sample({
+  melodySupport: .8, melodyIdentity: 'M:69', bassSupport: .8, bassIdentity: 'B:45',
+  rhythmSupport: .8, harmonySupport: .8, harmonyIdentity: 'H:A MINOR',
+  tonalSupport: .8, tonalIdentity: 'T:A MINOR', percussionActivity: .8,
+  interpretationKey: 'M:69|B:45|H:A MINOR|T:A MINOR',
 });
 
-test('isolated level or repeated beats never create strong Field motion', () => {
-  let levelState = initialFieldMotion;
-  let beatState = initialFieldMotion;
-  for (let frame = 0; frame < 600; frame += 1) {
-    levelState = stepFieldMotion(levelState, sample(1, 0, 0, 0), 1 / 60);
-    beatState = stepFieldMotion(beatState, sample(0, 0, 0, frame % 30 < 8 ? 1 : 0), 1 / 60);
+test('cross-domain support organizes Field more than one isolated relationship', () => {
+  const high = fieldRelationships(organized);
+  const partial = fieldRelationships(sample({ melodySupport: .8, melodyIdentity: 'M:69',
+    bassSupport: .8, bassIdentity: 'B:45', interpretationKey: 'M:69|B:45' }));
+  assert.ok(high.organization > partial.organization);
+  assert.ok(high.melodyBass > 0 && high.pitchedHarmony > 0 && high.harmonyTonal > 0);
+});
+
+test('isolated level, transient, or repeated beat never creates Field organization', () => {
+  for (const evidence of [sample({ level: 1 }), sample({ transient: 1 }), sample({ beat: 1 })]) {
+    let state = initialFieldMotion;
+    for (let frame = 0; frame < 600; frame += 1) state = stepFieldMotion(state, evidence, 1 / 60);
+    assert.equal(state.confidence, 0);
   }
-  assert.equal(levelState.confidence, 0);
-  assert.equal(beatState.confidence, 0);
 });
 
-test('disagreement withdraws confidence without creating extra activity', () => {
-  let state = initialFieldMotion;
-  for (let frame = 0; frame < 120; frame += 1) state = stepFieldMotion(state, sample(.8, .8, .8, .8), 1 / 60);
-  const agreed = state.confidence;
-  for (let frame = 0; frame < 60; frame += 1) {
-    const next = stepFieldMotion(state, sample(1, 0, 0, 0), 1 / 60);
-    assert.ok(next.confidence <= state.confidence);
-    state = next;
-  }
-  assert.ok(state.confidence < agreed / 8);
+test('competition restrains relationships without creating extra activity', () => {
+  const clear = fieldRelationships(organized);
+  const competing = fieldRelationships({ ...organized, melodyCompetition: .95, bassCompetition: .9,
+    harmonyCompetition: .9, tonalCompetition: .9 });
+  assert.ok(competing.organization < clear.organization * .6);
 });
 
-test('renewed agreement recovers confidence and inactive evidence returns to exact rest', () => {
+test('Bass abstention removes its relationship while broader organization can persist', () => {
+  const full = fieldRelationships(organized);
+  const withoutBass = fieldRelationships({ ...organized, bassSupport: 0, bassIdentity: null, bassAbstained: true,
+    interpretationKey: 'M:69|H:A MINOR|T:A MINOR' });
+  assert.equal(withoutBass.melodyBass, 0);
+  assert.ok(withoutBass.organization > 0);
+  assert.ok(withoutBass.organization < full.organization);
+});
+
+test('lost relationships withdraw confidence and renewed organization recovers', () => {
   let state = initialFieldMotion;
-  for (let frame = 0; frame < 60; frame += 1) state = stepFieldMotion(state, sample(.7, .7, .7, .7), 1 / 60);
+  for (let frame = 0; frame < 120; frame += 1) state = stepFieldMotion(state, organized, 1 / 60);
   const first = state.confidence;
-  for (let frame = 0; frame < 60; frame += 1) state = stepFieldMotion(state, sample(1, 0, 0, 0), 1 / 60);
-  const conflicted = state.confidence;
-  for (let frame = 0; frame < 60; frame += 1) state = stepFieldMotion(state, sample(.7, .7, .7, .7), 1 / 60);
-  assert.ok(conflicted < first && state.confidence > first * .9);
-  for (let frame = 0; frame < 240; frame += 1) state = stepFieldMotion(state, sample(.7, .7, .7, .7, false), 1 / 60);
+  for (let frame = 0; frame < 120; frame += 1) state = stepFieldMotion(state, sample({ level: 1 }), 1 / 60);
+  const withdrawn = state.confidence;
+  for (let frame = 0; frame < 120; frame += 1) state = stepFieldMotion(state, organized, 1 / 60);
+  assert.ok(withdrawn < first / 4);
+  assert.ok(state.confidence > first * .9);
+  for (let frame = 0; frame < 300; frame += 1) {
+    state = stepFieldMotion(state, emptyMotionStudySample, 1 / 60);
+  }
   assert.deepEqual(state, initialFieldMotion);
 });
