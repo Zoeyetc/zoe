@@ -546,8 +546,12 @@ test('Single-viewport performance format keeps core truth in one bounded desktop
   assert.ok(component.indexOf('<div className="signal-performance-band">')
     < component.indexOf('<footer className="signal-system-footer">'));
   assert.doesNotMatch(component, /data-signal-domain="source-system"[^>]*open=/);
-  assert.match(styles, /grid-template-rows: minmax\(0, 1fr\) minmax\(0, 1fr\) 9rem;\s*block-size: 29rem/);
+  assert.match(styles, /grid-template-rows: minmax\(0, 1fr\) 9rem;\s*block-size: 29rem/);
   assert.match(component, /<DrumInspect drum=\{telemetry\.drum\}/);
+  assert.match(component, /className="signal-secondary-inspection-column"/);
+  assert.match(component, /data-signal-domain="bass-inspect"[\s\S]*open=\{performance \|\| undefined\}/);
+  assert.match(styles, /signal-secondary-inspection-column \{[\s\S]*grid-template-rows: max-content max-content;[\s\S]*gap: \.45rem/);
+  assert.match(styles, /@media \(max-width: 900px\)[\s\S]*signal-secondary-inspection-column \{ display: contents; \}/);
   assert.match(component, /Array\.from\(\{ length: 8 \}, \(_, index\) => recentEvents\[index\] \?\? null\)/);
   assert.match(component, /<li key=\{index\} data-event-empty=\{event === null\}/);
   assert.match(styles, /grid-template-rows: repeat\(8, \.82rem\)/);

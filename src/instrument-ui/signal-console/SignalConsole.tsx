@@ -169,7 +169,7 @@ function BassInspect({ bass, performance }: { bass: BassPresentation; performanc
         </span>)}</span>
     </div>;
   return <details className="signal-inspect" data-signal-domain="bass-inspect"
-    data-inspect-format={performance ? 'performance' : 'forensic'}>
+    data-inspect-format={performance ? 'performance' : 'forensic'} open={performance || undefined}>
     <summary>BASS / INSPECT</summary>
     <div className="signal-inspect-stream" data-bass-state={bass.state}>
       {group('DEC', [
@@ -421,8 +421,10 @@ export function SignalConsole({ observe, interpretation, events, composition = '
           acceptedNote={telemetry.ended ? '—' : snapshot.melody.noteName ?? '—'}
           acceptedConfidence={telemetry.ended ? '—' : snapshot.melody.confidence.toFixed(3)}
           defaultOpen={composition === 'performance'} performance={composition === 'performance'} />
-        <BassInspect bass={telemetry.bass} performance={composition === 'performance'} />
-        <DrumInspect drum={telemetry.drum} performance={composition === 'performance'} />
+        <div className="signal-secondary-inspection-column">
+          <BassInspect bass={telemetry.bass} performance={composition === 'performance'} />
+          <DrumInspect drum={telemetry.drum} performance={composition === 'performance'} />
+        </div>
         <details className="signal-inspect" data-signal-domain="recent-events"
           open={composition === 'performance' || undefined}>
           <summary>RECENT EVENTS</summary>
